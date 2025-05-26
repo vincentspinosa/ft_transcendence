@@ -125,7 +125,7 @@ window.addEventListener('DOMContentLoaded', () => {
     matchOver_MainMenuBtn = document.getElementById('matchOver_MainMenuBtn') as HTMLButtonElement;
     tournamentEnd_MainMenuBtn = document.getElementById('tournamentEnd_MainMenuBtn') as HTMLButtonElement;
     startNewTournamentBtn = document.getElementById('startNewTournamentBtn') as HTMLButtonElement;
-    newGameSettingsFromSingleMatchOverBtn = document.getElementById('newGameSettingsBtn') as HTMLButtonElement;
+    //newGameSettingsFromSingleMatchOverBtn = document.getElementById('newGameSettingsBtn') as HTMLButtonElement;
 
     gameInstance = new Game(
         'pongCanvas',
@@ -149,11 +149,11 @@ window.addEventListener('DOMContentLoaded', () => {
     if (matchOver_MainMenuBtn) matchOver_MainMenuBtn.onclick = () => showScreen(initialChoiceScreen);
     if (tournamentEnd_MainMenuBtn) tournamentEnd_MainMenuBtn.onclick = () => showScreen(initialChoiceScreen);
     if (startNewTournamentBtn) startNewTournamentBtn.onclick = () => showScreen(tournamentSetupScreen);
-    if (newGameSettingsFromSingleMatchOverBtn) {
+    /* if (newGameSettingsFromSingleMatchOverBtn) {
         newGameSettingsFromSingleMatchOverBtn.onclick = () => {
             if (gameSetupScreen) showScreen(gameSetupScreen);
         };
-    }
+    } */
 
     if (s_settingsForm) {
         s_settingsForm.addEventListener('submit', (e) => {
@@ -268,7 +268,7 @@ window.addEventListener('DOMContentLoaded', () => {
         'singleMatchModeBtn', 'fourPlayerMatchModeBtn', 'tournamentModeBtn', 'readRulesBtn', 'rules_backToMainBtn',
         'settingsForm', 's_backToMainBtn', 'fourPlayerSettingsForm', 'fp_backToMainBtn', 'tournamentSettingsForm', 't_backToMainBtn',
         'matchOver_MainMenuBtn', 'tournamentEnd_MainMenuBtn', 'startNewTournamentBtn',
-        'newGameSettingsBtn', // This is the ID for newGameSettingsFromSingleMatchOverBtn
+        //'newGameSettingsBtn', // This is the ID for newGameSettingsFromSingleMatchOverBtn
         'announceMatchTitleText', 'announceMatchVersusText', 'announceMatchGoBtn',
         // Elements passed to Game constructor
         'matchOverMessage', 'playAgainBtn', 'singleMatchOverButtons', 'tournamentMatchOverButtons',
@@ -278,7 +278,7 @@ window.addEventListener('DOMContentLoaded', () => {
     
     const criticalElementsForCheck = criticalElementIds.map(id => document.getElementById(id));
     // Also include elements that are assigned directly without being in a list before
-    const otherCriticalElements = [pongCanvas, initialChoiceScreen, gameSetupScreen, fourPlayerMatchSetupScreen, tournamentSetupScreen, rulesScreen, matchOverScreen, tournamentWinnerScreen, matchAnnouncementScreen, singleMatchModeBtn, fourPlayerMatchModeBtn, tournamentModeBtn, readRulesBtn, rules_backToMainBtn, s_settingsForm, s_backToMainBtn, fp_settingsForm, fp_backToMainBtn, t_settingsForm, t_backToMainBtn, matchOver_MainMenuBtn, tournamentEnd_MainMenuBtn, startNewTournamentBtn, newGameSettingsFromSingleMatchOverBtn];
+    const otherCriticalElements = [pongCanvas, initialChoiceScreen, gameSetupScreen, fourPlayerMatchSetupScreen, tournamentSetupScreen, rulesScreen, matchOverScreen, tournamentWinnerScreen, matchAnnouncementScreen, singleMatchModeBtn, fourPlayerMatchModeBtn, tournamentModeBtn, readRulesBtn, rules_backToMainBtn, s_settingsForm, s_backToMainBtn, fp_settingsForm, fp_backToMainBtn, t_settingsForm, t_backToMainBtn, matchOver_MainMenuBtn, tournamentEnd_MainMenuBtn, startNewTournamentBtn/* , newGameSettingsFromSingleMatchOverBtn */];
 
 
     let allElementsFound = true;
