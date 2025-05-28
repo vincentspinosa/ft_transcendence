@@ -8,6 +8,7 @@ export class Game {
     private ctx: CanvasRenderingContext2D;
     private ball!: Ball;
     private gameLoopId: number | null = null;
+    private iterations: number= 0;
 
     // Game Mode and Player/Team Structures
     private gameMode: '2player' | '4player' | 'tournament' | null = null;
@@ -87,6 +88,7 @@ export class Game {
     }
 
     private handlePlayAgain(): void {
+        this.iterations = 0;
         if (this.singleMatchOverScreenDiv) this.hideElement(this.singleMatchOverScreenDiv);
         if (this.canvasElement) this.showElement(this.canvasElement);
 
@@ -461,7 +463,17 @@ export class Game {
 
     private gameLoop = (): void => {
         this.update(); this.draw();
-        if (!this.gameOver) this.gameLoopId = requestAnimationFrame(this.gameLoop);
+        this.iterations++;
+        if (this.iterations === 1)
+        {
+            setTimeout(() => {
+                if (!this.gameOver) this.gameLoopId = requestAnimationFrame(this.gameLoop);
+            }, 2000);
+        }
+        else
+        {
+            if (!this.gameOver) this.gameLoopId = requestAnimationFrame(this.gameLoop);
+        }
     }
 
     public start(): void {
