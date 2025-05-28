@@ -88,7 +88,6 @@ export class Game {
     }
 
     private handlePlayAgain(): void {
-        this.iterations = 0;
         if (this.singleMatchOverScreenDiv) this.hideElement(this.singleMatchOverScreenDiv);
         if (this.canvasElement) this.showElement(this.canvasElement);
 
@@ -477,6 +476,7 @@ export class Game {
     }
 
     public start(): void {
+        this.iterations = 0;
         if (this.gameLoopId) cancelAnimationFrame(this.gameLoopId);
         this.resetGameInternals(); // Use the internal reset method
         this.gameLoopId = requestAnimationFrame(this.gameLoop);
