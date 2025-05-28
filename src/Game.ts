@@ -194,7 +194,7 @@ export class Game {
                 if (this.keysPressed['Q']) this.team1Paddles[0].moveDown(this.canvasElement.height);
             }
             if (this.team1PlayerBConfig?.type === 'human' && this.team1Paddles[1]) {
-                if (this.keysPressed['W']) this.team1Paddles[1].moveUp();
+                if (this.keysPressed['Z']) this.team1Paddles[1].moveUp();
                 if (this.keysPressed['S']) this.team1Paddles[1].moveDown(this.canvasElement.height);
             }
             // Team 2 (Right)
