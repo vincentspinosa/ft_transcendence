@@ -1,2 +1,3 @@
-docker build -t pong .;
-docker run pong
+npm install;
+npm run build;
+npm start;
