@@ -3,10 +3,10 @@
   "version": "1.0.0",
   "description": "A simple Pong game in TypeScript",
   "main": "dist/Game.js",
-  "scripts": {
+ "scripts": {
     "build": "tsc && npx webpack --mode development",
     "watch": "tsc -w & npx webpack --watch --mode development",
-    "start": "npm run build && live-server ."
+    "start": "npm run build && live-server --host=0.0.0.0 ."
   },
   "keywords": [
     "pong",
