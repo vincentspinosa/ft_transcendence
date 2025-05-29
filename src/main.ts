@@ -25,6 +25,9 @@ let initialChoiceScreen: HTMLElement,
     tournamentWinnerScreen: HTMLElement,
     matchAnnouncementScreen: HTMLElement;
 
+// Map of screen IDs to their elements for easier navigation
+const screenElements: { [key: string]: HTMLElement | HTMLCanvasElement } = {};
+
 // Buttons and other elements
 let singleMatchModeBtn: HTMLButtonElement,
     fourPlayerMatchModeBtn: HTMLButtonElement,
@@ -36,11 +39,11 @@ let singleMatchModeBtn: HTMLButtonElement,
     t_settingsForm: HTMLFormElement, t_backToMainBtn: HTMLButtonElement,
     matchOver_MainMenuBtn: HTMLButtonElement,
     tournamentEnd_MainMenuBtn: HTMLButtonElement,
-    startNewTournamentBtn: HTMLButtonElement,
-    newGameSettingsFromSingleMatchOverBtn: HTMLButtonElement;
+    startNewTournamentBtn: HTMLButtonElement;
+    // newGameSettingsFromSingleMatchOverBtn: HTMLButtonElement; // Was commented out
 
 
-function showScreen(screenToShow: HTMLElement | null) {
+function showScreen(screenToShow: HTMLElement | HTMLCanvasElement | null) {
     const allScreens = [
         initialChoiceScreen, gameSetupScreen, fourPlayerMatchSetupScreen, tournamentSetupScreen,
         rulesScreen, pongCanvas, matchOverScreen, tournamentWinnerScreen, matchAnnouncementScreen
@@ -51,16 +54,40 @@ function showScreen(screenToShow: HTMLElement | null) {
 
     if (screenToShow) {
         if (screenToShow.id === 'pongCanvas') {
-            screenToShow.style.display = 'block';
+            screenToShow.style.display = 'block'; // Or 'flex' if canvas needs to be centered with other items
         } else if (['initialChoiceScreen', 'matchOverScreen', 'tournamentWinnerScreen', 'matchAnnouncementScreen'].includes(screenToShow.id)) {
             screenToShow.style.display = 'flex';
         } else if (['gameSetup', 'fourPlayerMatchSetupScreen', 'tournamentSetupScreen', 'rulesScreen'].includes(screenToShow.id)) {
             screenToShow.style.display = 'block';
         } else {
-            screenToShow.style.display = 'block';
+            screenToShow.style.display = 'block'; // Default display type
         }
     }
 }
+
+// New function to handle navigation and history
+function navigateTo(screenId: string | null, replaceState: boolean = false) {
+    const targetScreen = screenId ? screenElements[screenId] : screenElements['initialChoiceScreen'];
+
+    if (targetScreen) {
+        const currentHash = window.location.hash.substring(1);
+        if (currentHash !== screenId || replaceState) { // Only push state if it's different or forced replace
+            const state = { screenId: screenId || 'initialChoiceScreen' };
+            const title = screenId ? screenId.replace(/([A-Z])/g, ' $1').trim() : 'Main Menu'; // e.g. gameSetup -> Game Setup
+            
+            if (replaceState) {
+                history.replaceState(state, title, `#${screenId || 'initialChoiceScreen'}`);
+            } else {
+                history.pushState(state, title, `#${screenId || 'initialChoiceScreen'}`);
+            }
+        }
+        showScreen(targetScreen);
+    } else if (screenId !== 'pongCanvas') { // pongCanvas might not be in screenElements if handled separately
+        console.warn(`Screen with ID "${screenId}" not found for navigation. Defaulting to initial screen.`);
+        navigateTo('initialChoiceScreen', replaceState);
+    }
+}
+
 
 function getPlayerConfig(formPrefix: string, playerId: number, defaultName: string): PlayerConfig {
     const nameInput = document.getElementById(`${formPrefix}_p${playerId}Name`) as HTMLInputElement;
@@ -111,6 +138,18 @@ window.addEventListener('DOMContentLoaded', () => {
     tournamentWinnerScreen = document.getElementById('tournamentWinnerScreen') as HTMLElement;
     matchAnnouncementScreen = document.getElementById('matchAnnouncementScreen') as HTMLElement;
 
+    // Populate screenElements map
+    if (initialChoiceScreen) screenElements['initialChoiceScreen'] = initialChoiceScreen;
+    if (gameSetupScreen) screenElements['gameSetup'] = gameSetupScreen;
+    if (fourPlayerMatchSetupScreen) screenElements['fourPlayerMatchSetupScreen'] = fourPlayerMatchSetupScreen;
+    if (tournamentSetupScreen) screenElements['tournamentSetupScreen'] = tournamentSetupScreen;
+    if (rulesScreen) screenElements['rulesScreen'] = rulesScreen;
+    if (pongCanvas) screenElements['pongCanvas'] = pongCanvas; // Game logic will show this
+    if (matchOverScreen) screenElements['matchOverScreen'] = matchOverScreen; // Game logic will show this
+    if (tournamentWinnerScreen) screenElements['tournamentWinnerScreen'] = tournamentWinnerScreen; // Game logic will show this
+    if (matchAnnouncementScreen) screenElements['matchAnnouncementScreen'] = matchAnnouncementScreen; // Game logic will show this
+
+
     singleMatchModeBtn = document.getElementById('singleMatchModeBtn') as HTMLButtonElement;
     fourPlayerMatchModeBtn = document.getElementById('fourPlayerMatchModeBtn') as HTMLButtonElement;
     tournamentModeBtn = document.getElementById('tournamentModeBtn') as HTMLButtonElement;
@@ -125,36 +164,64 @@ window.addEventListener('DOMContentLoaded', () => {
     matchOver_MainMenuBtn = document.getElementById('matchOver_MainMenuBtn') as HTMLButtonElement;
     tournamentEnd_MainMenuBtn = document.getElementById('tournamentEnd_MainMenuBtn') as HTMLButtonElement;
     startNewTournamentBtn = document.getElementById('startNewTournamentBtn') as HTMLButtonElement;
-    //newGameSettingsFromSingleMatchOverBtn = document.getElementById('newGameSettingsBtn') as HTMLButtonElement;
+    // newGameSettingsFromSingleMatchOverBtn = document.getElementById('newGameSettingsBtn') as HTMLButtonElement;
 
     gameInstance = new Game(
         'pongCanvas',
         'matchOverScreen',
         'matchOverMessage',
-        'playAgainBtn',
+        'playAgainBtn', // This button might need special handling if it navigates vs just restarts
         'singleMatchOverButtons',
         'tournamentMatchOverButtons'
     );
+    // If playAgainBtn should take user to setup, it would also call navigateTo('gameSetup')
+    // For now, assuming Game class handles its own 'playAgainBtn' logic internally.
 
-    showScreen(initialChoiceScreen);
+    // --- NAVIGATION SETUP ---
+    if (singleMatchModeBtn) singleMatchModeBtn.onclick = () => navigateTo('gameSetup');
+    if (fourPlayerMatchModeBtn) fourPlayerMatchModeBtn.onclick = () => navigateTo('fourPlayerMatchSetupScreen');
+    if (tournamentModeBtn) tournamentModeBtn.onclick = () => navigateTo('tournamentSetupScreen');
+    if (readRulesBtn) readRulesBtn.onclick = () => navigateTo('rulesScreen');
+    
+    // Back buttons
+    if (rules_backToMainBtn) rules_backToMainBtn.onclick = () => navigateTo('initialChoiceScreen');
+    if (s_backToMainBtn) s_backToMainBtn.onclick = () => navigateTo('initialChoiceScreen');
+    if (fp_backToMainBtn) fp_backToMainBtn.onclick = () => navigateTo('initialChoiceScreen');
+    if (t_backToMainBtn) t_backToMainBtn.onclick = () => navigateTo('initialChoiceScreen');
+    
+    // Post-game/tournament buttons
+    if (matchOver_MainMenuBtn) matchOver_MainMenuBtn.onclick = () => navigateTo('initialChoiceScreen');
+    if (tournamentEnd_MainMenuBtn) tournamentEnd_MainMenuBtn.onclick = () => navigateTo('initialChoiceScreen');
+    if (startNewTournamentBtn) startNewTournamentBtn.onclick = () => navigateTo('tournamentSetupScreen'); // From tournament winner screen
 
-    if (singleMatchModeBtn) singleMatchModeBtn.onclick = () => showScreen(gameSetupScreen);
-    if (fourPlayerMatchModeBtn) fourPlayerMatchModeBtn.onclick = () => showScreen(fourPlayerMatchSetupScreen);
-    if (tournamentModeBtn) tournamentModeBtn.onclick = () => showScreen(tournamentSetupScreen);
-    if (readRulesBtn) readRulesBtn.onclick = () => showScreen(rulesScreen);
-    if (rules_backToMainBtn) rules_backToMainBtn.onclick = () => showScreen(initialChoiceScreen);
-    if (s_backToMainBtn) s_backToMainBtn.onclick = () => showScreen(initialChoiceScreen);
-    if (fp_backToMainBtn) fp_backToMainBtn.onclick = () => showScreen(initialChoiceScreen);
-    if (t_backToMainBtn) t_backToMainBtn.onclick = () => showScreen(initialChoiceScreen);
-    if (matchOver_MainMenuBtn) matchOver_MainMenuBtn.onclick = () => showScreen(initialChoiceScreen);
-    if (tournamentEnd_MainMenuBtn) tournamentEnd_MainMenuBtn.onclick = () => showScreen(initialChoiceScreen);
-    if (startNewTournamentBtn) startNewTournamentBtn.onclick = () => showScreen(tournamentSetupScreen);
-    /* if (newGameSettingsFromSingleMatchOverBtn) {
-        newGameSettingsFromSingleMatchOverBtn.onclick = () => {
-            if (gameSetupScreen) showScreen(gameSetupScreen);
-        };
-    } */
 
+    // Handle browser back/forward
+    window.addEventListener('popstate', (event) => {
+        if (event.state && event.state.screenId) {
+            const screenElement = screenElements[event.state.screenId];
+            if (screenElement) {
+                showScreen(screenElement); // Just show, don't push state again
+            } else {
+                console.warn(`Screen ID "${event.state.screenId}" from popstate not found. Defaulting.`);
+                showScreen(initialChoiceScreen); // Fallback
+            }
+        } else {
+            // If no state, probably means the hash was manually changed or initial load state was minimal
+            const hash = window.location.hash.substring(1);
+            const screenElement = hash ? screenElements[hash] : initialChoiceScreen;
+            showScreen(screenElement || initialChoiceScreen);
+        }
+    });
+
+    // Handle initial page load and deep linking
+    const initialHash = window.location.hash.substring(1);
+    if (initialHash && screenElements[initialHash]) {
+        navigateTo(initialHash, true); // true to replaceState for the initial load
+    } else {
+        navigateTo('initialChoiceScreen', true); // Default to initial screen, replace history
+    }
+
+    // --- FORM SUBMISSIONS ---
     if (s_settingsForm) {
         s_settingsForm.addEventListener('submit', (e) => {
             e.preventDefault();
@@ -177,7 +244,9 @@ window.addEventListener('DOMContentLoaded', () => {
                 if(singleMB) singleMB.style.display = 'block';
                 if(tourneyMB) tourneyMB.style.display = 'none';
                 gameInstance.initializeGame(matchSettings, false, null);
-                showScreen(pongCanvas);
+                // Game start will show the canvas, no explicit navigateTo('pongCanvas') here
+                // as it's not a user-menu navigation. Game controls that screen.
+                showScreen(pongCanvas); // Or gameInstance.start() handles showing canvas
                 gameInstance.start();
             }
         });
@@ -243,54 +312,39 @@ window.addEventListener('DOMContentLoaded', () => {
             if (gameInstance) {
                 tournamentInstance = new Tournament(tournamentSetupData, gameInstance, {
                     pongCanvasElement: pongCanvas,
-                    matchOverScreenDiv: matchOverScreen,
+                    matchOverScreenDiv: matchOverScreen, // Will be shown by Tournament/Game logic
                     matchOverMessageElement: document.getElementById('matchOverMessage') as HTMLElement,
                     tournamentMatchOverButtonsDiv: document.getElementById('tournamentMatchOverButtons') as HTMLElement,
                     nextMatchButton: document.getElementById('nextMatchBtn') as HTMLButtonElement,
-                    tournamentWinnerScreenDiv: tournamentWinnerScreen,
+                    tournamentWinnerScreenDiv: tournamentWinnerScreen, // Will be shown by Tournament logic
                     tournamentWinnerMessageElement: document.getElementById('tournamentWinnerMessage') as HTMLElement,
-                    matchAnnouncementScreenDiv: matchAnnouncementScreen,
+                    matchAnnouncementScreenDiv: matchAnnouncementScreen, // Will be shown by Tournament logic
                     announceMatchTitleElement: document.getElementById('announceMatchTitleText') as HTMLElement,
                     announceMatchVersusElement: document.getElementById('announceMatchVersusText') as HTMLElement,
                     announceMatchGoButton: document.getElementById('announceMatchGoBtn') as HTMLButtonElement
                 });
                 tournamentInstance.onTournamentEnd = () => { /* Optional callback */ };
-                showScreen(null);
+                // Tournament will handle showing its own screens (announcement, canvas, match over, winner)
+                // We don't call navigateTo for these, as they are part of a flow, not direct menu choices.
+                // The tournament itself could potentially push history states if desired.
+                showScreen(null); // Hide current setup screen
                 tournamentInstance.startTournament();
             }
         });
     }
 
-    // For the debugging log, create the list of expected IDs to make the log more helpful.
     const criticalElementIds: string[] = [
         'initialChoiceScreen', 'gameSetup', 'fourPlayerMatchSetupScreen', 'tournamentSetupScreen', 'rulesScreen', 'pongCanvas',
         'matchOverScreen', 'tournamentWinnerScreen', 'matchAnnouncementScreen',
         'singleMatchModeBtn', 'fourPlayerMatchModeBtn', 'tournamentModeBtn', 'readRulesBtn', 'rules_backToMainBtn',
         'settingsForm', 's_backToMainBtn', 'fourPlayerSettingsForm', 'fp_backToMainBtn', 'tournamentSettingsForm', 't_backToMainBtn',
         'matchOver_MainMenuBtn', 'tournamentEnd_MainMenuBtn', 'startNewTournamentBtn',
-        //'newGameSettingsBtn', // This is the ID for newGameSettingsFromSingleMatchOverBtn
         'announceMatchTitleText', 'announceMatchVersusText', 'announceMatchGoBtn',
-        // Elements passed to Game constructor
         'matchOverMessage', 'playAgainBtn', 'singleMatchOverButtons', 'tournamentMatchOverButtons',
-        // Elements passed to Tournament constructor (some overlap, some specific like nextMatchBtn)
-        'nextMatchBtn' // Add any other specific IDs you absolutely need to verify
+        'nextMatchBtn'
     ];
     
-    const criticalElementsForCheck = criticalElementIds.map(id => document.getElementById(id));
-    // Also include elements that are assigned directly without being in a list before
-    const otherCriticalElements = [pongCanvas, initialChoiceScreen, gameSetupScreen, fourPlayerMatchSetupScreen, tournamentSetupScreen, rulesScreen, matchOverScreen, tournamentWinnerScreen, matchAnnouncementScreen, singleMatchModeBtn, fourPlayerMatchModeBtn, tournamentModeBtn, readRulesBtn, rules_backToMainBtn, s_settingsForm, s_backToMainBtn, fp_settingsForm, fp_backToMainBtn, t_settingsForm, t_backToMainBtn, matchOver_MainMenuBtn, tournamentEnd_MainMenuBtn, startNewTournamentBtn/* , newGameSettingsFromSingleMatchOverBtn */];
-
-
     let allElementsFound = true;
-    otherCriticalElements.forEach(el => {
-        if (!el) {
-            // This element was assigned directly to a variable. If it's null, its variable name can be a hint.
-            // However, pinpointing the exact ID that failed requires iterating over a list of IDs.
-            console.error(`A critical UI element (assigned directly to a variable) was not found. Check HTML IDs.`);
-            allElementsFound = false;
-        }
-    });
-    // Check elements fetched by ID within the criticalElementIds list for a more specific error message
     criticalElementIds.forEach(id => {
         if (!document.getElementById(id)) {
             console.error(`Critical UI element with ID '${id}' was not found. Check HTML.`);
@@ -298,6 +352,7 @@ window.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-
     if(allElementsFound) console.log("All critical UI elements successfully referenced (initial check).");
+    else console.error("One or more critical UI elements are missing. Application may not function correctly.");
+
 });
