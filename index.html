@@ -26,6 +26,12 @@
             display: none;
             box-sizing: border-box;
             z-index: 1;
+            width: 500px; /* Default width for forms/menus */
+            background-color: #222;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.5);
+            text-align: center;
         }
 
         #tournamentSetupScreen, #rulesScreen, #fourPlayerMatchSetupScreen {
@@ -90,14 +96,85 @@
 
         canvas { border: 1px solid #fff; display: none; z-index: 0; }
 
+        /* NEW CSS for Tic-Tac-Toe */
+        #ticTacToeGameScreen {
+            display: none; /* Controlled by JS */
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            width: auto; /* Let content dictate width */
+        }
+
+        #ticTacToeBoard {
+            display: grid;
+            grid-template-columns: repeat(3, 100px);
+            grid-template-rows: repeat(3, 100px);
+            gap: 5px;
+            background-color: #333;
+            border: 2px solid #555;
+            width: 315px; /* 3*100px cells + 2*5px gaps */
+            height: 315px;
+            margin-top: 20px;
+            margin-bottom: 20px;
+        }
+
+        .tic-tac-toe-cell {
+            width: 100px;
+            height: 100px;
+            background-color: #222;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 3em;
+            font-weight: bold;
+            cursor: pointer;
+            border: 1px solid #444;
+            color: #eee;
+            transition: background-color 0.2s;
+        }
+
+        .tic-tac-toe-cell:hover {
+            background-color: #444;
+        }
+
+        .tic-tac-toe-cell.cross {
+            color: #FF6347; /* Tomato Red for X */
+        }
+
+        .tic-tac-toe-cell.circle {
+            color: #1E90FF; /* Dodger Blue for O */
+        }
+
+        #ticTacToeGameMessage {
+            font-size: 1.8em;
+            color: #FFD700;
+            margin-bottom: 10px;
+        }
+        
+        #ticTacToeGameOverScreen {
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 30px;
+            width: 500px; /* Consistent with other screens */
+        }
+        #ticTacToeGameOverMessage {
+            font-size: 2.2em;
+            color: #FFD700;
+            margin-bottom: 25px;
+        }
+        /* END NEW CSS */
+
         @media (max-width: 600px) {
             #rulesScreen { width: 95%; padding: 15px; }
-            .screen, #tournamentSetupScreen, #fourPlayerMatchSetupScreen { width: 95%; }
+            .screen, #tournamentSetupScreen, #fourPlayerMatchSetupScreen, #ticTacToeSetupScreen, #ticTacToeGameOverScreen { width: 95%; } /* Added Tic Tac Toe screens */
             #matchAnnouncementScreen { width: 90%; }
         }
         @media (max-width: 480px) {
             body { padding-top: 10px; padding-bottom: 10px; }
-            .screen, #tournamentSetupScreen, #fourPlayerMatchSetupScreen { padding: 15px 20px; max-height: 90vh; }
+            .screen, #tournamentSetupScreen, #fourPlayerMatchSetupScreen, #ticTacToeSetupScreen, #ticTacToeGameOverScreen { padding: 15px 20px; max-height: 90vh; } /* Added Tic Tac Toe screens */
             .form-group input[type="text"], .form-group input[type="number"], .form-group select { padding: 12px 8px; font-size: 0.95em; }
             .action-button { font-size: 14px; padding: 10px; }
             #initialChoiceScreen button { width: 90%; }
@@ -105,9 +182,11 @@
             #announceMatchVersusText { font-size: 1.5em; margin-bottom: 30px; }
             #announceMatchGoBtn { font-size: 1.2em; padding: 12px 35px; }
             #matchOverScreen #singleMatchOverButtons .action-button,
-            #tournamentWinnerScreen .action-button { width: calc(100% - 10px); margin-left: 5px; margin-right: 5px; }
+            #tournamentWinnerScreen .action-button,
+            #ticTacToeGameOverScreen .action-button { width: calc(100% - 10px); margin-left: 5px; margin-right: 5px; } /* Added Tic Tac Toe buttons */
             #matchOverScreen #singleMatchOverButtons .action-button:first-child,
-            #tournamentWinnerScreen .action-button:first-child { margin-bottom: 5px; }
+            #tournamentWinnerScreen .action-button:first-child,
+            #ticTacToeGameOverScreen .action-button:first-child { margin-bottom: 5px; } /* Added Tic Tac Toe buttons */
         }
     </style>
 </head>
@@ -117,7 +196,7 @@
         <button id="singleMatchModeBtn" class="action-button">Single Match (1v1)</button>
         <button id="fourPlayerMatchModeBtn" class="action-button">Single Match (2v2)</button>
         <button id="tournamentModeBtn" class="action-button secondary">Start Tournament</button>
-        <button id="readRulesBtn" class="action-button tertiary">Read the Rules</button>
+        <button id="ticTacToeModeBtn" class="action-button secondary">Tic-Tac-Toe</button> <button id="readRulesBtn" class="action-button tertiary">Read the Rules</button>
     </div>
 
     <div id="rulesScreen" class="screen">
@@ -161,6 +240,15 @@
                 <li>Final: Winner of Semi-Final 1 vs Winner of Semi-Final 2.</li>
                 <li>Champion is the winner of the Final.</li>
             </ol>
+
+            <h3>Tic-Tac-Toe Rules</h3>
+            <p>Objective: Be the first to get three of your marks in a row (horizontally, vertically, or diagonally).</p>
+            <ul>
+                <li>Player 1 uses 'X'. Player 2 uses 'O'.</li>
+                <li>Players take turns placing their marks on an empty square.</li>
+                <li>The first player to get three of their marks in a row wins.</li>
+                <li>If all squares are filled and no player has three marks in a row, the game is a draw.</li>
+            </ul>
 
         </div>
         <button id="rules_backToMainBtn" class="action-button full-width secondary" style="margin-top: 20px;">Back to Main Menu</button>
@@ -291,6 +379,41 @@
         <h2 id="tournamentWinnerMessage">Congratulations! Player X has won the tournament!</h2>
         <button id="startNewTournamentBtn" class="action-button">Play New Tournament</button>
         <button id="tournamentEnd_MainMenuBtn" class="action-button secondary">Main Menu</button>
+    </div>
+
+    <div id="ticTacToeSetupScreen" class="screen">
+        <h2>Tic-Tac-Toe Setup</h2>
+        <form id="ticTacToeSettingsForm">
+            <div class="player-setup-block">
+                <h4>Player 1 (Cross - X)</h4>
+                <div class="form-group">
+                    <label for="tt_player1Name">Name:</label>
+                    <input type="text" id="tt_player1Name" value="Player 1 (X)" required maxlength="30">
+                </div>
+            </div>
+            <hr style="border-color: #444; margin: 20px 0;">
+            <div class="player-setup-block">
+                <h4>Player 2 (Circle - O)</h4>
+                <div class="form-group">
+                    <label for="tt_player2Name">Name:</label>
+                    <input type="text" id="tt_player2Name" value="Player 2 (O)" required maxlength="30">
+                </div>
+            </div>
+            <button type="submit" id="tt_startGameBtn" class="action-button full-width">Play Tic-Tac-Toe</button>
+            <button type="button" id="tt_backToMainBtn" class="action-button secondary full-width" style="margin-top:10px;">Back to Main Menu</button>
+        </form>
+    </div>
+
+    <div id="ticTacToeGameScreen" class="screen">
+        <h2 id="ticTacToeGameMessage"></h2>
+        <div id="ticTacToeBoard">
+            </div>
+    </div>
+
+    <div id="ticTacToeGameOverScreen" class="screen">
+        <h2 id="ticTacToeGameOverMessage"></h2>
+        <button id="tt_playAgainBtn" class="action-button full-width">Play Again</button>
+        <button id="tt_mainMenuBtn" class="action-button secondary full-width" style="margin-top:10px;">Main Menu</button>
     </div>
 
     <script src="dist/bundle.js"></script>

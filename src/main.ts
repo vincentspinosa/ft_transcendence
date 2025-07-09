@@ -2,8 +2,10 @@
 import { Game } from './Game';
 import { Tournament } from './Tournament';
 import { PlayerConfig, MatchSettings, TournamentSetupInfo, FourPlayerMatchSettings } from './interfaces';
+import { TicTacToe } from './tictactoe'; // NEW: Import TicTacToe class
 
-const MAX_NAME_LENGTH = 20;
+const MAX_NAME_LENGTH = 20; // Max length for Pong player names
+const MAX_TIC_TAC_TOE_NAME_LENGTH = 30; // NEW: Max length for Tic-Tac-Toe player names
 const COLOR_MAP: { [key: string]: string } = {
     "white": "#FFFFFF",
     "lightblue": "#ADD8E6",
@@ -13,6 +15,7 @@ const COLOR_MAP: { [key: string]: string } = {
 
 let gameInstance: Game | null = null;
 let tournamentInstance: Tournament | null = null;
+let ticTacToeInstance: TicTacToe | null = null; // NEW: TicTacToe instance
 
 // Screen Divs
 let initialChoiceScreen: HTMLElement,
@@ -23,7 +26,10 @@ let initialChoiceScreen: HTMLElement,
     pongCanvas: HTMLCanvasElement,
     matchOverScreen: HTMLElement,
     tournamentWinnerScreen: HTMLElement,
-    matchAnnouncementScreen: HTMLElement;
+    matchAnnouncementScreen: HTMLElement,
+    ticTacToeSetupScreen: HTMLElement,      // NEW
+    ticTacToeGameScreen: HTMLElement,       // NEW
+    ticTacToeGameOverScreen: HTMLElement;   // NEW
 
 // Map of screen IDs to their elements for easier navigation
 const screenElements: { [key: string]: HTMLElement | HTMLCanvasElement } = {};
@@ -42,11 +48,16 @@ let singleMatchModeBtn: HTMLButtonElement,
     startNewTournamentBtn: HTMLButtonElement;
     // newGameSettingsFromSingleMatchOverBtn: HTMLButtonElement; // Was commented out
 
+let ticTacToeModeBtn: HTMLButtonElement;        // NEW
+let ticTacToeSettingsForm: HTMLFormElement;     // NEW
+let tt_backToMainBtn: HTMLButtonElement;        // NEW
+
 
 function showScreen(screenToShow: HTMLElement | HTMLCanvasElement | null) {
     const allScreens = [
         initialChoiceScreen, gameSetupScreen, fourPlayerMatchSetupScreen, tournamentSetupScreen,
-        rulesScreen, pongCanvas, matchOverScreen, tournamentWinnerScreen, matchAnnouncementScreen
+        rulesScreen, pongCanvas, matchOverScreen, tournamentWinnerScreen, matchAnnouncementScreen,
+        ticTacToeSetupScreen, ticTacToeGameScreen, ticTacToeGameOverScreen // NEW SCREENS ADDED
     ];
     allScreens.forEach(s => {
         if (s) s.style.display = 'none';
@@ -55,9 +66,9 @@ function showScreen(screenToShow: HTMLElement | HTMLCanvasElement | null) {
     if (screenToShow) {
         if (screenToShow.id === 'pongCanvas') {
             screenToShow.style.display = 'block'; // Or 'flex' if canvas needs to be centered with other items
-        } else if (['initialChoiceScreen', 'matchOverScreen', 'tournamentWinnerScreen', 'matchAnnouncementScreen'].includes(screenToShow.id)) {
+        } else if (['initialChoiceScreen', 'matchOverScreen', 'tournamentWinnerScreen', 'matchAnnouncementScreen', 'ticTacToeGameOverScreen'].includes(screenToShow.id)) { // Added ticTacToeGameOverScreen
             screenToShow.style.display = 'flex';
-        } else if (['gameSetup', 'fourPlayerMatchSetupScreen', 'tournamentSetupScreen', 'rulesScreen'].includes(screenToShow.id)) {
+        } else if (['gameSetup', 'fourPlayerMatchSetupScreen', 'tournamentSetupScreen', 'rulesScreen', 'ticTacToeSetupScreen', 'ticTacToeGameScreen'].includes(screenToShow.id)) { // Added ticTacToeSetupScreen, ticTacToeGameScreen
             screenToShow.style.display = 'block';
         } else {
             screenToShow.style.display = 'block'; // Default display type
@@ -115,13 +126,14 @@ function getSinglePlayer1v1Config(formPrefix: string, playerId: number, defaultN
     return { name, color: COLOR_MAP[colorValue] || COLOR_MAP['white'], type, id: playerId };
 }
 
-function validatePlayerName(name: string, playerNameLabel: string): boolean {
+// MODIFIED: validatePlayerName now accepts an optional maxLength
+function validatePlayerName(name: string, playerNameLabel: string, maxLength: number = MAX_NAME_LENGTH): boolean {
     if (name.length === 0) {
         alert(`${playerNameLabel} name cannot be empty.`);
         return false;
     }
-    if (name.length > MAX_NAME_LENGTH) {
-        alert(`${playerNameLabel} name cannot exceed ${MAX_NAME_LENGTH} characters.`);
+    if (name.length > maxLength) {
+        alert(`${playerNameLabel} name cannot exceed ${maxLength} characters.`);
         return false;
     }
     return true;
@@ -137,6 +149,9 @@ window.addEventListener('DOMContentLoaded', () => {
     matchOverScreen = document.getElementById('matchOverScreen') as HTMLElement;
     tournamentWinnerScreen = document.getElementById('tournamentWinnerScreen') as HTMLElement;
     matchAnnouncementScreen = document.getElementById('matchAnnouncementScreen') as HTMLElement;
+    ticTacToeSetupScreen = document.getElementById('ticTacToeSetupScreen') as HTMLElement;           // NEW
+    ticTacToeGameScreen = document.getElementById('ticTacToeGameScreen') as HTMLElement;             // NEW
+    ticTacToeGameOverScreen = document.getElementById('ticTacToeGameOverScreen') as HTMLElement;     // NEW
 
     // Populate screenElements map
     if (initialChoiceScreen) screenElements['initialChoiceScreen'] = initialChoiceScreen;
@@ -148,6 +163,9 @@ window.addEventListener('DOMContentLoaded', () => {
     if (matchOverScreen) screenElements['matchOverScreen'] = matchOverScreen; // Game logic will show this
     if (tournamentWinnerScreen) screenElements['tournamentWinnerScreen'] = tournamentWinnerScreen; // Game logic will show this
     if (matchAnnouncementScreen) screenElements['matchAnnouncementScreen'] = matchAnnouncementScreen; // Game logic will show this
+    if (ticTacToeSetupScreen) screenElements['ticTacToeSetupScreen'] = ticTacToeSetupScreen;           // NEW
+    if (ticTacToeGameScreen) screenElements['ticTacToeGameScreen'] = ticTacToeGameScreen;             // NEW
+    if (ticTacToeGameOverScreen) screenElements['ticTacToeGameOverScreen'] = ticTacToeGameOverScreen; // NEW
 
 
     singleMatchModeBtn = document.getElementById('singleMatchModeBtn') as HTMLButtonElement;
@@ -164,7 +182,11 @@ window.addEventListener('DOMContentLoaded', () => {
     matchOver_MainMenuBtn = document.getElementById('matchOver_MainMenuBtn') as HTMLButtonElement;
     tournamentEnd_MainMenuBtn = document.getElementById('tournamentEnd_MainMenuBtn') as HTMLButtonElement;
     startNewTournamentBtn = document.getElementById('startNewTournamentBtn') as HTMLButtonElement;
-    // newGameSettingsFromSingleMatchOverBtn = document.getElementById('newGameSettingsBtn') as HTMLButtonElement;
+
+    ticTacToeModeBtn = document.getElementById('ticTacToeModeBtn') as HTMLButtonElement;                 // NEW
+    ticTacToeSettingsForm = document.getElementById('ticTacToeSettingsForm') as HTMLFormElement;         // NEW
+    tt_backToMainBtn = document.getElementById('tt_backToMainBtn') as HTMLButtonElement;                 // NEW
+
 
     gameInstance = new Game(
         'pongCanvas',
@@ -177,17 +199,35 @@ window.addEventListener('DOMContentLoaded', () => {
     // If playAgainBtn should take user to setup, it would also call navigateTo('gameSetup')
     // For now, assuming Game class handles its own 'playAgainBtn' logic internally.
 
+    // NEW: Instantiate TicTacToe game
+    ticTacToeInstance = new TicTacToe(
+        'ticTacToeBoard',
+        'ticTacToeGameMessage',
+        'ticTacToeGameOverScreen',
+        'ticTacToeGameOverMessage',
+        'tt_playAgainBtn', // ID for Play Again button
+        'tt_mainMenuBtn',  // ID for Main Menu button
+        (winnerName: string | null) => {
+            // Callback from TicTacToe game end. You can log or react here if needed.
+            console.log(`Tic-Tac-Toe game finished. Winner: ${winnerName || 'Draw'}`);
+        },
+        navigateTo // Pass the navigateTo function for internal navigation within TicTacToe
+    );
+
+
     // --- NAVIGATION SETUP ---
     if (singleMatchModeBtn) singleMatchModeBtn.onclick = () => navigateTo('gameSetup');
     if (fourPlayerMatchModeBtn) fourPlayerMatchModeBtn.onclick = () => navigateTo('fourPlayerMatchSetupScreen');
     if (tournamentModeBtn) tournamentModeBtn.onclick = () => navigateTo('tournamentSetupScreen');
     if (readRulesBtn) readRulesBtn.onclick = () => navigateTo('rulesScreen');
-    
+    if (ticTacToeModeBtn) ticTacToeModeBtn.onclick = () => navigateTo('ticTacToeSetupScreen'); // NEW: Tic-Tac-Toe button
+
     // Back buttons
     if (rules_backToMainBtn) rules_backToMainBtn.onclick = () => navigateTo('initialChoiceScreen');
     if (s_backToMainBtn) s_backToMainBtn.onclick = () => navigateTo('initialChoiceScreen');
     if (fp_backToMainBtn) fp_backToMainBtn.onclick = () => navigateTo('initialChoiceScreen');
     if (t_backToMainBtn) t_backToMainBtn.onclick = () => navigateTo('initialChoiceScreen');
+    if (tt_backToMainBtn) tt_backToMainBtn.onclick = () => navigateTo('initialChoiceScreen'); // NEW: Tic-Tac-Toe back button
     
     // Post-game/tournament buttons
     if (matchOver_MainMenuBtn) matchOver_MainMenuBtn.onclick = () => navigateTo('initialChoiceScreen');
@@ -244,9 +284,7 @@ window.addEventListener('DOMContentLoaded', () => {
                 if(singleMB) singleMB.style.display = 'block';
                 if(tourneyMB) tourneyMB.style.display = 'none';
                 gameInstance.initializeGame(matchSettings, false, null);
-                // Game start will show the canvas, no explicit navigateTo('pongCanvas') here
-                // as it's not a user-menu navigation. Game controls that screen.
-                showScreen(pongCanvas); // Or gameInstance.start() handles showing canvas
+                showScreen(pongCanvas); // Game start will show the canvas
                 gameInstance.start();
             }
         });
@@ -324,11 +362,36 @@ window.addEventListener('DOMContentLoaded', () => {
                     announceMatchGoButton: document.getElementById('announceMatchGoBtn') as HTMLButtonElement
                 });
                 tournamentInstance.onTournamentEnd = () => { /* Optional callback */ };
-                // Tournament will handle showing its own screens (announcement, canvas, match over, winner)
-                // We don't call navigateTo for these, as they are part of a flow, not direct menu choices.
-                // The tournament itself could potentially push history states if desired.
                 showScreen(null); // Hide current setup screen
                 tournamentInstance.startTournament();
+            }
+        });
+    }
+
+    // NEW: Tic-Tac-Toe Form Submission
+    if (ticTacToeSettingsForm) {
+        ticTacToeSettingsForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const p1NameInput = document.getElementById('tt_player1Name') as HTMLInputElement;
+            const p2NameInput = document.getElementById('tt_player2Name') as HTMLInputElement;
+
+            const p1Name = p1NameInput?.value.trim() || 'Player 1 (X)';
+            const p2Name = p2NameInput?.value.trim() || 'Player 2 (O)';
+
+            // Validate player names using the updated function signature
+            if (!validatePlayerName(p1Name, "Player 1", MAX_TIC_TAC_TOE_NAME_LENGTH) ||
+                !validatePlayerName(p2Name, "Player 2", MAX_TIC_TAC_TOE_NAME_LENGTH)) {
+                return;
+            }
+
+            if (p1Name.toLowerCase() === p2Name.toLowerCase()) {
+                alert("Tic-Tac-Toe player names must be unique.");
+                return;
+            }
+
+            if (ticTacToeInstance) {
+                ticTacToeInstance.initializeGame(p1Name, p2Name);
+                navigateTo('ticTacToeGameScreen'); // Show the game board
             }
         });
     }
@@ -341,7 +404,12 @@ window.addEventListener('DOMContentLoaded', () => {
         'matchOver_MainMenuBtn', 'tournamentEnd_MainMenuBtn', 'startNewTournamentBtn',
         'announceMatchTitleText', 'announceMatchVersusText', 'announceMatchGoBtn',
         'matchOverMessage', 'playAgainBtn', 'singleMatchOverButtons', 'tournamentMatchOverButtons',
-        'nextMatchBtn'
+        'nextMatchBtn',
+        // NEW Tic-Tac-Toe elements
+        'ticTacToeModeBtn', 'ticTacToeSetupScreen', 'ticTacToeGameScreen', 'ticTacToeGameOverScreen',
+        'ticTacToeSettingsForm', 'tt_backToMainBtn', 'tt_player1Name', 'tt_player2Name', 'tt_startGameBtn',
+        'ticTacToeBoard', 'ticTacToeGameMessage',
+        'ticTacToeGameOverMessage', 'tt_playAgainBtn', 'tt_mainMenuBtn'
     ];
     
     let allElementsFound = true;

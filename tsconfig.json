@@ -1,17 +1,18 @@
 {
   "compilerOptions": {
-    "target": "ES6",                        // Target latest ECMAScript features
-    "module": "ES6",                        // Use ES6 modules
-    "moduleResolution": "node",             // How modules get resolved
-    "strict": true,                         // Enable all strict type-checking options
-    "esModuleInterop": true,                // Enables emit interoperability between CommonJS and ES Modules
-    "skipLibCheck": true,                   // Skip type checking of declaration files
-    "forceConsistentCasingInFileNames": true, // Disallow inconsistently-cased references to the same file.
-    "outDir": "./dist",                     // Redirect output structure to the directory
-    "rootDir": "./src"                      // Specify the root directory of input files
+    "target": "ES2018", // Changed from ES6 to ES2018 for broader compatibility with modern features
+    "module": "ESNext", // Changed from ES6 to ESNext, generally preferred with bundlers like Webpack
+    "lib": ["ES2018", "DOM"], // ADDED: Explicitly include ES2018 (or higher like ESNext) for Array.prototype.includes and DOM for browser APIs
+    "moduleResolution": "node",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "outDir": "./dist",
+    "rootDir": "./src"
   },
   "include": [
-    "src/**/*.ts"                           // Which files to include
+    "src/**/*.ts"
   ],
   "exclude": [
     "node_modules"
