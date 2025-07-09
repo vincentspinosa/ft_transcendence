@@ -37,10 +37,9 @@ export class Game {
     private readonly PADDLE_HEIGHT_NORMAL = 100;
     private readonly PADDLE_HEIGHT_FOUR_PLAYER = 75;
     private readonly BALL_RADIUS = 8;
-    private readonly PADDLE_SPEED = 7;
+    private readonly PADDLE_SPEED = 7; // This will be used as the AI's base speed
 
-
-    private keysPressed: { [key: string]: boolean } = {};
+    private keysPressed: { [key: string]: boolean } = {}; // ONLY for human input now
     private gameOver: boolean = false;
     private winnerMessage: string = "";
 
@@ -54,6 +53,12 @@ export class Game {
     // For tournament play
     private isTournamentMatchFlag: boolean = false;
     private onMatchCompleteCallback: ((winner: PlayerConfig) => void) | null = null; // For 1v1 tournament winner
+
+    // AI specific properties
+    private lastAIUpdateTime: number = 0;
+    private readonly AI_UPDATE_INTERVAL_MS = 1000; // MANDATORY: AI updates target once per second
+    // Offset for AI aiming imperfection. Adjust for difficulty. (Higher = easier, Lower = harder/more perfect)
+    private readonly AI_PERFECTION_OFFSET = 15; 
 
 
     constructor(
@@ -99,7 +104,6 @@ export class Game {
             this.start();
         } else {
             console.error("Cannot play again: last match settings not available or game mode unclear.", this.gameMode);
-            // Fallback: Potentially show main menu via a call to a main.ts function if possible, or alert.
             alert("Error restarting game. Please return to main menu.");
         }
     }
@@ -179,11 +183,17 @@ export class Game {
     }
 
     private setupInput(): void {
+        // Human input setup only, AI handles its own movement directly
         window.onkeydown = null; window.onkeyup = null; this.keysPressed = {};
-        window.addEventListener('keydown', (event) => { if (!this.gameOver) this.keysPressed[event.key.toUpperCase()] = true; });
-        window.addEventListener('keyup', (event) => { this.keysPressed[event.key.toUpperCase()] = false; });
+        window.addEventListener('keydown', (event) => { 
+            if (!this.gameOver) this.keysPressed[event.key.toUpperCase()] = true; 
+        });
+        window.addEventListener('keyup', (event) => { 
+            this.keysPressed[event.key.toUpperCase()] = false; 
+        });
     }
 
+    // handlePlayerInput now ONLY processes HUMAN input
     private handlePlayerInput(): void {
         if (this.gameOver) return;
 
@@ -218,29 +228,209 @@ export class Game {
         }
     }
 
+    /**
+     * Simulates the ball's trajectory to predict its Y position at a given target X coordinate.
+     * Accounts for multiple wall bounces and can even predict across the entire court if needed.
+     * @param startX Initial X position of the ball.
+     * @param startY Initial Y position of the ball.
+     * @param initialSpeedX Ball's horizontal speed at start of prediction.
+     * @param initialSpeedY Ball's vertical speed at start of prediction.
+     * @param targetX The X coordinate at which to predict the ball's Y position.
+     * @param canvasWidth The width of the canvas.
+     * @param canvasHeight The height of the canvas.
+     * @param ballRadius The radius of the ball.
+     * @returns The predicted Y position of the ball when it reaches targetX.
+     */
+    private predictBallYAtX(
+        startX: number,
+        startY: number,
+        initialSpeedX: number,
+        initialSpeedY: number,
+        targetX: number,
+        canvasWidth: number, // Need canvasWidth for predicting across court
+        canvasHeight: number,
+        ballRadius: number
+    ): number {
+        let currentX = startX;
+        let currentY = startY;
+        let speedX = initialSpeedX;
+        let speedY = initialSpeedY;
+
+        // Safety break to prevent infinite loops in extreme edge cases or if speeds are zero
+        const MAX_ITERATIONS = 1000; // Arbitrary limit to prevent runaway loops if ball is static or has weird speed
+        let iterations = 0;
+
+        // If ball is not moving horizontally, or target is same as current X, just return current Y
+        if (Math.abs(speedX) < 0.1 || Math.abs(targetX - currentX) < 1) {
+            return currentY;
+        }
+
+        // Determine if ball is moving towards or away from target X
+        const movingTowardsTarget = (speedX > 0 && targetX > currentX) || (speedX < 0 && targetX < currentX);
+
+        if (!movingTowardsTarget) {
+            // If ball is moving away from target X, we need to predict it hitting the opposite wall first
+            // or the opponent's paddle, then reflecting back. This simple prediction loop only handles
+            // one direction. For full Minimax, you'd recursively predict reflections from paddles too.
+            // For now, let's assume if it's moving away, AI aims for center, or predict across.
+            // Simplified: let's force it to predict to the target, assuming it will eventually get there.
+            // A more complex minimax would account for bounces off the *other* paddle.
+        }
+
+        while (true && iterations < MAX_ITERATIONS) {
+            iterations++;
+
+            // Calculate time to reach targetX
+            const timeToTargetX = (targetX - currentX) / speedX;
+
+            // Calculate time to hit top/bottom walls
+            const timeToTopWall = (speedY < 0) ? (0 - (currentY - ballRadius)) / speedY : Infinity;
+            const timeToBottomWall = (speedY > 0) ? (canvasHeight - (currentY + ballRadius)) / speedY : Infinity;
+            
+            // Choose the earliest event: hit target X or hit a wall
+            const timeToNextEvent = Math.min(Math.abs(timeToTargetX), timeToTopWall, timeToBottomWall);
+
+            // If timeToNextEvent is Infinity or 0 (or very small), prevent issues
+            if (!isFinite(timeToNextEvent) || timeToNextEvent < 0.001) {
+                return currentY; // Cannot predict further, return current Y
+            }
+
+            // Update position to the point of the next event
+            currentX += speedX * timeToNextEvent;
+            currentY += speedY * timeToNextEvent;
+
+            // Check if targetX was hit within this step
+            // We use a small epsilon for float comparisons
+            const epsilon = 0.5; // Half a pixel tolerance
+            if ( (speedX > 0 && currentX >= targetX - epsilon && currentX <= targetX + epsilon) || 
+                 (speedX < 0 && currentX <= targetX + epsilon && currentX >= targetX - epsilon) ) {
+                // Target X is reached. Return currentY.
+                return currentY;
+            }
+
+            // If a wall was hit, reflect ball and continue prediction
+            if (currentY - ballRadius <= 0 + epsilon && speedY < 0) { // Hit top wall
+                currentY = ballRadius;
+                speedY *= -1;
+            } else if (currentY + ballRadius >= canvasHeight - epsilon && speedY > 0) { // Hit bottom wall
+                currentY = canvasHeight - ballRadius;
+                speedY *= -1;
+            } else if (currentX - ballRadius <= 0 + epsilon && speedX < 0) { // Hit left wall (scored or reflected)
+                // If ball goes past the left wall (scores), predict it would reset and AI aims center
+                // A more advanced minimax might "punish" this. For now, assume it resets to center.
+                // Or, if it hits a paddle here, that would be an opponent's turn.
+                // For simplicity, if it passed its goal line, just return current Y (or center)
+                // For a prediction to a specific paddle, hitting the opponent's "wall" means it's the opponent's turn.
+                // We're predicting to OUR paddle's X. If it hits our goal before that, it's a score.
+                // If it hits opponent's goal or paddle, it reflects. We'll simply let the prediction continue across.
+                 speedX *= -1; // Assume it reflects off an invisible wall or opponent's paddle for prediction purposes
+                 currentX = ballRadius; // Snap to edge
+            } else if (currentX + ballRadius >= canvasWidth - epsilon && speedX > 0) { // Hit right wall (scored or reflected)
+                // Similar logic for right wall
+                 speedX *= -1; // Assume it reflects
+                 currentX = canvasWidth - ballRadius; // Snap to edge
+            }
+        }
+        
+        // Fallback if max iterations reached (shouldn't happen with correct logic)
+        return currentY;
+    }
+
+
     private updateAI(): void {
         if (this.gameOver || !this.ball) return;
 
-        if (this.gameMode === '4player') {
-            const playerConfigs = [this.team1PlayerAConfig, this.team1PlayerBConfig, this.team2PlayerAConfig, this.team2PlayerBConfig];
-            const paddles = [...this.team1Paddles, ...this.team2Paddles]; // Combine for easier mapping
+        const currentTime = performance.now();
+        
+        let paddlesToControl: Paddle[] = []; 
+        let isLeftPlayer: boolean[] = []; // Stores true if paddle is on left, false if on right
 
-            playerConfigs.forEach((player, index) => {
-                if (player?.type === 'ai') {
-                    const paddleToControl = (index < 2) ? this.team1Paddles[index] : this.team2Paddles[index - 2];
-                    if (paddleToControl) {
-                        paddleToControl.updateAI(this.ball.y, this.canvasElement.height);
-                    }
-                }
-            });
+        // Identify all AI-controlled paddles
+        if (this.gameMode === '4player') {
+            if (this.team1PlayerAConfig?.type === 'ai' && this.team1Paddles[0]) {
+                paddlesToControl.push(this.team1Paddles[0]);
+                isLeftPlayer.push(true);
+            }
+            if (this.team1PlayerBConfig?.type === 'ai' && this.team1Paddles[1]) {
+                paddlesToControl.push(this.team1Paddles[1]);
+                isLeftPlayer.push(true);
+            }
+            if (this.team2PlayerAConfig?.type === 'ai' && this.team2Paddles[0]) {
+                paddlesToControl.push(this.team2Paddles[0]);
+                isLeftPlayer.push(false);
+            }
+            if (this.team2PlayerBConfig?.type === 'ai' && this.team2Paddles[1]) {
+                paddlesToControl.push(this.team2Paddles[1]);
+                isLeftPlayer.push(false);
+            }
         } else { // 2-player or tournament
             if (this.playerAConfig?.type === 'ai' && this.player1Paddle) {
-                this.player1Paddle.updateAI(this.ball.y, this.canvasElement.height);
+                paddlesToControl.push(this.player1Paddle);
+                isLeftPlayer.push(true);
             }
             if (this.playerBConfig?.type === 'ai' && this.player2Paddle) {
-                this.player2Paddle.updateAI(this.ball.y, this.canvasElement.height);
+                paddlesToControl.push(this.player2Paddle);
+                isLeftPlayer.push(false);
             }
         }
+
+        if (paddlesToControl.length === 0) {
+            return;
+        }
+
+        // --- AI Decision Logic (Strictly once per second) ---
+        if (currentTime - this.lastAIUpdateTime >= this.AI_UPDATE_INTERVAL_MS) {
+            this.lastAIUpdateTime = currentTime;
+            
+            paddlesToControl.forEach((paddle, index) => {
+                const isLeft = isLeftPlayer[index]; // Get side for current paddle
+                const ballX = this.ball.x;
+                const ballY = this.ball.y;
+                const ballSpeedX = this.ball.speedX; 
+                const ballSpeedY = this.ball.speedY; 
+
+                // Determine if the ball is moving towards THIS paddle's side of the court.
+                // AI should only try to intercept if the ball is moving towards its side AND its horizontal position implies it's "their problem".
+                // The ball is "their problem" if it's on their half of the court.
+                const ballIsOnAIsHalf = (isLeft && ballX < this.canvasElement.width / 2) || (!isLeft && ballX > this.canvasElement.width / 2);
+                
+                let predictedTargetY: number;
+
+                // AI only calculates prediction if ball is on its side of the court AND moving towards its goal
+                // This means: for left paddle (isLeft=true), ball is on left half and speedX is negative (moving left)
+                // For right paddle (isLeft=false), ball is on right half and speedX is positive (moving right)
+                const ballMovingTowardsAIsGoal = (isLeft && ballSpeedX < 0) || (!isLeft && ballSpeedX > 0);
+
+
+                if (ballIsOnAIsHalf && ballMovingTowardsAIsGoal) {
+                    const targetPaddleX = isLeft ? paddle.x + paddle.width : paddle.x; // The X-coordinate where the ball would hit the paddle
+                    
+                    predictedTargetY = this.predictBallYAtX(
+                        ballX, ballY, ballSpeedX, ballSpeedY,
+                        targetPaddleX, this.canvasElement.width, this.canvasElement.height, this.BALL_RADIUS
+                    );
+
+                    // Apply imperfection/offset to the predicted target
+                    const offset = (Math.random() * this.AI_PERFECTION_OFFSET * 2) - this.AI_PERFECTION_OFFSET; // Random value between -offset and +offset
+                    let finalTargetY = predictedTargetY + offset;
+
+                    // Clamp the final target to ensure it's within the canvas bounds (accounting for paddle height)
+                    finalTargetY = Math.max(0, Math.min(this.canvasElement.height - paddle.height, finalTargetY));
+                    paddle.setAITargetY(finalTargetY); 
+
+                } else {
+                    // Ball is not on AI's side or not moving towards its goal, return to precise center.
+                    paddle.setAITargetY(this.canvasElement.height / 2);
+                }
+            });
+        }
+
+        // --- AI Movement Application (Every frame) ---
+        // Regardless of whether a new decision was made, move the AI paddles towards their current target.
+        paddlesToControl.forEach(paddle => {
+            // The paddle's updateAI method now moves it towards its internally stored aiTargetY
+            paddle.updateAI(this.canvasElement.height);
+        });
     }
 
     private checkCollision(): void {
@@ -386,8 +576,8 @@ export class Game {
 
     private update(): void {
         if (this.gameOver) return;
-        this.handlePlayerInput();
-        this.updateAI();
+        this.handlePlayerInput(); // Handles human input
+        this.updateAI();         // Handles AI decision making and movement
         if (this.ball) this.ball.update(this.canvasElement.width, this.canvasElement.height);
         this.checkCollision();
     }
@@ -435,7 +625,8 @@ export class Game {
     private resetGameInternals(): void { // Renamed from resetGame to avoid confusion with public start
         this.gameOver = false;
         this.winnerMessage = "";
-        this.keysPressed = {};
+        this.keysPressed = {}; // Clear all keys on reset (for human players)
+        this.lastAIUpdateTime = 0; // Reset AI timer for next game
 
         if (this.gameMode === '4player') {
             this.team1Score = 0; this.team2Score = 0;
