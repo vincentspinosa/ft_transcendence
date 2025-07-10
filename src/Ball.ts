@@ -9,6 +9,7 @@ export class Ball {
 
     // Private and read-only properties to store the initial speed components,
     // which are used when the ball is reset.
+    // Readonly-> value is assigned only once, at declaration or in the constructor
     private readonly initialSpeedXComponent: number; // The initial horizontal speed component provided at creation.
     private readonly initialSpeedYComponent: number; // The initial vertical speed component provided at creation.
 
