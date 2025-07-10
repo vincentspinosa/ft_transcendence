@@ -6,9 +6,7 @@ import { Tournament } from './Tournament'; // Imports the tournament management 
 import { PlayerConfig, MatchSettings, TournamentSetupInfo, FourPlayerMatchSettings } from './interfaces'; // Imports data structures for player, match, and tournament configurations.
 import { TicTacToe } from './tictactoe'; // NEW: Imports the TicTacToe game logic.
 
-// --- Constants ---
 const MAX_NAME_LENGTH = 20; // Maximum allowed length for player names in Pong game modes.
-const MAX_TIC_TAC_TOE_NAME_LENGTH = 30; // NEW: Maximum allowed length for player names in Tic-Tac-Toe.
 
 // A map to convert common color names (strings) to their corresponding hexadecimal color codes.
 const COLOR_MAP: { [key: string]: string } = {
@@ -489,8 +487,8 @@ window.addEventListener('DOMContentLoaded', () => {
             const p2Name = p2NameInput?.value.trim() || 'Player 2 (O)';
 
             // Validate player names using the updated function signature with specific max length for Tic-Tac-Toe.
-            if (!validatePlayerName(p1Name, "Player 1", MAX_TIC_TAC_TOE_NAME_LENGTH) ||
-                !validatePlayerName(p2Name, "Player 2", MAX_TIC_TAC_TOE_NAME_LENGTH)) {
+            if (!validatePlayerName(p1Name, "Player 1", MAX_NAME_LENGTH) ||
+                !validatePlayerName(p2Name, "Player 2", MAX_NAME_LENGTH)) {
                 return; // Stop if validation fails.
             }
 
