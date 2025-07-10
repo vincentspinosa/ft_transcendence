@@ -1,6 +1,6 @@
 FROM node:alpine
 
-WORKDIR /pong
+WORKDIR /transcendence
 
 COPY package*.json ./
 RUN npm install
