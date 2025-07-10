@@ -4,27 +4,31 @@
  * Manages the Tic-Tac-Toe game logic and rendering.
  */
 export class TicTacToe {
-    private board: (string | null)[]; // Represents the 3x3 game board
-    private currentPlayer: string; // 'X' or 'O'
-    private gameActive: boolean; // True if the game is in progress
-    private player1Name!: string; // ADDED "!"
-    private player2Name!: string; // ADDED "!"
-    private player1Symbol: string = 'X'; // Player 1 always uses 'X'
-    private player2Symbol: string = 'O'; // Player 2 always uses 'O'
+    private board: (string | null)[]; // Represents the 3x3 game board. Each element is 'X', 'O', or null (empty).
+    private currentPlayer: string; // Stores whose turn it is: 'X' or 'O'.
+    private gameActive: boolean; // A boolean flag indicating if the current game is in progress.
+    private player1Name!: string; // The name of Player 1, who always plays as 'X'. The `!` indicates it will be initialized later.
+    private player2Name!: string; // The name of Player 2, who always plays as 'O'. The `!` indicates it will be initialized later.
+    private player1Symbol: string = 'X'; // The symbol for Player 1.
+    private player2Symbol: string = 'O'; // The symbol for Player 2.
 
-    // DOM Elements
-    private gameBoardElement: HTMLElement; // The container for the Tic-Tac-Toe cells
-    private gameMessageElement: HTMLElement; // Displays current turn or game outcome
-    private gameOverScreen: HTMLElement; // Screen shown after game ends
-    private gameOverMessageElement: HTMLElement; // Message on the game over screen
-    private playAgainButton: HTMLButtonElement; // Button to play another game
-    private mainMenuButton: HTMLButtonElement; // Button to return to main menu
+    // --- DOM Elements ---
+    private gameBoardElement: HTMLElement; // The HTML element that serves as the container for the Tic-Tac-Toe cells (the 3x3 grid).
+    private gameMessageElement: HTMLElement; // The HTML element used to display messages like "Player X's turn" or "It's a draw!".
+    private gameOverScreen: HTMLElement; // The HTML element representing the full-screen overlay shown when the game ends.
+    private gameOverMessageElement: HTMLElement; // The HTML element within the game over screen that displays the final outcome (winner or draw).
+    private playAgainButton: HTMLButtonElement; // The button on the game over screen to start another Tic-Tac-Toe game.
+    private mainMenuButton: HTMLButtonElement; // The button on the game over screen to return to the application's main menu.
 
-    // Callbacks to the main application for navigation and game end notifications
-    private onGameEndCallback: (winnerName: string | null) => void;
-    private navigateToScreenCallback: (screenId: string) => void;
+    // --- Callbacks to the Main Application ---
+    // These functions are provided by `main.ts` to allow the TicTacToe class
+    // to communicate game events (like game end) and request screen navigation.
+    private onGameEndCallback: (winnerName: string | null) => void; // Callback invoked when the game concludes, passing the winner's name (or null for a draw).
+    private navigateToScreenCallback: (screenId: string) => void; // Callback to request navigation to a different screen (e.g., setup, main menu).
 
     /**
+     * Constructs a new TicTacToe game instance.
+     * Initializes DOM element references, sets up initial game state, and attaches event listeners.
      * @param gameBoardId The ID of the HTML element that will host the Tic-Tac-Toe board cells.
      * @param gameMessageId The ID of the HTML element to display game messages (e.g., current turn).
      * @param gameOverScreenId The ID of the HTML element representing the game over screen.
@@ -44,7 +48,7 @@ export class TicTacToe {
         onGameEndCallback: (winnerName: string | null) => void,
         navigateToScreenCallback: (screenId: string) => void
     ) {
-        // Get references to DOM elements
+        // Get references to DOM elements using their provided IDs.
         this.gameBoardElement = document.getElementById(gameBoardId) as HTMLElement;
         this.gameMessageElement = document.getElementById(gameMessageId) as HTMLElement;
         this.gameOverScreen = document.getElementById(gameOverScreenId) as HTMLElement;
@@ -52,122 +56,134 @@ export class TicTacToe {
         this.playAgainButton = document.getElementById(playAgainButtonId) as HTMLButtonElement;
         this.mainMenuButton = document.getElementById(mainMenuButtonId) as HTMLButtonElement;
 
-        // Assign callbacks
+        // Assign the provided callback functions.
         this.onGameEndCallback = onGameEndCallback;
         this.navigateToScreenCallback = navigateToScreenCallback;
 
-        // Initialize game state
-        this.board = Array(9).fill(null);
-        this.currentPlayer = this.player1Symbol; // 'X' always starts
-        this.gameActive = false;
+        // Initialize the core game state.
+        this.board = Array(9).fill(null); // Create an array of 9 nulls for an empty 3x3 board.
+        this.currentPlayer = this.player1Symbol; // 'X' is always the starting player.
+        this.gameActive = false; // Game is not active until `initializeGame` is called.
 
-        this.setupEventListeners();
+        this.setupEventListeners(); // Attach event handlers to UI elements.
     }
 
     /**
-     * Sets up event listeners for board clicks and game over buttons.
+     * Sets up event listeners for board cell clicks and the "Play Again" and "Main Menu" buttons.
      */
     private setupEventListeners(): void {
-        // Listen for clicks on the game board (event delegation)
+        // Event delegation for clicks on the game board:
+        // A single listener on the parent `gameBoardElement` catches clicks on any of its cells.
         if (this.gameBoardElement) {
-            this.gameBoardElement.addEventListener('click', this.handleCellClick.bind(this));
+            this.gameBoardElement.addEventListener('click', this.handleCellClick.bind(this)); // `bind(this)` ensures `this` context is correct.
         }
-        // Listen for "Play Again" button click
+        // Event listener for the "Play Again" button:
+        // Hides the game over screen and navigates back to the Tic-Tac-Toe setup screen.
         if (this.playAgainButton) {
             this.playAgainButton.addEventListener('click', () => {
-                this.hideGameOverScreen(); // Hide game over screen
-                this.navigateToScreenCallback('ticTacToeSetupScreen'); // Go back to setup for a new game
+                this.hideGameOverScreen();
+                this.navigateToScreenCallback('ticTacToeSetupScreen');
             });
         }
+        // Event listener for the "Main Menu" button:
+        // Hides the game over screen and navigates back to the application's initial choice screen.
         if (this.mainMenuButton) {
             this.mainMenuButton.addEventListener('click', () => {
-                this.hideGameOverScreen(); // Hide game over screen
-                this.navigateToScreenCallback('initialChoiceScreen'); // Navigate to main menu
+                this.hideGameOverScreen();
+                this.navigateToScreenCallback('initialChoiceScreen');
             });
         }
     }
 
     /**
-     * Initializes a new Tic-Tac-Toe game with given player names.
-     * @param player1Name Name of Player 1 (Cross).
-     * @param player2Name Name of Player 2 (Circle).
+     * Initializes a new Tic-Tac-Toe game.
+     * This method is called from `main.ts` after player names are entered.
+     * It resets the board, sets the starting player, and updates the UI.
+     * @param player1Name Name of Player 1 (who plays as 'X').
+     * @param player2Name Name of Player 2 (who plays as 'O').
      */
     public initializeGame(player1Name: string, player2Name: string): void {
-        this.player1Name = player1Name;
-        this.player2Name = player2Name;
-        this.board = Array(9).fill(null); // Reset board
-        this.currentPlayer = this.player1Symbol; // Reset current player to 'X'
-        this.gameActive = true; // Set game to active
-        this.renderBoard(); // Draw the empty board
-        this.updateGameMessage(`${this.player1Name}'s turn (${this.player1Symbol})`); // Update message
-        this.hideGameOverScreen(); // Ensure game over screen is hidden
-        // The main.ts will handle showing ticTacToeGameScreen after this initialization
+        this.player1Name = player1Name; // Store Player 1's name.
+        this.player2Name = player2Name; // Store Player 2's name.
+        this.board = Array(9).fill(null); // Reset the internal game board to all empty cells.
+        this.currentPlayer = this.player1Symbol; // Always set 'X' as the starting player for a new game.
+        this.gameActive = true; // Set the game state to active.
+        this.renderBoard(); // Render (draw) the now empty board in the DOM.
+        this.updateGameMessage(`${this.player1Name}'s turn (${this.player1Symbol})`); // Display the initial turn message.
+        this.hideGameOverScreen(); // Ensure the game over screen is hidden when a new game starts.
+        // Note: The `main.ts` module is responsible for showing `ticTacToeGameScreen` after this initialization.
     }
 
     /**
      * Handles a click event on a Tic-Tac-Toe cell.
-     * @param event The click event.
+     * It determines which cell was clicked and if the move is valid before processing it.
+     * @param event The DOM click event object.
      */
     private handleCellClick(event: Event): void {
-        const target = event.target as HTMLElement;
-        // Check if the clicked element is a game cell and if the game is active
+        const target = event.target as HTMLElement; // Cast the event target to an HTMLElement.
+        // Check if the clicked element is actually a game cell and if the game is currently active.
         if (!target.classList.contains('tic-tac-toe-cell') || !this.gameActive) {
-            return;
+            return; // If not a cell or game not active, ignore the click.
         }
 
-        const index = parseInt(target.dataset.index || '-1'); // Get cell index from data-index attribute
-        // Check for valid index and if the cell is already taken
+        const index = parseInt(target.dataset.index || '-1'); // Get the cell's index from its `data-index` attribute.
+        // Check for a valid index (0-8) and if the cell is already taken (not null).
         if (index === -1 || this.board[index] !== null) {
-            return;
+            return; // If invalid index or cell already occupied, ignore the click.
         }
 
-        this.makeMove(index); // Process the move
+        this.makeMove(index); // If the click is valid, proceed to make the move.
     }
 
     /**
-     * Makes a move on the board at the given index.
-     * @param index The index of the cell where the move is made (0-8).
+     * Processes a player's move on the board at the given index.
+     * Updates the board, checks for win/draw conditions, and switches players if the game continues.
+     * @param index The 0-based index of the cell where the move is to be made.
      */
     private makeMove(index: number): void {
-        this.board[index] = this.currentPlayer; // Place current player's symbol on the board
-        this.renderBoard(); // Update the visual board
+        this.board[index] = this.currentPlayer; // Place the current player's symbol ('X' or 'O') on the internal board array.
+        this.renderBoard(); // Update the visual representation of the board in the DOM.
 
         if (this.checkWin()) {
-            // If there's a winner
-            this.gameActive = false; // Deactivate game
-            const winnerName = this.currentPlayer === this.player1Symbol ? this.player1Name : this.player2Name;
-            this.updateGameMessage(`${winnerName} wins!`); // Update in-game message
-            this.onGameEndCallback(winnerName); // Notify main app
-            this.showGameOverScreen(`${winnerName} has won!`); // Show game over screen
+            // If the current player has won:
+            this.gameActive = false; // Set game to inactive.
+            const winnerName = this.currentPlayer === this.player1Symbol ? this.player1Name : this.player2Name; // Determine winner's name.
+            this.updateGameMessage(`${winnerName} wins!`); // Display winner message in-game.
+            this.onGameEndCallback(winnerName); // Notify the main application about the winner.
+            this.showGameOverScreen(`${winnerName} has won!`); // Show the dedicated game over screen with the winner.
         } else if (this.checkDraw()) {
-            // If it's a draw
-            this.gameActive = false; // Deactivate game
-            this.updateGameMessage("It's a draw!"); // Update in-game message
-            this.onGameEndCallback(null); // Notify main app (null for draw)
-            this.showGameOverScreen("It's a draw!"); // Show game over screen
+            // If it's a draw (no winner and board is full):
+            this.gameActive = false; // Set game to inactive.
+            this.updateGameMessage("It's a draw!"); // Display draw message in-game.
+            this.onGameEndCallback(null); // Notify the main application about a draw (passing null for winner).
+            this.showGameOverScreen("It's a draw!"); // Show the dedicated game over screen for a draw.
         } else {
-            // If game continues, switch player
+            // If the game continues (no win or draw):
+            // Switch to the next player.
             this.currentPlayer = this.currentPlayer === this.player1Symbol ? this.player2Symbol : this.player1Symbol;
             const nextPlayerName = this.currentPlayer === this.player1Symbol ? this.player1Name : this.player2Name;
-            this.updateGameMessage(`${nextPlayerName}'s turn (${this.currentPlayer})`); // Update message for next turn
+            this.updateGameMessage(`${nextPlayerName}'s turn (${this.currentPlayer})`); // Update the in-game message for the next turn.
         }
     }
 
     /**
-     * Checks if the current player has won the game.
+     * Checks if the current player has achieved a winning combination.
+     * It iterates through all predefined winning lines (rows, columns, diagonals).
      * @returns True if the current player has won, false otherwise.
      */
     private checkWin(): boolean {
-        // All possible winning combinations (rows, columns, diagonals)
+        // Define all 8 possible winning combinations on a 3x3 board.
         const winCombinations = [
-            [0, 1, 2], [3, 4, 5], [6, 7, 8], // Rows
-            [0, 3, 6], [1, 4, 7], [2, 5, 8], // Columns
+            [0, 1, 2], [3, 4, 5], [6, 7, 8], // Horizontal rows
+            [0, 3, 6], [1, 4, 7], [2, 5, 8], // Vertical columns
             [0, 4, 8], [2, 4, 6]             // Diagonals
         ];
 
-        // Check if any combination has the current player's symbol in all three positions
+        // Use `some` to check if any combination meets the win criteria.
         return winCombinations.some(combination => {
-            const [a, b, c] = combination;
+            const [a, b, c] = combination; // Destructure the current combination's indices.
+            // A win occurs if all three cells in the combination are not empty (null)
+            // AND they all contain the same symbol (belonging to the current player).
             return this.board[a] !== null &&
                    this.board[a] === this.board[b] &&
                    this.board[a] === this.board[c];
@@ -175,37 +191,41 @@ export class TicTacToe {
     }
 
     /**
-     * Checks if the game is a draw (board is full and no winner).
+     * Checks if the game has ended in a draw.
+     * A draw occurs if the board is completely full (no null cells) and no player has won.
      * @returns True if the game is a draw, false otherwise.
      */
     private checkDraw(): boolean {
-        // A draw occurs if all cells are filled and there is no winner
+        // `every` checks if all cells in the board array are not null (i.e., all cells are filled).
         return this.board.every(cell => cell !== null);
     }
 
     /**
      * Renders or updates the Tic-Tac-Toe board in the DOM.
+     * It clears the existing board elements and then recreates them based on the `this.board` array.
      */
     private renderBoard(): void {
-        this.gameBoardElement.innerHTML = ''; // Clear previous cells
-        // Create and append 9 cells to the board element
+        this.gameBoardElement.innerHTML = ''; // Clear all existing child elements from the board container.
+        // Iterate through the internal `board` array to create and append a div for each cell.
         this.board.forEach((cell, index) => {
             const cellDiv = document.createElement('div');
-            cellDiv.classList.add('tic-tac-toe-cell'); // Add base class
-            cellDiv.dataset.index = index.toString(); // Store index for click handling
-            cellDiv.textContent = cell; // Display 'X', 'O', or empty
+            cellDiv.classList.add('tic-tac-toe-cell'); // Add a common class for styling.
+            cellDiv.dataset.index = index.toString(); // Store the cell's index as a data attribute for event handling.
+            cellDiv.textContent = cell; // Set the cell's text content to 'X', 'O', or empty (if null).
+
+            // Add specific classes for 'X' and 'O' symbols for distinct styling (e.g., color, font).
             if (cell === 'X') {
-                cellDiv.classList.add('cross'); // Add class for styling 'X'
+                cellDiv.classList.add('cross');
             } else if (cell === 'O') {
-                cellDiv.classList.add('circle'); // Add class for styling 'O'
+                cellDiv.classList.add('circle');
             }
-            this.gameBoardElement.appendChild(cellDiv);
+            this.gameBoardElement.appendChild(cellDiv); // Append the newly created cell div to the board container.
         });
     }
 
     /**
-     * Updates the text content of the game message element.
-     * @param message The message to display.
+     * Updates the text content of the HTML element designated for game messages.
+     * @param message The string message to display to the user (e.g., current turn, game outcome).
      */
     private updateGameMessage(message: string): void {
         if (this.gameMessageElement) {
@@ -214,30 +234,32 @@ export class TicTacToe {
     }
 
     /**
-     * Shows the game over screen with the specified message and hides the game board.
-     * @param message The message to display on the game over screen.
+     * Shows the game over screen with a specified message.
+     * This also hides the main game board and in-game message.
+     * @param message The message to display on the game over screen (e.g., "Player X has won!", "It's a draw!").
      */
     private showGameOverScreen(message: string): void {
         if (this.gameOverScreen && this.gameOverMessageElement) {
-            this.gameOverMessageElement.textContent = message;
-            this.gameOverScreen.style.display = 'flex'; // Show game over screen (flex for centering)
-            this.gameBoardElement.style.display = 'none'; // Hide the game board
-            this.gameMessageElement.style.display = 'none'; // Hide the in-game message
+            this.gameOverMessageElement.textContent = message; // Set the message text.
+            this.gameOverScreen.style.display = 'flex'; // Display the game over screen using flexbox for centering.
+            this.gameBoardElement.style.display = 'none'; // Hide the main game board.
+            this.gameMessageElement.style.display = 'none'; // Hide the in-game message area.
         }
     }
 
     /**
-     * Hides the game over screen and shows the game board and message.
+     * Hides the game over screen and brings back the game board and in-game message.
+     * This is typically called when starting a new game or returning to setup.
      */
     private hideGameOverScreen(): void {
         if (this.gameOverScreen) {
-            this.gameOverScreen.style.display = 'none';
+            this.gameOverScreen.style.display = 'none'; // Hide the game over screen.
         }
         if (this.gameBoardElement) {
-            this.gameBoardElement.style.display = 'grid'; // Show the game board (using grid for layout)
+            this.gameBoardElement.style.display = 'grid'; // Show the game board, assuming its layout is `grid`.
         }
         if (this.gameMessageElement) {
-            this.gameMessageElement.style.display = 'block'; // Show the in-game message
+            this.gameMessageElement.style.display = 'block'; // Show the in-game message area.
         }
     }
 }

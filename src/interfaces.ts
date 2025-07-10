@@ -8,8 +8,8 @@ export interface PlayerConfig {
 
 // Settings for a standard 2-player (1v1) game instance
 export interface MatchSettings {
-    playerA: PlayerConfig; // Typically left player
-    playerB: PlayerConfig; // Typically right player
+    playerA: PlayerConfig; // Left player
+    playerB: PlayerConfig; // Right player
     scoreLimit: number;
 }
 
