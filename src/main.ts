@@ -6,7 +6,7 @@ import { Tournament } from './Tournament'; // Imports the tournament management 
 import { PlayerConfig, MatchSettings, TournamentSetupInfo, FourPlayerMatchSettings } from './interfaces'; // Imports data structures for player, match, and tournament configurations.
 import { TicTacToe } from './tictactoe'; // NEW: Imports the TicTacToe game logic.
 
-const MAX_NAME_LENGTH = 20; // Maximum allowed length for player names in Pong game modes.
+const MAX_NAME_LENGTH = 20; // Maximum allowed length for player names in Pong and Tic-Tac-Toe game modes.
 
 // A map to convert common color names (strings) to their corresponding hexadecimal color codes.
 const COLOR_MAP: { [key: string]: string } = {
@@ -86,11 +86,8 @@ function showScreen(screenToShow: HTMLElement | HTMLCanvasElement | null) {
         } else if (['initialChoiceScreen', 'matchOverScreen', 'tournamentWinnerScreen', 'matchAnnouncementScreen', 'ticTacToeGameOverScreen'].includes(screenToShow.id)) {
             // These screens are typically centered and should use 'flex' display.
             screenToShow.style.display = 'flex';
-        } else if (['gameSetup', 'fourPlayerMatchSetupScreen', 'tournamentSetupScreen', 'rulesScreen', 'ticTacToeSetupScreen', 'ticTacToeGameScreen'].includes(screenToShow.id)) {
-            // These screens are typically forms/content blocks and should use 'block' display.
-            screenToShow.style.display = 'block';
         } else {
-            // Default to 'block' for any other screen not explicitly handled.
+            // Default to 'block' for other screens.
             screenToShow.style.display = 'block';
         }
     }
