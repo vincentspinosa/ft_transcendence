@@ -274,6 +274,7 @@ export class Game {
         if (this.gameMode === '4player') {
             // --- Team 1 (Left Side) Human Input ---
             // Player A (top-left) controls.
+            //'?' -> property before might be null or undefined
             if (this.team1PlayerAConfig?.type === 'human' && this.team1Paddles[0]) {
                 if (this.keysPressed['A']) this.team1Paddles[0].moveUp();
                 if (this.keysPressed['Q']) this.team1Paddles[0].moveDown(this.canvasElement.height);
@@ -348,14 +349,6 @@ export class Game {
 
         // Determine if the ball is moving towards or away from the target X.
         const movingTowardsTarget = (speedX > 0 && targetX > currentX) || (speedX < 0 && targetX < currentX);
-
-        // This simplified prediction assumes the ball will eventually reach `targetX`.
-        // A more sophisticated AI would need to account for bounces off other paddles
-        // or if the ball goes past the goal line.
-        if (!movingTowardsTarget) {
-            // For now, if the ball is moving away, we let the prediction continue
-            // through the entire court length as if it will bounce back.
-        }
 
         // Loop to simulate ball movement until `targetX` is reached or max iterations.
         while (true && iterations < MAX_ITERATIONS) {
