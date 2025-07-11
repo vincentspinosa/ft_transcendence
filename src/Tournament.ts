@@ -35,7 +35,7 @@ export class Tournament {
 
     private currentMatchPlayers: { playerA: PlayerConfig, playerB: PlayerConfig } | null = null; // Temporarily holds the PlayerConfig for the current match being announced/played.
 
-    public onTournamentEnd: (() => void) | null = null; // An optional callback function to be executed when the tournament finishes.
+    public onTournamentEnd: (() => void) | null = null; // Callback function to be executed when the tournament finishes.
 
     /**
      * Constructs a new Tournament instance.
@@ -143,14 +143,14 @@ export class Tournament {
             // If for some reason semi-final winners are not determined, log an error and end the tournament.
             if (!playerA || !playerB) {
                 console.error("Cannot start final: semi-final winners not determined.", this.semiFinalWinners);
-                if (this.onTournamentEnd) this.onTournamentEnd(); // Call optional end callback.
+                if (this.onTournamentEnd) this.onTournamentEnd(); // Call end callback.
                 return;
             }
             matchTitle = "THE FINAL";
         } else {
             // Invalid match index, indicating an unexpected state. Log and end tournament.
             console.error("Invalid match index for tournament: " + this.currentMatchIndex);
-            if (this.onTournamentEnd) this.onTournamentEnd(); // Call optional end callback.
+            if (this.onTournamentEnd) this.onTournamentEnd(); // Call end callback.
             return;
         }
 
@@ -203,7 +203,7 @@ export class Tournament {
         if (!this.currentMatchPlayers) {
             console.error("Cannot start match: currentMatchPlayers not set (Go button clicked too early or error).");
             if (this.matchAnnouncementScreenDiv) this.matchAnnouncementScreenDiv.style.display = 'none';
-            if (this.onTournamentEnd) this.onTournamentEnd(); // Potentially end tournament if an error occurs.
+            if (this.onTournamentEnd) this.onTournamentEnd(); // End tournament if an error occurs.
             return;
         }
 
@@ -277,7 +277,7 @@ export class Tournament {
                 this.setupNextMatch(); // Set up The Final match.
             } else {
                 console.error("Error proceeding to final: one or both semi-final winners are missing.", this.semiFinalWinners);
-                if (this.onTournamentEnd) this.onTournamentEnd(); // Call optional end callback if an error prevents final.
+                if (this.onTournamentEnd) this.onTournamentEnd(); // Call end callback if an error prevents final.
             }
         } else {
             // This `else` block should ideally not be reached if `displayTournamentWinner` is called correctly after the final.
@@ -307,7 +307,7 @@ export class Tournament {
         }
         // Display the tournament winner screen.
         if (this.tournamentWinnerScreenDiv) this.tournamentWinnerScreenDiv.style.display = 'flex';
-        // Call the optional `onTournamentEnd` callback to signal the main application that the tournament is over.
+        // Call `onTournamentEnd` callback to signal the main application that the tournament is over.
         if (this.onTournamentEnd) this.onTournamentEnd();
     }
 }
