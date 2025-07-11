@@ -511,9 +511,9 @@ export class Game {
     private checkCollision(): void {
         if (!this.ball) return;
         if (this.gameMode === '4player') {
-            this.checkFourPlayerCollisions(); // Handle 2v2 specific collisions.
+            this.checkFourPlayerCollisions();
         } else {
-            this.checkTwoPlayerCollisions(); // Handle 1v1 specific collisions.
+            this.checkTwoPlayerCollisions();
         }
     }
 
@@ -579,7 +579,7 @@ export class Game {
                 this.ball.speedX *= -1; // Reverse horizontal speed.
                 this.ball.x = paddle.x + paddle.width + this.ball.radius; // Adjust ball position to prevent sticking.
                 let deltaY = this.ball.y - (paddle.y + paddle.height / 2);
-                this.ball.speedY = deltaY * 0.20 + (Math.random() - 0.5) * 2; // More vertical variance for 4-player.
+                this.ball.speedY = deltaY * 0.25;
                 collisionOccurred = true;
                 break; // Only process one collision.
             }
@@ -597,7 +597,7 @@ export class Game {
                 this.ball.speedX *= -1; // Reverse horizontal speed.
                 this.ball.x = paddle.x - this.ball.radius; // Adjust ball position.
                 let deltaY = this.ball.y - (paddle.y + paddle.height / 2);
-                this.ball.speedY = deltaY * 0.20 + (Math.random() - 0.5) * 2; // More vertical variance.
+                this.ball.speedY = deltaY * 0.25;
                 collisionOccurred = true;
                 break; // Only process one collision.
             }
