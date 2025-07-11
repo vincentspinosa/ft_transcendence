@@ -42,6 +42,9 @@ export class Ball {
     /**
      * Draws the ball on the provided 2D rendering context of a canvas.
      * @param ctx The CanvasRenderingContext2D on which to draw the ball.
+     * "The CanvasRenderingContext2D interface, part of the Canvas API, 
+     * provides the 2D rendering context for the drawing surface of a element. 
+     * It is used for drawing shapes, text, images, and other objects."
      */
     draw(ctx: CanvasRenderingContext2D): void {
         // Set the fill style to the ball's color.
