@@ -466,9 +466,6 @@ export class Game {
                 const ballY = this.ball.y;
                 const ballSpeedX = this.ball.speedX; 
                 const ballSpeedY = this.ball.speedY; 
-
-                // Determine if the ball is currently on this AI's half of the court.
-                const ballIsOnAIsHalf = (isLeft && ballX < this.canvasElement.width / 2) || (!isLeft && ballX > this.canvasElement.width / 2);
                 
                 let predictedTargetY: number;
 
@@ -476,7 +473,7 @@ export class Game {
                 // AND moving towards its goal (i.e., it's a threat to score on its side).
                 const ballMovingTowardsAIsGoal = (isLeft && ballSpeedX < 0) || (!isLeft && ballSpeedX > 0);
 
-                if (ballIsOnAIsHalf && ballMovingTowardsAIsGoal) {
+                if (ballMovingTowardsAIsGoal) {
                     // Determine the X-coordinate of the paddle's "hitting" edge for prediction.
                     // For a left paddle, it's `paddle.x + paddle.width`. For a right paddle, it's `paddle.x`.
                     const targetPaddleX = isLeft ? paddle.x + paddle.width : paddle.x;
@@ -487,14 +484,9 @@ export class Game {
                         targetPaddleX, this.canvasElement.width, this.canvasElement.height, this.BALL_RADIUS
                     );
 
-                    // Apply an imperfection offset to the predicted target Y.
-                    // This makes the AI less perfect, simulating human error.
-                    const offset = (Math.random() * this.AI_PERFECTION_OFFSET * 2) - this.AI_PERFECTION_OFFSET; // Random value between -offset and +offset.
-                    let finalTargetY = predictedTargetY + offset;
-
                     // Clamp the final target Y to ensure it's within the canvas bounds,
                     // accounting for the paddle's height so it doesn't try to move off-screen.
-                    finalTargetY = Math.max(0, Math.min(this.canvasElement.height - paddle.height, finalTargetY));
+                    let finalTargetY = Math.max(0, Math.min(this.canvasElement.height - paddle.height, predictedTargetY));
                     paddle.setAITargetY(finalTargetY, this.canvasElement.height); // Set the paddle's target Y.
 
                 } else {
