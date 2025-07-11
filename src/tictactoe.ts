@@ -90,6 +90,13 @@ export class TicTacToe {
         if (this.mainMenuButton) {
             this.mainMenuButton.addEventListener('click', () => {
                 this.hideGameOverScreen();
+
+            if (this.gameBoardElement) {
+                this.gameBoardElement.style.display = 'none'; // Show the game board, assuming its layout is `grid`.
+            }
+            if (this.gameMessageElement) {
+                this.gameMessageElement.style.display = 'none'; // Show the in-game message area.
+            }
                 this.navigateToScreenCallback('initialChoiceScreen');
             });
         }
