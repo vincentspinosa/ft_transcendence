@@ -501,11 +501,11 @@ export class Game {
                     // Clamp the final target Y to ensure it's within the canvas bounds,
                     // accounting for the paddle's height so it doesn't try to move off-screen.
                     finalTargetY = Math.max(0, Math.min(this.canvasElement.height - paddle.height, finalTargetY));
-                    paddle.setAITargetY(finalTargetY); // Set the paddle's target Y.
+                    paddle.setAITargetY(finalTargetY, this.canvasElement.height); // Set the paddle's target Y.
 
                 } else {
                     // If the ball is not a threat, or is on the other side, the AI paddle returns to the center.
-                    paddle.setAITargetY(this.canvasElement.height / 2);
+                    paddle.setAITargetY(this.canvasElement.height / 2, this.canvasElement.height);
                 }
             });
         }

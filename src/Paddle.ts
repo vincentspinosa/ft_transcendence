@@ -92,7 +92,7 @@ export class Paddle {
      * The target will be adjusted to aim for the paddle's center.
      * @param targetY The Y-coordinate the AI should aim for (e.g., the ball's Y-coordinate).
      */
-    setAITargetY(targetY: number): void {
+    setAITargetY(targetY: number, canvasHeight: number): void {
         // The AI aims to position the center of its paddle at the `targetY`.
         // Therefore, the paddle's top edge (`this.aiTargetY`) should be `targetY - this.height / 2`.
         this.aiTargetY = targetY - this.height / 2;
@@ -105,8 +105,8 @@ export class Paddle {
         // Assuming canvasHeight is 600. This should ideally be passed as a parameter for flexibility.
         // If the paddle's bottom edge (this.aiTargetY + this.height) would go below the canvas bottom,
         // adjust the target so the paddle's bottom aligns with the canvas bottom.
-        if (this.aiTargetY + this.height > 600) {
-            this.aiTargetY = 600 - this.height;
+        if (this.aiTargetY + this.height > canvasHeight) {
+            this.aiTargetY = canvasHeight - this.height;
         }
     }
 
