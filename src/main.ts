@@ -1,5 +1,54 @@
 // src/main.ts
 
+/* 
+
+Core Functionality and Structure :
+
+The file is structured to initialize and manage various aspects of the application upon the browser's DOMContentLoaded event:
+
+Global Instances: It declares global variables to hold instances of Game (for Pong), Tournament, and TicTacToe, which encapsulate the logic for each game mode.
+
+UI Element Management: It meticulously references numerous HTML elements (screens, buttons, forms, canvas) by their IDs, mapping them into a screenElements object for easy access. This enables dynamic display and hiding of different parts of the UI.
+
+
+Screen Navigation (showScreen and navigateTo):
+
+The showScreen function is responsible for hiding all application screens and then displaying only the specified one, adjusting its display style (block or flex) as needed.
+
+The navigateTo function orchestrates navigation, updating the browser's URL hash and leveraging the HTML5 History API (pushState and replaceState) to provide a seamless single-page application experience. This allows users to use browser back/forward buttons and supports deep linking.
+
+Player Configuration (getPlayerConfig and getSinglePlayer1v1Config): These helper functions extract player details (name, color, type) from HTML form inputs, converting color names to hex codes and applying default values.
+
+Input Validation (validatePlayerName): A utility function ensures player names are not empty, unique (where required), and within a maximum length, providing user feedback through alerts.
+
+
+Game Mode Setup and Initialization :
+
+The script sets up event listeners for various forms, handling the submission logic for each game mode:
+
+1v1 Pong Match: When the "Single Match" form is submitted, it gathers player names, colors, types (human/AI), and the score limit. It then validates these inputs, initializes the gameInstance for a 1v1 match, shows the pongCanvas, and starts the Pong game loop.
+
+4-Player Pong Match: Similar to 1v1, this handles the setup for two teams of two players, ensuring all four player names are unique before initializing and starting a 4-player Pong match.
+
+Pong Tournament: Upon tournament form submission, it collects data for four players and the points-to-win setting. It instantiates a Tournament object, passing it the setup information, the gameInstance, and references to various UI elements needed for tournament announcements and win screens. The tournament flow is then initiated.
+
+Tic-Tac-Toe (NEW): This new section handles the setup for Tic-Tac-Toe. It captures two player names, validates them for uniqueness and length, initializes the ticTacToeInstance with these names, and navigates to the ticTacToeGameScreen.
+
+
+Event Handling and Lifecycle :
+
+DOM Content Loaded: All UI element references are gathered and event listeners are attached only after the entire HTML document is parsed, preventing errors from trying to access non-existent elements.
+
+Button Click Listeners: Numerous buttons (mode selection, back buttons, post-game navigation) are hooked up to the navigateTo function to manage screen transitions.
+
+Browser History (popstate): An event listener for popstate ensures that when users use their browser's back/forward buttons, the application's UI updates correctly to reflect the history state.
+
+Initial Load and Deep Linking: The script checks the URL hash on initial load to support deep linking, allowing users to start on a specific game setup screen if the URL contains the corresponding hash.
+
+Critical UI Check: A robust check at the end verifies that all essential HTML elements are present in the DOM, logging warnings if any critical components are missing, which helps in debugging and ensuring application stability.
+
+*/
+
 // Import necessary classes and interfaces from other modules.
 import { Game } from './Game'; // Imports the core Pong game logic.
 import { Tournament } from './Tournament'; // Imports the tournament management logic.
@@ -81,9 +130,7 @@ function showScreen(screenToShow: HTMLElement | HTMLCanvasElement | null) {
 
     // If a screen is specified, set its display style based on its type or ID.
     if (screenToShow) {
-        if (screenToShow.id === 'pongCanvas') {
-            screenToShow.style.display = 'block'; // Canvas is typically a block element.
-        } else if (['initialChoiceScreen', 'matchOverScreen', 'tournamentWinnerScreen', 'matchAnnouncementScreen', 'ticTacToeGameOverScreen'].includes(screenToShow.id)) {
+        if (['initialChoiceScreen', 'matchOverScreen', 'tournamentWinnerScreen', 'matchAnnouncementScreen', 'ticTacToeGameOverScreen'].includes(screenToShow.id)) {
             // These screens are typically centered and should use 'flex' display.
             screenToShow.style.display = 'flex';
         } else {
@@ -214,7 +261,7 @@ window.addEventListener('DOMContentLoaded', () => {
     ticTacToeGameOverScreen = document.getElementById('ticTacToeGameOverScreen') as HTMLElement;     // NEW: Tic-Tac-Toe game over screen
 
     // Populate the `screenElements` map for easier lookup.
-    // This allows `MapsTo` function to quickly find elements by ID.
+    // This allows `navigateTo` function to quickly find elements by ID.
     if (initialChoiceScreen) screenElements['initialChoiceScreen'] = initialChoiceScreen;
     if (gameSetupScreen) screenElements['gameSetup'] = gameSetupScreen;
     if (fourPlayerMatchSetupScreen) screenElements['fourPlayerMatchSetupScreen'] = fourPlayerMatchSetupScreen;
@@ -261,7 +308,7 @@ window.addEventListener('DOMContentLoaded', () => {
         'tournamentMatchOverButtons'
     );
     // Note: The `playAgainBtn` behavior is handled internally by the `Game` class.
-    // If it were to navigate, `MapsTo('gameSetup')` would be called.
+    // If it were to navigate, `navigateTo('gameSetup')` would be called.
 
     // NEW: Initialize TicTacToe game instance.
     // Similar to Pong, it's linked to its respective UI elements and provides callbacks.
@@ -277,7 +324,7 @@ window.addEventListener('DOMContentLoaded', () => {
             console.log(`Tic-Tac-Toe game finished. Winner: ${winnerName || 'Draw'}`);
             // Additional logic (e.g., updating stats) could be added here.
         },
-        navigateTo // Pass the global `MapsTo` function to TicTacToe for its internal navigation (e.g., from game over to main menu).
+        navigateTo // Pass the global `navigateTo` function to TicTacToe for its internal navigation (e.g., from game over to main menu).
     );
 
 
