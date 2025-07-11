@@ -157,6 +157,7 @@ export class Game {
         this.isTournamentMatchFlag = isTournament;
         this.onMatchCompleteCallback = onCompleteCallback;
 
+        /* ... -> for object cloning */
         // Store player configurations and score limit.
         this.playerAConfig = { ...settings.playerA };
         this.playerBConfig = { ...settings.playerB };
