@@ -764,11 +764,7 @@ export class Game {
             this.drawScores(); // Draw the current scores.
         }
     }
-    
-    /**
-     * Resets the internal game state without re-initializing paddles or ball.
-     * Used for starting a new round or game after a score.
-     */
+
     private resetGameInternals(): void {
         this.gameOver = false; // Reset game over flag.
         this.winnerMessage = ""; // Clear winner message.
@@ -825,8 +821,7 @@ export class Game {
     }
 
     /**
-     * Starts the game. This method should be called after `initializeGame` or `initializeFourPlayerMatch`.
-     * It cancels any existing game loop and starts a new one.
+     * Starts the game. Cancels any existing game loop and starts a new one.
      */
     public start(): void {
         this.iterations = 0; // Reset iterations counter for the new game.
