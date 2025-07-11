@@ -102,6 +102,16 @@ export class Game {
         }
     }
 
+    // Method to stop the game.
+    public stop(): void {
+        if (this.gameLoopId) {
+            cancelAnimationFrame(this.gameLoopId);
+            this.gameLoopId = null;
+        }
+        this.gameOver = true; // Ensure the game is marked as over
+        this.hideElement(this.canvasElement); // Hide the canvas
+    }
+
     /**
      * Shows a given HTML element by setting its display style.
      * @param element The HTMLElement to show.

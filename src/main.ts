@@ -111,6 +111,39 @@ let ticTacToeModeBtn: HTMLButtonElement;        // Button to select Tic-Tac-Toe 
 let ticTacToeSettingsForm: HTMLFormElement;     // Form for Tic-Tac-Toe game settings.
 let tt_backToMainBtn: HTMLButtonElement;  // Button to go back to main menu from Tic-Tac-Toe setup.
 
+// --- Browser History (popstate) Handling ---
+window.addEventListener('popstate', (event) => {
+    // Determine the ID of the screen we are navigating TO
+    const targetScreenId = event.state && event.state.screenId ? event.state.screenId : 'initialChoiceScreen';
+    const targetScreenElement = screenElements[targetScreenId];
+
+    // Get the ID of the screen we are navigating FROM (before the popstate applied the change)
+    // This is a bit tricky with popstate; a simpler approach is to check if
+    // current active screens (pongCanvas, ticTacToeGameScreen) are no longer the target.
+    const currentActiveScreenId = Object.keys(screenElements).find(key => {
+        const element = screenElements[key];
+        return element && element.style.display !== 'none';
+    });
+
+    // If navigating away from pongCanvas while it was active, stop the Pong game.
+    if (currentActiveScreenId === 'pongCanvas' && targetScreenId !== 'pongCanvas' && gameInstance) {
+        console.log("Navigating away from Pong game, stopping it.");
+        gameInstance.stop();
+    }
+
+    // If navigating away from ticTacToeGameScreen while it was active, stop the Tic-Tac-Toe game.
+    if (currentActiveScreenId === 'ticTacToeGameScreen' && targetScreenId !== 'ticTacToeGameScreen' && ticTacToeInstance) {
+        console.log("Navigating away from Tic-Tac-Toe game, stopping it.");
+        ticTacToeInstance.stop();
+    }
+
+    if (targetScreenElement) {
+        showScreen(targetScreenElement);
+    } else {
+        console.warn(`Screen ID "${targetScreenId}" from popstate not found. Defaulting.`);
+        showScreen(initialChoiceScreen);
+    }
+});
 
 /**
  * Hides all known game screens and then displays the specified screen.

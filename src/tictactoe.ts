@@ -67,6 +67,24 @@ export class TicTacToe {
 
         this.setupEventListeners(); // Attach event handlers to UI elements.
     }
+    
+    /**
+     * Stops the current Tic-Tac-Toe game.
+     * This sets gameActive to false and hides game-related elements.
+     */
+    public stop(): void {
+        this.gameActive = false;
+        // Optionally clear the board visually or reset messages
+        this.gameBoardElement.innerHTML = ''; // Clear cells
+        this.updateGameMessage(''); // Clear message
+        this.hideGameOverScreen(); // Ensure game over screen is hidden
+        if (this.gameBoardElement) {
+            this.gameBoardElement.style.display = 'none';
+        }
+        if (this.gameMessageElement) {
+            this.gameMessageElement.style.display = 'none';
+        }
+    }
 
     /**
      * Sets up event listeners for board cell clicks and the "Play Again" and "Main Menu" buttons.
