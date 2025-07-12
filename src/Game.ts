@@ -286,35 +286,35 @@ export class Game {
             // Player A (top-left) controls.
             //'?' -> property before might be null or undefined
             if (this.team1PlayerAConfig?.type === 'human' && this.team1Paddles[0]) {
-                if (this.keysPressed['A']) this.team1Paddles[0].moveUp();
-                if (this.keysPressed['Q']) this.team1Paddles[0].moveDown(this.canvasElement.height);
+                if (this.keysPressed['Q']) this.team1Paddles[0].moveUp();
+                if (this.keysPressed['A']) this.team1Paddles[0].moveDown(this.canvasElement.height);
             }
             // Player B (bottom-left) controls.
             if (this.team1PlayerBConfig?.type === 'human' && this.team1Paddles[1]) {
-                if (this.keysPressed['Z']) this.team1Paddles[1].moveUp();
+                if (this.keysPressed['W']) this.team1Paddles[1].moveUp();
                 if (this.keysPressed['S']) this.team1Paddles[1].moveDown(this.canvasElement.height);
             }
             // --- Team 2 (Right Side) Human Input ---
             // Player A (top-right) controls.
             if (this.team2PlayerAConfig?.type === 'human' && this.team2Paddles[0]) {
                 if (this.keysPressed['P']) this.team2Paddles[0].moveUp();
-                if (this.keysPressed['M']) this.team2Paddles[0].moveDown(this.canvasElement.height);
+                if (this.keysPressed['L']) this.team2Paddles[0].moveDown(this.canvasElement.height);
             }
             // Player B (bottom-right) controls.
             if (this.team2PlayerBConfig?.type === 'human' && this.team2Paddles[1]) {
                 if (this.keysPressed['O']) this.team2Paddles[1].moveUp();
-                if (this.keysPressed['L']) this.team2Paddles[1].moveDown(this.canvasElement.height);
+                if (this.keysPressed['K']) this.team2Paddles[1].moveDown(this.canvasElement.height);
             }
         } else { // Handles 2-player (1v1) or tournament mode human input.
             // Player A (left) controls.
             if (this.playerAConfig?.type === 'human' && this.player1Paddle) {
-                if (this.keysPressed['A']) this.player1Paddle.moveUp();
-                if (this.keysPressed['Q']) this.player1Paddle.moveDown(this.canvasElement.height);
+                if (this.keysPressed['Q']) this.player1Paddle.moveUp();
+                if (this.keysPressed['A']) this.player1Paddle.moveDown(this.canvasElement.height);
             }
             // Player B (right) controls.
             if (this.playerBConfig?.type === 'human' && this.player2Paddle) {
                 if (this.keysPressed['P']) this.player2Paddle.moveUp();
-                if (this.keysPressed['M']) this.player2Paddle.moveDown(this.canvasElement.height);
+                if (this.keysPressed['L']) this.player2Paddle.moveDown(this.canvasElement.height);
             }
         }
     }
