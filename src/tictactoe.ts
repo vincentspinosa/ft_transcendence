@@ -67,7 +67,7 @@ export class TicTacToe {
 
         this.setupEventListeners(); // Attach event handlers to UI elements.
     }
-    
+
     /**
      * Stops the current Tic-Tac-Toe game.
      * This sets gameActive to false and hides game-related elements.
@@ -269,6 +269,9 @@ export class TicTacToe {
             this.gameOverScreen.style.display = 'flex'; // Display the game over screen using flexbox for centering.
             this.gameBoardElement.style.display = 'none'; // Hide the main game board.
             this.gameMessageElement.style.display = 'none'; // Hide the in-game message area.
+            let doc = document.getElementById("ticTacToeGameScreen");
+            if (doc)
+                doc.style.display = 'none';
         }
     }
 
