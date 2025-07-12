@@ -578,7 +578,7 @@ window.addEventListener('DOMContentLoaded', () => {
             // Initialize and navigate to the Tic-Tac-Toe game screen.
             if (ticTacToeInstance) {
                 ticTacToeInstance.initializeGame(p1Name, p2Name); // Initialize Tic-Tac-Toe with player names.
-                navigateTo('ticTacToeGameScreen'); // Show the Tic-Tac-Toe game board.
+                showScreen(ticTacToeGameScreen);
             }
         });
     }
