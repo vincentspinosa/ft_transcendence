@@ -6,7 +6,7 @@ Core Functionality and Structure :
 
 The file is structured to initialize and manage various aspects of the application upon the browser's DOMContentLoaded event:
 
-Global Instances: It declares global variables to hold instances of Game (for Pong), Tournament, and TicTacToe, which encapsulate the logic for each game mode.
+Global Instances: It declares global variables to hold instances of Game (for Pong) and Tournament, which encapsulate the logic for each game mode.
 
 UI Element Management: It meticulously references numerous HTML elements (screens, buttons, forms, canvas) by their IDs, mapping them into a screenElements object for easy access. This enables dynamic display and hiding of different parts of the UI.
 
@@ -32,8 +32,6 @@ The script sets up event listeners for various forms, handling the submission lo
 
 Pong Tournament: Upon tournament form submission, it collects data for four players and the points-to-win setting. It instantiates a Tournament object, passing it the setup information, the gameInstance, and references to various UI elements needed for tournament announcements and win screens. The tournament flow is then initiated.
 
-Tic-Tac-Toe (NEW): This new section handles the setup for Tic-Tac-Toe. It captures two player names, validates them for uniqueness and length, initializes the ticTacToeInstance with these names, and navigates to the ticTacToeGameScreen.
-
 
 Event Handling and Lifecycle :
 
@@ -50,10 +48,10 @@ Critical UI Check: A robust check at the end verifies that all essential HTML el
 */
 
 // Import necessary classes and interfaces from other modules.
+import '../main.css';
 import { Game } from './Game'; // Imports the core Pong game logic.
 import { Tournament } from './Tournament'; // Imports the tournament management logic.
 import { PlayerConfig, MatchSettings, TournamentSetupInfo, FourPlayerMatchSettings } from './interfaces'; // Imports data structures for player, match, and tournament configurations.
-import { TicTacToe } from './tictactoe'; // NEW: Imports the TicTacToe game logic.
 
 const MAX_NAME_LENGTH = 20; // Maximum allowed length for player names in Pong and Tic-Tac-Toe game modes.
 
@@ -69,7 +67,6 @@ const COLOR_MAP: { [key: string]: string } = {
 // These variables will hold instances of the Game and Tournament classes.
 let gameInstance: Game | null = null; // Instance of the Pong game. Null initially.
 let tournamentInstance: Tournament | null = null; // Instance of the Tournament manager. Null initially.
-let ticTacToeInstance: TicTacToe | null = null; // NEW: Instance of the TicTacToe game. Null initially.
 
 // --- UI Element Variables ---
 // These variables will store references to various HTML elements that make up the game's user interface.
@@ -82,10 +79,7 @@ let initialChoiceScreen: HTMLElement,      // The main menu screen where users c
     pongCanvas: HTMLCanvasElement,         // The HTML canvas element where Pong game is rendered.
     matchOverScreen: HTMLElement,          // Screen displayed after a single Pong match ends.
     tournamentWinnerScreen: HTMLElement,   // Screen displayed after a tournament concludes, showing the winner.
-    matchAnnouncementScreen: HTMLElement,  // Screen used during a tournament to announce upcoming matches.
-    ticTacToeSetupScreen: HTMLElement,     // NEW: Screen for setting up a Tic-Tac-Toe game.
-    ticTacToeGameScreen: HTMLElement,      // NEW: Screen displaying the Tic-Tac-Toe game board.
-    ticTacToeGameOverScreen: HTMLElement;  // NEW: Screen displayed after a Tic-Tac-Toe game ends.
+    matchAnnouncementScreen: HTMLElement;  // Screen used during a tournament to announce upcoming matches.
 
 // A map to quickly access HTML elements by their ID, facilitating screen navigation.
 const screenElements: { [key: string]: HTMLElement | HTMLCanvasElement } = {};
@@ -105,11 +99,6 @@ let singleMatchModeBtn: HTMLButtonElement,     // Button to select 1v1 Pong mode
     matchOver_MainMenuBtn: HTMLButtonElement,  // Button to go to main menu from match over screen.
     tournamentEnd_MainMenuBtn: HTMLButtonElement, // Button to go to main menu from tournament winner screen.
     startNewTournamentBtn: HTMLButtonElement;  // Button to start a new tournament from tournament winner screen.
-
-// NEW: Tic-Tac-Toe specific UI elements.
-let ticTacToeModeBtn: HTMLButtonElement;        // Button to select Tic-Tac-Toe mode.
-let ticTacToeSettingsForm: HTMLFormElement;     // Form for Tic-Tac-Toe game settings.
-let tt_backToMainBtn: HTMLButtonElement;  // Button to go back to main menu from Tic-Tac-Toe setup.
 
 // --- Browser History (popstate) Handling ---
 window.addEventListener('popstate', (event) => {
@@ -131,16 +120,10 @@ window.addEventListener('popstate', (event) => {
         gameInstance.stop();
     }
 
-    // If navigating away from ticTacToeGameScreen while it was active, stop the Tic-Tac-Toe game.
-    if (currentActiveScreenId === 'ticTacToeGameScreen' && targetScreenId !== 'ticTacToeGameScreen' && ticTacToeInstance) {
-        console.log("Navigating away from Tic-Tac-Toe game, stopping it.");
-        ticTacToeInstance.stop();
-    }
-
     if (targetScreenElement) {
         showScreen(targetScreenElement);
     } else {
-        console.warn(`Screen ID "${targetScreenId}" from popstate not found. Defaulting.`);
+        console.log(`Screen ID "${targetScreenId}" from popstate not found. Defaulting.`);
         showScreen(initialChoiceScreen);
     }
 });
@@ -153,8 +136,7 @@ function showScreen(screenToShow: HTMLElement | HTMLCanvasElement | null) {
     // List all possible screen elements.
     const allScreens = [
         initialChoiceScreen, gameSetupScreen, fourPlayerMatchSetupScreen, tournamentSetupScreen,
-        rulesScreen, pongCanvas, matchOverScreen, tournamentWinnerScreen, matchAnnouncementScreen,
-        ticTacToeSetupScreen, ticTacToeGameScreen, ticTacToeGameOverScreen // Includes NEW Tic-Tac-Toe screens.
+        rulesScreen, pongCanvas, matchOverScreen, tournamentWinnerScreen, matchAnnouncementScreen
     ];
     // Iterate through all screens and set their display style to 'none' to hide them.
     allScreens.forEach(s => {
@@ -163,7 +145,7 @@ function showScreen(screenToShow: HTMLElement | HTMLCanvasElement | null) {
 
     // If a screen is specified, set its display style based on its type or ID.
     if (screenToShow) {
-        if (['initialChoiceScreen', 'matchOverScreen', 'tournamentWinnerScreen', 'matchAnnouncementScreen', 'ticTacToeGameOverScreen'].includes(screenToShow.id)) {
+        if (['initialChoiceScreen', 'matchOverScreen', 'tournamentWinnerScreen', 'matchAnnouncementScreen'].includes(screenToShow.id)) {
             // These screens are typically centered and should use 'flex' display.
             screenToShow.style.display = 'flex';
         } else {
@@ -198,7 +180,7 @@ function navigateTo(screenId: string | null, replaceState: boolean = false) {
         }
         showScreen(targetScreen); // Display the target screen.
     } else if (screenId !== 'pongCanvas') { // Warn if a non-canvas screen ID is not found.
-        console.warn(`Screen with ID "${screenId}" not found for navigation. Defaulting to initial screen.`);
+        console.log(`Screen with ID "${screenId}" not found for navigation. Defaulting to initial screen.`);
         navigateTo('initialChoiceScreen', replaceState); // Fallback to initial screen.
     }
 }
@@ -289,9 +271,6 @@ window.addEventListener('DOMContentLoaded', () => {
     matchOverScreen = document.getElementById('matchOverScreen') as HTMLElement;
     tournamentWinnerScreen = document.getElementById('tournamentWinnerScreen') as HTMLElement;
     matchAnnouncementScreen = document.getElementById('matchAnnouncementScreen') as HTMLElement;
-    ticTacToeSetupScreen = document.getElementById('ticTacToeSetupScreen') as HTMLElement;           // NEW: Tic-Tac-Toe setup screen
-    ticTacToeGameScreen = document.getElementById('ticTacToeGameScreen') as HTMLElement;             // NEW: Tic-Tac-Toe game screen
-    ticTacToeGameOverScreen = document.getElementById('ticTacToeGameOverScreen') as HTMLElement;     // NEW: Tic-Tac-Toe game over screen
 
     // Populate the `screenElements` map for easier lookup.
     // This allows `navigateTo` function to quickly find elements by ID.
@@ -304,9 +283,6 @@ window.addEventListener('DOMContentLoaded', () => {
     if (matchOverScreen) screenElements['matchOverScreen'] = matchOverScreen;
     if (tournamentWinnerScreen) screenElements['tournamentWinnerScreen'] = tournamentWinnerScreen;
     if (matchAnnouncementScreen) screenElements['matchAnnouncementScreen'] = matchAnnouncementScreen;
-    if (ticTacToeSetupScreen) screenElements['ticTacToeSetupScreen'] = ticTacToeSetupScreen;           // NEW
-    if (ticTacToeGameScreen) screenElements['ticTacToeGameScreen'] = ticTacToeGameScreen;             // NEW
-    if (ticTacToeGameOverScreen) screenElements['ticTacToeGameOverScreen'] = ticTacToeGameOverScreen; // NEW
 
     // Get references to buttons and forms.
     singleMatchModeBtn = document.getElementById('singleMatchModeBtn') as HTMLButtonElement;
@@ -324,10 +300,6 @@ window.addEventListener('DOMContentLoaded', () => {
     tournamentEnd_MainMenuBtn = document.getElementById('tournamentEnd_MainMenuBtn') as HTMLButtonElement;
     startNewTournamentBtn = document.getElementById('startNewTournamentBtn') as HTMLButtonElement;
 
-    ticTacToeModeBtn = document.getElementById('ticTacToeModeBtn') as HTMLButtonElement;                 // NEW: Tic-Tac-Toe mode selection button
-    ticTacToeSettingsForm = document.getElementById('ticTacToeSettingsForm') as HTMLFormElement;         // NEW: Tic-Tac-Toe settings form
-    tt_backToMainBtn = document.getElementById('tt_backToMainBtn') as HTMLButtonElement;                 // NEW: Tic-Tac-Toe back button
-
 
     // --- Game Instance Initialization ---
     // Initialize the Pong game instance. This sets up the canvas and links to relevant UI elements
@@ -343,23 +315,6 @@ window.addEventListener('DOMContentLoaded', () => {
     // Note: The `playAgainBtn` behavior is handled internally by the `Game` class.
     // If it were to navigate, `navigateTo('gameSetup')` would be called.
 
-    // NEW: Initialize TicTacToe game instance.
-    // Similar to Pong, it's linked to its respective UI elements and provides callbacks.
-    ticTacToeInstance = new TicTacToe(
-        'ticTacToeBoard',            // ID of the Tic-Tac-Toe board container.
-        'ticTacToeGameMessage',      // ID of the element to display in-game messages.
-        'ticTacToeGameOverScreen',   // ID of the screen shown when Tic-Tac-Toe game ends.
-        'ticTacToeGameOverMessage',  // ID of the element for the game over message.
-        'tt_playAgainBtn',           // ID for the "Play Again" button in Tic-Tac-Toe.
-        'tt_mainMenuBtn',            // ID for the "Main Menu" button in Tic-Tac-Toe.
-        (winnerName: string | null) => {
-            // Callback function executed when a Tic-Tac-Toe game finishes.
-            console.log(`Tic-Tac-Toe game finished. Winner: ${winnerName || 'Draw'}`);
-            // Additional logic (e.g., updating stats) could be added here.
-        },
-        navigateTo // Pass the global `navigateTo` function to TicTacToe for its internal navigation (e.g., from game over to main menu).
-    );
-
 
     // --- Event Listener Setup for Navigation Buttons ---
     // Attach click event listeners to buttons to trigger screen navigation.
@@ -367,14 +322,12 @@ window.addEventListener('DOMContentLoaded', () => {
     if (fourPlayerMatchModeBtn) fourPlayerMatchModeBtn.onclick = () => navigateTo('fourPlayerMatchSetupScreen');
     if (tournamentModeBtn) tournamentModeBtn.onclick = () => navigateTo('tournamentSetupScreen');
     if (readRulesBtn) readRulesBtn.onclick = () => navigateTo('rulesScreen');
-    if (ticTacToeModeBtn) ticTacToeModeBtn.onclick = () => navigateTo('ticTacToeSetupScreen'); // NEW: Tic-Tac-Toe button handler
 
     // Back buttons from setup/rules screens.
     if (rules_backToMainBtn) rules_backToMainBtn.onclick = () => navigateTo('initialChoiceScreen');
     if (s_backToMainBtn) s_backToMainBtn.onclick = () => navigateTo('initialChoiceScreen');
     if (fp_backToMainBtn) fp_backToMainBtn.onclick = () => navigateTo('initialChoiceScreen');
     if (t_backToMainBtn) t_backToMainBtn.onclick = () => navigateTo('initialChoiceScreen');
-    if (tt_backToMainBtn) tt_backToMainBtn.onclick = () => navigateTo('initialChoiceScreen'); // NEW: Tic-Tac-Toe back button handler
 
     // Post-game/tournament navigation buttons.
     if (matchOver_MainMenuBtn) matchOver_MainMenuBtn.onclick = () => navigateTo('initialChoiceScreen');
@@ -392,7 +345,7 @@ window.addEventListener('DOMContentLoaded', () => {
             if (screenElement) {
                 showScreen(screenElement); // Just show the screen, don't push state again.
             } else {
-                console.warn(`Screen ID "${event.state.screenId}" from popstate not found. Defaulting.`);
+                console.log(`Screen ID "${event.state.screenId}" from popstate not found. Defaulting.`);
                 showScreen(initialChoiceScreen); // Fallback if screen ID is invalid.
             }
         } else {
@@ -512,7 +465,7 @@ window.addEventListener('DOMContentLoaded', () => {
             const p3 = getPlayerConfig('t', 3, 'Player 3');
             const p4 = getPlayerConfig('t', 4, 'Player 4');
             const scoreLimitInput = document.getElementById('t_scoreLimit') as HTMLInputElement;
-            const pointsToWin = parseInt(scoreLimitInput.value, 10);
+            const scoreLimit = parseInt(scoreLimitInput.value, 10);
 
             // Validate player names and uniqueness, and points to win per match.
             if (![p1,p2,p3,p4].every((p, i) => validatePlayerName(p.name, `Player ${i + 1}`))) return;
@@ -521,12 +474,12 @@ window.addEventListener('DOMContentLoaded', () => {
             if (names.length !== uniqueNames.size) {
                 alert("Player names in a tournament must be unique."); return;
             }
-            if (isNaN(pointsToWin) || pointsToWin < 1 || pointsToWin > 21) {
+            if (isNaN(scoreLimit) || scoreLimit < 1 || scoreLimit > 21) {
                 alert("Points to win (per match) must be between 1 and 21."); return;
             }
 
             // Create the TournamentSetupInfo object.
-            const tournamentSetupData: TournamentSetupInfo = { player1: p1, player2: p2, player3: p3, player4: p4, pointsToWin };
+            const tournamentSetupData: TournamentSetupInfo = { player1: p1, player2: p2, player3: p3, player4: p4, scoreLimit };
 
             // Initialize and start the tournament.
             if (gameInstance) {
@@ -544,41 +497,8 @@ window.addEventListener('DOMContentLoaded', () => {
                     announceMatchVersusElement: document.getElementById('announceMatchVersusText') as HTMLElement,
                     announceMatchGoButton: document.getElementById('announceMatchGoBtn') as HTMLButtonElement
                 });
-                tournamentInstance.onTournamentEnd = () => { /* Optional callback for when the tournament finishes */ };
                 showScreen(null); // Hide the current setup screen before tournament starts.
                 tournamentInstance.startTournament(); // Begin the tournament flow.
-            }
-        });
-    }
-
-    // NEW: Tic-Tac-Toe Settings Form Submission
-    if (ticTacToeSettingsForm) {
-        ticTacToeSettingsForm.addEventListener('submit', (e) => {
-            e.preventDefault();
-
-            // Get player names from the Tic-Tac-Toe setup form.
-            const p1NameInput = document.getElementById('tt_player1Name') as HTMLInputElement;
-            const p2NameInput = document.getElementById('tt_player2Name') as HTMLInputElement;
-
-            const p1Name = p1NameInput?.value.trim() || 'Player 1 (X)';
-            const p2Name = p2NameInput?.value.trim() || 'Player 2 (O)';
-
-            // Validate player names using the updated function signature with specific max length for Tic-Tac-Toe.
-            if (!validatePlayerName(p1Name, "Player 1", MAX_NAME_LENGTH) ||
-                !validatePlayerName(p2Name, "Player 2", MAX_NAME_LENGTH)) {
-                return; // Stop if validation fails.
-            }
-
-            // Ensure player names are unique for Tic-Tac-Toe.
-            if (p1Name.toLowerCase() === p2Name.toLowerCase()) {
-                alert("Tic-Tac-Toe player names must be unique.");
-                return;
-            }
-
-            // Initialize and navigate to the Tic-Tac-Toe game screen.
-            if (ticTacToeInstance) {
-                ticTacToeInstance.initializeGame(p1Name, p2Name); // Initialize Tic-Tac-Toe with player names.
-                showScreen(ticTacToeGameScreen);
             }
         });
     }
@@ -592,26 +512,20 @@ window.addEventListener('DOMContentLoaded', () => {
         'settingsForm', 's_backToMainBtn', 'fourPlayerSettingsForm', 'fp_backToMainBtn', 'tournamentSettingsForm', 't_backToMainBtn',
         'matchOver_MainMenuBtn', 'tournamentEnd_MainMenuBtn', 'startNewTournamentBtn',
         'announceMatchTitleText', 'announceMatchVersusText', 'announceMatchGoBtn',
-        'matchOverMessage', 'playAgainBtn', 'singleMatchOverButtons', 'tournamentMatchOverButtons',
-        'nextMatchBtn',
-        // NEW Tic-Tac-Toe specific elements added to the critical list.
-        'ticTacToeModeBtn', 'ticTacToeSetupScreen', 'ticTacToeGameScreen', 'ticTacToeGameOverScreen',
-        'ticTacToeSettingsForm', 'tt_backToMainBtn', 'tt_player1Name', 'tt_player2Name', 'tt_startGameBtn',
-        'ticTacToeBoard', 'ticTacToeGameMessage',
-        'ticTacToeGameOverMessage', 'tt_playAgainBtn', 'tt_mainMenuBtn'
+        'matchOverMessage', 'playAgainBtn', 'singleMatchOverButtons', 'tournamentMatchOverButtons', 'nextMatchBtn'
     ];
     
     // Iterate through the critical elements and check if they exist in the DOM.
     let allElementsFound = true;
     criticalElementIds.forEach(id => {
         if (!document.getElementById(id)) {
-            console.error(`Critical UI element with ID '${id}' was not found. Check HTML.`);
+            console.log(`Critical UI element with ID '${id}' was not found. Check HTML.`);
             allElementsFound = false; // Set flag to false if any element is missing.
         }
     });
 
     // Log the result of the critical element check.
     if(allElementsFound) console.log("All critical UI elements successfully referenced (initial check).");
-    else console.error("One or more critical UI elements are missing. Application may not function correctly.");
+    else console.log("One or more critical UI elements are missing. Application may not function correctly.");
 
 }); // End of DOMContentLoaded event listener.

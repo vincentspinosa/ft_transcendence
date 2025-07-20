@@ -1,8 +1,7 @@
-// src/interfaces.ts
 export interface PlayerConfig {
     name: string;
     color: string;
-    type: 'human' | 'ai'; // 'human' or 'ai'
+    type: 'human' | 'ai';
     id: number; // Unique ID (1-4 for tournament, or per player in 4-player match)
 }
 
@@ -28,5 +27,5 @@ export interface TournamentSetupInfo {
     player2: PlayerConfig;
     player3: PlayerConfig;
     player4: PlayerConfig;
-    pointsToWin: number; // Points to win per match in the tournament
+    scoreLimit: number;
 }

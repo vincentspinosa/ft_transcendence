@@ -7,27 +7,31 @@ export class Ball {
     public speedX: number; // Current horizontal speed of the ball (pixels per frame).
     public speedY: number; // Current vertical speed of the ball (pixels per frame).
 
-    // Private and read-only properties to store the initial speed components,
-    // which are used when the ball is reset.
-    // Readonly-> value is assigned only once, at declaration or in the constructor
+    // Private and read-only properties to store the initial speed components, which are used when the ball is reset.
+    // Readonly -> value is assigned only once, at declaration or in the constructor
     private readonly initialSpeedXComponent: number; // The initial horizontal speed component provided at creation.
     private readonly initialSpeedYComponent: number; // The initial vertical speed component provided at creation.
-
     /**
      * Creates an instance of Ball.
      * @param x The initial X-coordinate of the ball's center.
      * @param y The initial Y-coordinate of the ball's center.
      * @param radius The radius of the ball.
      * @param color The color of the ball.
-     * @param speedX The initial horizontal speed. Defaults to 4 if not provided.
-     * @param speedY The initial vertical speed. Defaults to 4 if not provided.
+     * @param speedX The initial horizontal speed.
+     * @param speedY The initial vertical speed.
      */
-    constructor(x: number, y: number, radius: number, color: string, speedX: number = 4, speedY: number = 4) {
+    constructor(x: number, y: number, radius: number, color: string, speedX: number = 6, speedY: number = 6) {
         // Initialize the ball's position, radius, and color with the provided arguments.
         this.x = x;
         this.y = y;
         this.radius = radius;
         this.color = color;
+
+        if (navigator.userAgent.toLowerCase().includes("chrome"))
+        {
+            speedX = 13;
+            speedY = 13;
+        }
 
         // Set the ball's current horizontal and vertical speeds.
         this.speedX = speedX;
@@ -60,10 +64,9 @@ export class Ball {
 
     /**
      * Updates the ball's position and handles collisions with the top and bottom walls of the canvas.
-     * @param canvasWidth The width of the canvas, used for collision detection with side walls (though not implemented here).
      * @param canvasHeight The height of the canvas, used for collision detection with top/bottom walls.
      */
-    update(canvasWidth: number, canvasHeight: number): void {
+    update(canvasHeight: number): void {
         // Move the ball by adding its current speed components to its position.
         this.x += this.speedX;
         this.y += this.speedY;

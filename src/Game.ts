@@ -44,7 +44,7 @@ export class Game {
     private readonly PADDLE_HEIGHT_NORMAL = 100; // Standard height for paddles in 1v1 mode.
     private readonly PADDLE_HEIGHT_FOUR_PLAYER = 75; // Shorter height for paddles in 2v2 mode.
     private readonly BALL_RADIUS = 8; // Radius of the ball in pixels.
-    private readonly PADDLE_SPEED = 7; // Base movement speed for paddles (also used as AI's base speed).
+    private readonly PADDLE_SPEED = 20; // Base movement speed for paddles (also used as AI's base speed).
 
     private keysPressed: { [key: string]: boolean } = {}; // Object to track currently pressed keyboard keys (only for human input).
     private gameOver: boolean = false; // Flag to indicate if the current match has ended.
@@ -145,7 +145,7 @@ export class Game {
             this.initializeFourPlayerMatch(this.lastFourPlayerMatchSettings);
             this.start();
         } else {
-            console.error("Cannot play again: last match settings not available or game mode unclear.", this.gameMode);
+            console.log("Cannot play again: last match settings not available or game mode unclear.", this.gameMode);
             alert("Error restarting game. Please return to main menu."); // Inform user if restart fails.
         }
     }
@@ -711,7 +711,7 @@ export class Game {
         if (this.gameOver) return; // Do nothing if game is over.
         this.handlePlayerInput(); // Process human player controls.
         this.updateAI();         // Update AI paddle positions based on ball.
-        if (this.ball) this.ball.update(this.canvasElement.width, this.canvasElement.height); // Update ball position and handle wall bounces.
+        if (this.ball) this.ball.update(this.canvasElement.height); // Update ball position and handle wall bounces.
         this.checkCollision(); // Check for collisions and handle scoring.
     }
 

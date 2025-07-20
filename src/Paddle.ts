@@ -1,4 +1,3 @@
-// src/Paddle.ts
 export class Paddle {
     // Public properties representing the paddle's current position, dimensions, color, speed, score, and name.
     public x: number; // The current X-coordinate of the paddle's top-left corner.
@@ -20,7 +19,7 @@ export class Paddle {
      * @param width The width of the paddle.
      * @param height The height of the paddle.
      * @param initialColor The initial color of the paddle.
-     * @param speed The movement speed of the paddle. Defaults to 7 if not provided.
+     * @param speed The movement speed of the paddle. Defaults to 14 if not provided.
      * @param name The name of the paddle. Defaults to "Player" if not provided.
      */
     constructor(
@@ -29,7 +28,7 @@ export class Paddle {
         width: number,
         height: number,
         initialColor: string,
-        speed: number = 7,
+        speed: number = 14,
         name: string = "Player"
     ) {
         // Initialize the paddle's properties with the provided arguments.
@@ -89,7 +88,8 @@ export class Paddle {
      * Sets the target Y position for this AI paddle.
      * This method is typically called by the game logic (e.g., Game.ts) periodically
      * to update where the AI should aim based on the ball's position.
-     * The target will be adjusted to aim for the paddle's center.
+     * The target will be adjusted to aim for the paddle's center,
+     * then there is a randomiszation mecanism to make the AI hit the ball with a random angle.
      * @param targetY The Y-coordinate the AI should aim for (e.g., the ball's Y-coordinate).
      */
     setAITargetY(targetY: number, canvasHeight: number): void {
@@ -102,12 +102,18 @@ export class Paddle {
         if (this.aiTargetY < 0) {
             this.aiTargetY = 0; // If target is above top, set it to the top edge.
         }
-        // Assuming canvasHeight is 600. This should ideally be passed as a parameter for flexibility.
         // If the paddle's bottom edge (this.aiTargetY + this.height) would go below the canvas bottom,
         // adjust the target so the paddle's bottom aligns with the canvas bottom.
         if (this.aiTargetY + this.height > canvasHeight) {
             this.aiTargetY = canvasHeight - this.height;
         }
+
+        // ANGLE RANDOMIZATION
+        let x : number = Math.random();
+        if (x > 0.5)
+            this.aiTargetY += this.height / 4;
+        else
+            this.aiTargetY -= this.height / 4;
     }
 
     /**

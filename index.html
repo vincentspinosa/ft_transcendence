@@ -5,288 +5,76 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pong Game</title>
     <link rel="shortcut icon" href="favicon.ico" type="image/x-icon">
-    <style>
-        /*
-         * GLOBAL STYLES FOR BODY AND GENERIC SCREENS
-         */
-        body {
-            font-family: Arial, sans-serif; /* Sets the default font for the entire page. */
-            margin: 0; /* Removes default body margin. */
-            display: flex; /* Uses flexbox for layout, allowing content to be centered vertically and horizontally. */
-            flex-direction: column; /* Stacks children vertically. */
-            justify-content: center; /* Centers content vertically. */
-            align-items: center; /* Centers content horizontally. */
-            min-height: 100vh; /* Ensures the body takes at least the full viewport height. */
-            background-color: #111; /* Dark background color. */
-            color: #fff; /* White text color. */
-            padding-top: 20px; /* Adds padding to the top. */
-            padding-bottom: 20px; /* Adds padding to the bottom. */
-            box-sizing: border-box; /* Includes padding and border in the element's total width and height. */
-            position: relative; /* Needed for z-index on screens. */
-        }
-
-        .screen {
-            display: none; /* Screens are hidden by default and shown by JavaScript. */
-            box-sizing: border-box; /* Includes padding and border in element's total size. */
-            z-index: 1; /* Ensures screens appear above the canvas when displayed. */
-            width: 500px; /* Default width for forms and menus. */
-            background-color: #222; /* Darker background for screen containers. */
-            padding: 30px; /* Internal padding for content. */
-            border-radius: 8px; /* Slightly rounded corners. */
-            box-shadow: 0 0 15px rgba(0, 0, 0, 0.5); /* Subtle shadow for depth. */
-            text-align: center; /* Centers text within the screen. */
-        }
-
-        /* Specific screen adjustments for height and overflow */
-        #tournamentSetupScreen, #rulesScreen, #fourPlayerMatchSetupScreen {
-            max-height: 90vh; /* Limits maximum height to 90% of viewport height. */
-            overflow-y: auto; /* Adds vertical scrollbar if content overflows. */
-        }
-        #rulesScreen {
-            text-align: left; /* Aligns text to the left for readability. */
-            width: 550px; /* Slightly wider for rules content. */
-        }
-        #rulesScreen h3 { margin-top: 20px; margin-bottom: 10px; color: #00aaff; } /* Styling for subheadings in rules. */
-        #rulesScreen ul, #rulesScreen ol { margin-left: 20px; line-height: 1.6; } /* List styling. */
-        #rulesScreen li { margin-bottom: 8px; } /* Spacing between list items. */
-        #rulesScreen p { line-height: 1.6; margin-bottom: 10px; } /* Paragraph styling. */
-
-        /* Styles for the match announcement screen (during tournament) */
-        #matchAnnouncementScreen {
-            background-color: rgba(0, 0, 0, 0.9); /* Semi-transparent black background. */
-            flex-direction: column; /* Arranges content vertically. */
-            justify-content: center; /* Centers content vertically. */
-            align-items: center; /* Centers content horizontally. */
-            z-index: 100; /* High z-index to ensure it's on top of everything. */
-            color: white; /* White text. */
-            text-align: center; /* Centers text. */
-            padding: 30px; /* Internal padding. */
-        }
-        #announceMatchTitleText { font-size: 2.8em; color: #FFD700; margin-bottom: 15px; font-weight: bold; } /* Styling for match title. */
-        #announceMatchVersusText { font-size: 2em; margin-top: 10px; margin-bottom: 40px; line-height: 1.4; } /* Styling for player vs player text. */
-        #announceMatchGoBtn {
-            padding: 15px 50px; font-size: 1.5em; background-color: #28a745; /* Green button. */
-            border: none; color: white; border-radius: 8px; cursor: pointer;
-            text-transform: uppercase; font-weight: bold;
-        }
-        #announceMatchGoBtn:hover { background-color: #218838; } /* Darker green on hover. */
-
-        /* General heading and form group styles */
-        .screen h2 { margin-top: 0; margin-bottom: 20px; color: #eee; } /* Heading styles for screens. */
-        .form-group { margin-bottom: 12px; text-align: left; } /* Container for form labels and inputs. */
-        .form-group label { display: block; margin-bottom: 4px; color: #ccc; font-size: 0.9em; } /* Label styling. */
-        .form-group input[type="text"], .form-group input[type="number"], .form-group select {
-            width: 100%; padding: 10px; border-radius: 4px; border: 1px solid #444;
-            background-color: #333; color: #fff; box-sizing: border-box; font-size: 1em; /* Input and select field styling. */
-        }
-        .form-group input[type="number"] { width: 80px; } /* Specific width for number inputs. */
-        .control-hint { font-size: 0.8em; color: #aaa; display: block; margin-top: 2px; } /* Hint text for controls. */
-
-
-        /* Action button styles */
-        .action-button {
-            display: inline-block; margin: 10px 5px 0px 5px; padding: 12px;
-            background-color: #4CAF50; color: white; border: none; border-radius: 4px;
-            cursor: pointer; font-size: 16px; text-align: center; box-sizing: border-box; width: 45%; /* Default button styling. */
-        }
-        .action-button:hover { background-color: #45a049; } /* Darker green on hover. */
-        .action-button.secondary { background-color: #007bff; } /* Blue secondary button. */
-        .action-button.secondary:hover { background-color: #0069d9; } /* Darker blue on hover. */
-        .action-button.tertiary { background-color: #6c757d; } /* Grey tertiary button. */
-        .action-button.tertiary:hover { background-color: #5a6268; } /* Darker grey on hover. */
-        .action-button.full-width { width: calc(100% - 10px); } /* Full width minus margins. */
-
-        /* Specific initial choice screen button styles */
-        #initialChoiceScreen button { margin: 8px; width: 250px; padding: 15px; }
-        /* Message styling for game over and tournament winner screens */
-        #gameOverMessage, #tournamentWinnerMessage, #matchOverMessage { font-size: 22px; color: #FFD700; margin-bottom: 20px; }
-        /* Player setup block styling for forms */
-        .player-setup-block { border: 1px solid #444; padding: 15px; margin-bottom: 15px; border-radius: 5px; background-color: #2a2a2a; }
-        .player-setup-block h4 { margin-top: 0; margin-bottom: 10px; color: #ddd; text-align: left; font-size: 1.1em; }
-
-        /* Canvas element styling */
-        canvas { border: 1px solid #fff; display: none; z-index: 0; } /* Canvas is hidden by default, shown by JS, behind screens. */
-
-        /* NEW CSS for Tic-Tac-Toe */
-        #ticTacToeGameScreen {
-            display: none; /* Initially hidden, controlled by JavaScript. */
-            flex-direction: column; /* Arranges content vertically. */
-            align-items: center; /* Centers content horizontally. */
-            justify-content: center; /* Centers content vertically. */
-            padding: 20px; /* Internal padding. */
-            width: auto; /* Allows content to dictate width. */
-        }
-
-        #ticTacToeBoard {
-            display: grid; /* Uses CSS Grid for the 3x3 layout. */
-            grid-template-columns: repeat(3, 100px); /* Three columns, each 100px wide. */
-            grid-template-rows: repeat(3, 100px); /* Three rows, each 100px tall. */
-            gap: 5px; /* Spacing between grid cells. */
-            background-color: #333; /* Dark background for the board itself. */
-            border: 2px solid #555; /* Border around the board. */
-            width: 315px; /* Calculated width: (3 * 100px cells) + (2 * 5px gaps). */
-            height: 315px; /* Calculated height: (3 * 100px cells) + (2 * 5px gaps). */
-            margin-top: 20px; /* Space above the board. */
-            margin-bottom: 20px; /* Space below the board. */
-        }
-
-        .tic-tac-toe-cell {
-            width: 100px; /* Explicit width for each cell. */
-            height: 100px; /* Explicit height for each cell. */
-            background-color: #222; /* Background for individual cells. */
-            display: flex; /* Uses flexbox to center 'X' or 'O' within the cell. */
-            justify-content: center; /* Centers horizontally. */
-            align-items: center; /* Centers vertically. */
-            font-size: 3em; /* Large font size for symbols. */
-            font-weight: bold; /* Bold symbols. */
-            cursor: pointer; /* Changes cursor to pointer to indicate clickability. */
-            border: 1px solid #444; /* Border around each cell. */
-            color: #eee; /* Default text color for cells. */
-            transition: background-color 0.2s; /* Smooth transition for hover effect. */
-        }
-
-        .tic-tac-toe-cell:hover {
-            background-color: #444; /* Darker background on hover. */
-        }
-
-        .tic-tac-toe-cell.cross {
-            color: #FF6347; /* Tomato Red color for 'X' symbols. */
-        }
-
-        .tic-tac-toe-cell.circle {
-            color: #1E90FF; /* Dodger Blue color for 'O' symbols. */
-        }
-
-        #ticTacToeGameMessage {
-            font-size: 1.8em; /* Font size for in-game messages. */
-            color: #FFD700; /* Gold color for messages. */
-            margin-bottom: 10px; /* Space below the message. */
-        }
-        
-        #ticTacToeGameOverScreen {
-            flex-direction: column; /* Arranges content vertically. */
-            justify-content: center; /* Centers vertically. */
-            align-items: center; /* Centers horizontally. */
-            text-align: center; /* Centers text. */
-            padding: 30px; /* Internal padding. */
-            width: 500px; /* Consistent width with other main screens. */
-        }
-        #ticTacToeGameOverMessage {
-            font-size: 2.2em; /* Larger font size for game over message. */
-            color: #FFD700; /* Gold color for game over message. */
-            margin-bottom: 25px; /* Space below the message. */
-        }
-        /* END NEW CSS for Tic-Tac-Toe */
-
-        /*
-         * RESPONSIVE DESIGN (MEDIA QUERIES)
-         */
-        @media (max-width: 600px) {
-            #rulesScreen { width: 95%; padding: 15px; } /* Adjust width and padding for smaller screens. */
-            .screen, #tournamentSetupScreen, #fourPlayerMatchSetupScreen, #ticTacToeSetupScreen, #ticTacToeGameOverScreen { width: 95%; } /* Make most screens take 95% width. */
-            #matchAnnouncementScreen { width: 90%; } /* Match announcement screen also adjusts. */
-        }
-        @media (max-width: 480px) {
-            body { padding-top: 10px; padding-bottom: 10px; } /* Reduce overall body padding. */
-            .screen, #tournamentSetupScreen, #fourPlayerMatchSetupScreen, #ticTacToeSetupScreen, #ticTacToeGameOverScreen { padding: 15px 20px; max-height: 90vh; } /* Further adjust padding and max-height. */
-            .form-group input[type="text"], .form-group input[type="number"], .form-group select { padding: 12px 8px; font-size: 0.95em; } /* Adjust input padding and font size. */
-            .action-button { font-size: 14px; padding: 10px; } /* Adjust button font size and padding. */
-            #initialChoiceScreen button { width: 90%; } /* Make initial choice buttons full width. */
-            #announceMatchTitleText { font-size: 2em; } /* Adjust font size for announcement. */
-            #announceMatchVersusText { font-size: 1.5em; margin-bottom: 30px; } /* Adjust font size and margin. */
-            #announceMatchGoBtn { font-size: 1.2em; padding: 12px 35px; } /* Adjust button size for announcement. */
-            /* Ensure single-column layout for buttons on small screens */
-            #matchOverScreen #singleMatchOverButtons .action-button,
-            #tournamentWinnerScreen .action-button,
-            #ticTacToeGameOverScreen .action-button { width: calc(100% - 10px); margin-left: 5px; margin-right: 5px; }
-            #matchOverScreen #singleMatchOverButtons .action-button:first-child,
-            #tournamentWinnerScreen .action-button:first-child,
-            #ticTacToeGameOverScreen .action-button:first-child { margin-bottom: 5px; }
-        }
-    </style>
 </head>
-<body>
+<body class="font-sans m-0 flex flex-col justify-center items-center min-h-screen bg-[#111] text-white pt-5 pb-5 box-border relative">
     
-    <!-- MAIN MENU -->
-    <div id="initialChoiceScreen" class="screen">
-        <button id="singleMatchModeBtn" class="action-button">Single Match (1v1)</button>
-        <button id="fourPlayerMatchModeBtn" class="action-button">Single Match (2v2)</button>
-        <button id="tournamentModeBtn" class="action-button secondary">Start Tournament</button>
-        <button id="ticTacToeModeBtn" class="action-button secondary">Tic-Tac-Toe</button>
-        <button id="readRulesBtn" class="action-button tertiary">Read the Rules</button>
+    <div id="initialChoiceScreen" class="screen hidden box-border z-10 w-[500px] bg-[#222] p-[30px] rounded-lg shadow-lg text-center">
+        <button id="singleMatchModeBtn" class="action-button inline-block my-[10px] mx-[5px] py-3 px-3 bg-[#4CAF50] text-white border-none rounded cursor-pointer text-base text-center box-border w-[250px]">Single Match (1v1)</button>
+        <button id="fourPlayerMatchModeBtn" class="action-button inline-block my-[10px] mx-[5px] py-3 px-3 bg-[#4CAF50] text-white border-none rounded cursor-pointer text-base text-center box-border w-[250px]">Single Match (2v2)</button>
+        <button id="tournamentModeBtn" class="action-button secondary inline-block my-[10px] mx-[5px] py-3 px-3 bg-[#007bff] text-white border-none rounded cursor-pointer text-base text-center box-border w-[250px]">Start Tournament</button>
+        <button id="readRulesBtn" class="action-button tertiary inline-block my-[10px] mx-[5px] py-3 px-3 bg-[#6c757d] text-white border-none rounded cursor-pointer text-base text-center box-border w-[250px]">Read the Rules</button>
     </div>
 
 
-    <!-- RULES -->
-    <div id="rulesScreen" class="screen">
-        <h2>Game Rules & Tournament Format</h2>
-        <div style="max-height: 65vh; overflow-y: auto; padding-right:15px; padding-left:5px;">
+    <div id="rulesScreen" class="screen hidden box-border z-10 w-[550px] bg-[#222] p-[30px] rounded-lg shadow-lg text-left">
+        <h2 class="mt-0 mb-5 text-[#eee]">Game Rules & Tournament Format</h2>
+        <div class="max-h-[65vh] overflow-y-auto pr-4 pl-1">
 
-            <h3>Classic Pong Rules (1v1)</h3>
-            <p>Objective: Be the first to reach the score limit.</p>
-            <ul>
-                <li>Player 1 (left): 'Q' (up), 'A' (down).</li>
-                <li>Player 2 (right, if human): 'P' (up), 'L' (down).</li>
-                <li>Score by making the opponent miss the ball.</li>
+            <h3 class="mt-5 mb-2 text-[#00aaff]">Classic Pong Rules (1v1)</h3>
+            <p class="leading-relaxed mb-2.5">Objective: Be the first to reach the score limit.</p>
+            <ul class="ml-5 leading-relaxed">
+                <li class="mb-2">Player 1 (left): 'Q' (up), 'A' (down).</li>
+                <li class="mb-2">Player 2 (right, if human): 'P' (up), 'L' (down).</li>
+                <li class="mb-2">Score by making the opponent miss the ball.</li>
             </ul>
 
-            <h3>2v2 Pong Rules (4 Players)</h3>
-            <p>Objective: Your team is the first to reach the score limit.</p>
-            <ul>
-                <li>Two players per team, one team on the left, one on the right. Each player controls one paddle.</li>
-                <li>Team 1 (Left Side):
-                    <ul>
-                        <li>Player 1 (Top Left Paddle): 'Q' (up) / 'A' (down)</li>
-                        <li>Player 2 (Bottom Left Paddle): 'W' (up) / 'S' (down)</li>
+            <h3 class="mt-5 mb-2 text-[#00aaff]">2v2 Pong Rules (4 Players)</h3>
+            <p class="leading-relaxed mb-2.5">Objective: Your team is the first to reach the score limit.</p>
+            <ul class="ml-5 leading-relaxed">
+                <li class="mb-2">Two players per team, one team on the left, one on the right. Each player controls one paddle.</li>
+                <li class="mb-2">Team 1 (Left Side):
+                    <ul class="ml-5 leading-relaxed">
+                        <li class="mb-2">Player 1 (Top Left Paddle): 'Q' (up) / 'A' (down)</li>
+                        <li class="mb-2">Player 2 (Bottom Left Paddle): 'W' (up) / 'S' (down)</li>
                     </ul>
                 </li>
-                <li>Team 2 (Right Side):
-                    <ul>
-                        <li>Player 3 (Top Right Paddle): 'P' (up) / 'L' (down)</li>
-                        <li>Player 4 (Bottom Right Paddle): 'O' (up) / 'K' (down)</li>
+                <li class="mb-2">Team 2 (Right Side):
+                    <ul class="ml-5 leading-relaxed">
+                        <li class="mb-2">Player 3 (Top Right Paddle): 'P' (up) / 'L' (down)</li>
+                        <li class="mb-2">Player 4 (Bottom Right Paddle): 'O' (up) / 'K' (down)</li>
                     </ul>
                 </li>
-                <li>Work with your teammate to cover your side of the court.</li>
-                <li>If the ball goes past your team's side (behind both paddles), the opposing team scores.</li>
+                <li class="mb-2">Work with your teammate to cover your side of the court.</li>
+                <li class="mb-2">If the ball goes past your team's side (behind both paddles), the opposing team scores.</li>
             </ul>
 
-            <h3>Tournament Rules (1v1 Knockout)</h3>
-            <p>A 4-player knockout tournament using 1v1 classic rules.</p>
-            <ol>
-                <li>Setup: 4 players configured. Points to win per match are set. Names must be unique.</li>
-                <li>Semi-Final 1: Player 1 vs Player 2.</li>
-                <li>Semi-Final 2: Player 3 vs Player 4.</li>
-                <li>Final: Winner of Semi-Final 1 vs Winner of Semi-Final 2.</li>
-                <li>Champion is the winner of the Final.</li>
+            <h3 class="mt-5 mb-2 text-[#00aaff]">Tournament Rules (1v1 Knockout)</h3>
+            <p class="leading-relaxed mb-2.5">A 4-player knockout tournament using 1v1 classic rules.</p>
+            <ol class="ml-5 leading-relaxed">
+                <li class="mb-2">Setup: 4 players configured. Points to win per match are set. Names must be unique.</li>
+                <li class="mb-2">Semi-Final 1: Player 1 vs Player 2.</li>
+                <li class="mb-2">Semi-Final 2: Player 3 vs Player 4.</li>
+                <li class="mb-2">Final: Winner of Semi-Final 1 vs Winner of Semi-Final 2.</li>
+                <li class="mb-2">Champion is the winner of the Final.</li>
             </ol>
 
-            <h3>Tic-Tac-Toe Rules</h3>
-            <p>Objective: Be the first to get three of your marks in a row (horizontally, vertically, or diagonally).</p>
-            <ul>
-                <li>Player 1 uses 'X'. Player 2 uses 'O'.</li>
-                <li>Players take turns placing their marks on an empty square.</li>
-                <li>The first player to get three of their marks in a row wins.</li>
-                <li>If all squares are filled and no player has three marks in a row, the game is a draw.</li>
-            </ul>
-
         </div>
-        <button id="rules_backToMainBtn" class="action-button full-width secondary" style="margin-top: 20px;">Back to Main Menu</button>
+        <button id="rules_backToMainBtn" class="action-button full-width secondary inline-block my-[10px] mx-[5px] py-3 px-3 bg-[#007bff] text-white border-none rounded cursor-pointer text-base text-center box-border w-[calc(100%-10px)] mt-5">Back to Main Menu</button>
     </div>
 
 
-    <!-- 1V1 GAME SETUP FORM -->
-    <div id="gameSetup" class="screen">
-        <h2>Single Match Setup (1 vs 1)</h2>
+    <div id="gameSetup" class="screen hidden box-border z-10 w-[500px] bg-[#222] p-[30px] rounded-lg shadow-lg text-center">
+        <h2 class="mt-0 mb-5 text-[#eee]">Single Match Setup (1 vs 1)</h2>
         <form id="settingsForm">
-            <div class="player-setup-block">
-                <h4>Player 1 (Left - 'Q'/'A')</h4>
-                <div class="form-group">
-                    <label for="s_player1Name">Name:</label>
-                    <input type="text" id="s_player1Name" value="Player 1" required>
+            <div class="player-setup-block border border-[#444] p-4 mb-4 rounded bg-[#2a2a2a]">
+                <h4 class="mt-0 mb-2.5 text-[#ddd] text-left text-lg">Player 1 (Left - 'Q'/'A')</h4>
+                <div class="form-group mb-3 text-left">
+                    <label for="s_player1Name" class="block mb-1 text-[#ccc] text-sm">Name:</label>
+                    <input type="text" id="s_player1Name" value="Player 1" required class="w-full p-2.5 rounded border border-[#444] bg-[#333] text-white box-border text-base">
                 </div>
-                <div class="form-group">
-                    <label for="s_player1Color">Paddle Color:</label>
-                    <select id="s_player1Color">
+                <div class="form-group mb-3 text-left">
+                    <label for="s_player1Color" class="block mb-1 text-[#ccc] text-sm">Paddle Color:</label>
+                    <select id="s_player1Color" class="w-full p-2.5 rounded border border-[#444] bg-[#333] text-white box-border text-base">
                         <option value="white" selected>White</option>
                         <option value="lightblue">Light Blue</option>
                         <option value="red">Red</option>
@@ -294,23 +82,23 @@
                     </select>
                 </div>
             </div>
-            <hr style="border-color: #444; margin: 20px 0;">
-            <div class="player-setup-block">
-                <h4>Player 2 (Right)</h4>
-                <div class="form-group">
-                    <label for="s_player2Type">Type ('P'/'L' if Human):</label>
-                    <select id="s_player2Type">
+            <hr class="border-t border-[#444] my-5">
+            <div class="player-setup-block border border-[#444] p-4 mb-4 rounded bg-[#2a2a2a]">
+                <h4 class="mt-0 mb-2.5 text-[#ddd] text-left text-lg">Player 2 (Right)</h4>
+                <div class="form-group mb-3 text-left">
+                    <label for="s_player2Type" class="block mb-1 text-[#ccc] text-sm">Type ('P'/'L' if Human):</label>
+                    <select id="s_player2Type" class="w-full p-2.5 rounded border border-[#444] bg-[#333] text-white box-border text-base">
                         <option value="human" selected>Human</option>
                         <option value="ai">AI</option>
                     </select>
                 </div>
-                <div class="form-group">
-                    <label for="s_player2Name">Name:</label>
-                    <input type="text" id="s_player2Name" value="Player 2" required>
+                <div class="form-group mb-3 text-left">
+                    <label for="s_player2Name" class="block mb-1 text-[#ccc] text-sm">Name:</label>
+                    <input type="text" id="s_player2Name" value="Player 2" required class="w-full p-2.5 rounded border border-[#444] bg-[#333] text-white box-border text-base">
                 </div>
-                <div class="form-group">
-                    <label for="s_player2Color">Paddle Color:</label>
-                    <select id="s_player2Color">
+                <div class="form-group mb-3 text-left">
+                    <label for="s_player2Color" class="block mb-1 text-[#ccc] text-sm">Paddle Color:</label>
+                    <select id="s_player2Color" class="w-full p-2.5 rounded border border-[#444] bg-[#333] text-white box-border text-base">
                         <option value="white" selected>White</option>
                         <option value="lightblue">Light Blue</option>
                         <option value="red">Red</option>
@@ -318,163 +106,119 @@
                     </select>
                 </div>
             </div>
-            <hr style="border-color: #444; margin: 20px 0;">
-            <div class="form-group">
-                <label for="s_scoreLimit">Points to Win (1-21):</label>
-                <input type="number" id="s_scoreLimit" value="3" min="1" max="21" required>
+            <hr class="border-t border-[#444] my-5">
+            <div class="form-group mb-3 text-left">
+                <label for="s_scoreLimit" class="block mb-1 text-[#ccc] text-sm">Points to Win (1-21):</label>
+                <input type="number" id="s_scoreLimit" value="3" min="1" max="21" required class="w-20 p-2.5 rounded border border-[#444] bg-[#333] text-white box-border text-base">
             </div>
-            <button type="submit" id="startGameBtn" class="action-button full-width">Start Game</button>
-            <button type="button" id="s_backToMainBtn" class="action-button secondary full-width" style="margin-top:10px;">Back to Main Menu</button>
+            <button type="submit" id="startGameBtn" class="action-button full-width inline-block my-[10px] mx-[5px] py-3 px-3 bg-[#4CAF50] text-white border-none rounded cursor-pointer text-base text-center box-border w-[calc(100%-10px)]">Start Game</button>
+            <button type="button" id="s_backToMainBtn" class="action-button secondary full-width inline-block my-[10px] mx-[5px] py-3 px-3 bg-[#007bff] text-white border-none rounded cursor-pointer text-base text-center box-border w-[calc(100%-10px)] mt-2.5">Back to Main Menu</button>
         </form>
     </div>
 
 
-    <!-- 2V2 GAME SETUP FORM -->
-    <div id="fourPlayerMatchSetupScreen" class="screen">
-        <h2>4-Player Match Setup (2 vs 2)</h2>
+    <div id="fourPlayerMatchSetupScreen" class="screen hidden box-border z-10 w-[500px] bg-[#222] p-[30px] rounded-lg shadow-lg text-center">
+        <h2 class="mt-0 mb-5 text-[#eee]">4-Player Match Setup (2 vs 2)</h2>
         <form id="fourPlayerSettingsForm">
-            <h3 style="color:#ccc; text-align:left; margin-bottom:10px;">Team 1 (Left Side)</h3>
-            <div class="player-setup-block">
-                <h4>Player 1 (Top Left) <span class="control-hint">'Q' (up) / 'A' (down)</span></h4>
-                <div class="form-group"><label for="fp_p1Name">Name:</label><input type="text" id="fp_p1Name" value="Player 1"></div>
-                <div class="form-group"><label for="fp_p1Color">Color:</label><select id="fp_p1Color"><option value="white" selected>White</option><option value="lightblue">Light Blue</option><option value="red">Red</option><option value="lightgreen">Green</option></select></div>
-                <div class="form-group"><label for="fp_p1Type">Type:</label><select id="fp_p1Type"><option value="human" selected>Human</option><option value="ai">AI</option></select></div>
+            <h3 class="text-[#ccc] text-left mb-2.5">Team 1 (Left Side)</h3>
+            <div class="player-setup-block border border-[#444] p-4 mb-4 rounded bg-[#2a2a2a]">
+                <h4 class="mt-0 mb-2.5 text-[#ddd] text-left text-lg">Player 1 (Top Left) <span class="control-hint text-xs text-[#aaa] block mt-0.5">'Q' (up) / 'A' (down)</span></h4>
+                <div class="form-group mb-3 text-left"><label for="fp_p1Name" class="block mb-1 text-[#ccc] text-sm">Name:</label><input type="text" id="fp_p1Name" value="Player 1" class="w-full p-2.5 rounded border border-[#444] bg-[#333] text-white box-border text-base"></div>
+                <div class="form-group mb-3 text-left"><label for="fp_p1Color" class="block mb-1 text-[#ccc] text-sm">Color:</label><select id="fp_p1Color" class="w-full p-2.5 rounded border border-[#444] bg-[#333] text-white box-border text-base"><option value="white" selected>White</option><option value="lightblue">Light Blue</option><option value="red">Red</option><option value="lightgreen">Green</option></select></div>
+                <div class="form-group mb-3 text-left"><label for="fp_p1Type" class="block mb-1 text-[#ccc] text-sm">Type:</label><select id="fp_p1Type" class="w-full p-2.5 rounded border border-[#444] bg-[#333] text-white box-border text-base"><option value="human" selected>Human</option><option value="ai">AI</option></select></div>
             </div>
-            <div class="player-setup-block">
-                <h4>Player 2 (Bottom Left) <span class="control-hint">'W' (up) / 'S' (down)</span></h4>
-                <div class="form-group"><label for="fp_p2Name">Name:</label><input type="text" id="fp_p2Name" value="Player 2"></div>
-                <div class="form-group"><label for="fp_p2Color">Color:</label><select id="fp_p2Color"><option value="lightblue" selected>Light Blue</option><option value="white">White</option><option value="red">Red</option><option value="lightgreen">Green</option></select></div>
-                <div class="form-group"><label for="fp_p2Type">Type:</label><select id="fp_p2Type"><option value="human" selected>Human</option><option value="ai">AI</option></select></div>
+            <div class="player-setup-block border border-[#444] p-4 mb-4 rounded bg-[#2a2a2a]">
+                <h4 class="mt-0 mb-2.5 text-[#ddd] text-left text-lg">Player 2 (Bottom Left) <span class="control-hint text-xs text-[#aaa] block mt-0.5">'W' (up) / 'S' (down)</span></h4>
+                <div class="form-group mb-3 text-left"><label for="fp_p2Name" class="block mb-1 text-[#ccc] text-sm">Name:</label><input type="text" id="fp_p2Name" value="Player 2" class="w-full p-2.5 rounded border border-[#444] bg-[#333] text-white box-border text-base"></div>
+                <div class="form-group mb-3 text-left"><label for="fp_p2Color" class="block mb-1 text-[#ccc] text-sm">Color:</label><select id="fp_p2Color" class="w-full p-2.5 rounded border border-[#444] bg-[#333] text-white box-border text-base"><option value="lightblue" selected>Light Blue</option><option value="white">White</option><option value="red">Red</option><option value="lightgreen">Green</option></select></div>
+                <div class="form-group mb-3 text-left"><label for="fp_p2Type" class="block mb-1 text-[#ccc] text-sm">Type:</label><select id="fp_p2Type" class="w-full p-2.5 rounded border border-[#444] bg-[#333] text-white box-border text-base"><option value="human" selected>Human</option><option value="ai">AI</option></select></div>
             </div>
-            <hr style="border-color: #444; margin: 20px 0;">
-            <h3 style="color:#ccc; text-align:left; margin-bottom:10px;">Team 2 (Right Side)</h3>
-            <div class="player-setup-block">
-                <h4>Player 3 (Top Right) <span class="control-hint">'P' (up) / 'L' (down)</span></h4>
-                <div class="form-group"><label for="fp_p3Name">Name:</label><input type="text" id="fp_p3Name" value="Player 3"></div>
-                <div class="form-group"><label for="fp_p3Color">Color:</label><select id="fp_p3Color"><option value="red" selected>Red</option><option value="white">White</option><option value="lightblue">Light Blue</option><option value="lightgreen">Green</option></select></div>
-                <div class="form-group"><label for="fp_p3Type">Type:</label><select id="fp_p3Type"><option value="human" selected>Human</option><option value="ai">AI</option></select></div>
+            <hr class="border-t border-[#444] my-5">
+            <h3 class="text-[#ccc] text-left mb-2.5">Team 2 (Right Side)</h3>
+            <div class="player-setup-block border border-[#444] p-4 mb-4 rounded bg-[#2a2a2a]">
+                <h4 class="mt-0 mb-2.5 text-[#ddd] text-left text-lg">Player 3 (Top Right) <span class="control-hint text-xs text-[#aaa] block mt-0.5">'P' (up) / 'L' (down)</span></h4>
+                <div class="form-group mb-3 text-left"><label for="fp_p3Name" class="block mb-1 text-[#ccc] text-sm">Name:</label><input type="text" id="fp_p3Name" value="Player 3" class="w-full p-2.5 rounded border border-[#444] bg-[#333] text-white box-border text-base"></div>
+                <div class="form-group mb-3 text-left"><label for="fp_p3Color" class="block mb-1 text-[#ccc] text-sm">Color:</label><select id="fp_p3Color" class="w-full p-2.5 rounded border border-[#444] bg-[#333] text-white box-border text-base"><option value="red" selected>Red</option><option value="white">White</option><option value="lightblue">Light Blue</option><option value="lightgreen">Green</option></select></div>
+                <div class="form-group mb-3 text-left"><label for="fp_p3Type" class="block mb-1 text-[#ccc] text-sm">Type:</label><select id="fp_p3Type" class="w-full p-2.5 rounded border border-[#444] bg-[#333] text-white box-border text-base"><option value="human" selected>Human</option><option value="ai">AI</option></select></div>
             </div>
-            <div class="player-setup-block">
-                <h4>Player 4 (Bottom Right) <span class="control-hint">'O' (up) / 'K' (down)</span></h4>
-                <div class="form-group"><label for="fp_p4Name">Name:</label><input type="text" id="fp_p4Name" value="Player 4"></div>
-                <div class="form-group"><label for="fp_p4Color">Color:</label><select id="fp_p4Color"><option value="lightgreen" selected>Green</option><option value="white">White</option><option value="lightblue">Light Blue</option><option value="red">Red</option></select></div>
-                <div class="form-group"><label for="fp_p4Type">Type:</label><select id="fp_p4Type"><option value="human" selected>Human</option><option value="ai">AI</option></select></div>
+            <div class="player-setup-block border border-[#444] p-4 mb-4 rounded bg-[#2a2a2a]">
+                <h4 class="mt-0 mb-2.5 text-[#ddd] text-left text-lg">Player 4 (Bottom Right) <span class="control-hint text-xs text-[#aaa] block mt-0.5">'O' (up) / 'K' (down)</span></h4>
+                <div class="form-group mb-3 text-left"><label for="fp_p4Name" class="block mb-1 text-[#ccc] text-sm">Name:</label><input type="text" id="fp_p4Name" value="Player 4" class="w-full p-2.5 rounded border border-[#444] bg-[#333] text-white box-border text-base"></div>
+                <div class="form-group mb-3 text-left"><label for="fp_p4Color" class="block mb-1 text-[#ccc] text-sm">Color:</label><select id="fp_p4Color" class="w-full p-2.5 rounded border border-[#444] bg-[#333] text-white box-border text-base"><option value="lightgreen" selected>Green</option><option value="white">White</option><option value="lightblue">Light Blue</option><option value="red">Red</option></select></div>
+                <div class="form-group mb-3 text-left"><label for="fp_p4Type" class="block mb-1 text-[#ccc] text-sm">Type:</label><select id="fp_p4Type" class="w-full p-2.5 rounded border border-[#444] bg-[#333] text-white box-border text-base"><option value="human" selected>Human</option><option value="ai">AI</option></select></div>
             </div>
-            <hr style="border-color: #444; margin: 20px 0;">
-            <div class="form-group">
-                <label for="fp_scoreLimit">Points to Win:</label>
-                <input type="number" id="fp_scoreLimit" value="3" min="1" max="21">
+            <hr class="border-t border-[#444] my-5">
+            <div class="form-group mb-3 text-left">
+                <label for="fp_scoreLimit" class="block mb-1 text-[#ccc] text-sm">Points to Win:</label>
+                <input type="number" id="fp_scoreLimit" value="3" min="1" max="21" class="w-full p-2.5 rounded border border-[#444] bg-[#333] text-white box-border text-base">
             </div>
-            <button type="submit" id="startFourPlayerMatchBtn" class="action-button full-width">Start 2v2 Match</button>
-            <button type="button" id="fp_backToMainBtn" class="action-button secondary full-width" style="margin-top:10px;">Back to Main Menu</button>
+            <button type="submit" id="startFourPlayerMatchBtn" class="action-button full-width inline-block my-[10px] mx-[5px] py-3 px-3 bg-[#4CAF50] text-white border-none rounded cursor-pointer text-base text-center box-border w-[calc(100%-10px)]">Start 2v2 Match</button>
+            <button type="button" id="fp_backToMainBtn" class="action-button secondary full-width inline-block my-[10px] mx-[5px] py-3 px-3 bg-[#007bff] text-white border-none rounded cursor-pointer text-base text-center box-border w-[calc(100%-10px)] mt-2.5">Back to Main Menu</button>
         </form>
     </div>
 
 
-    <!-- TOURNAMENT SETUP FORM -->
-    <div id="tournamentSetupScreen" class="screen">
-        <h2>Tournament Setup (4 Players for 1v1 Matches)</h2>
+    <div id="tournamentSetupScreen" class="screen hidden box-border z-10 w-[500px] bg-[#222] p-[30px] rounded-lg shadow-lg text-center">
+        <h2 class="mt-0 mb-5 text-[#eee]">Tournament Setup (4 Players for 1v1 Matches)</h2>
         <form id="tournamentSettingsForm">
-             <div class="player-setup-block">
-                <h4>Player 1 (Semi-Final 1)</h4>
-                <div class="form-group"><label for="t_p1Name">Name:</label><input type="text" id="t_p1Name" value="Player 1"></div>
-                <div class="form-group"><label for="t_p1Color">Color:</label><select id="t_p1Color"><option value="white" selected>White</option><option value="lightblue">Light Blue</option><option value="red">Red</option><option value="lightgreen">Green</option></select></div>
-                <div class="form-group"><label for="t_p1Type">Type:</label><select id="t_p1Type"><option value="human" selected>Human</option><option value="ai">AI</option></select></div>
+             <div class="player-setup-block border border-[#444] p-4 mb-4 rounded bg-[#2a2a2a]">
+                <h4 class="mt-0 mb-2.5 text-[#ddd] text-left text-lg">Player 1 (Semi-Final 1)</h4>
+                <div class="form-group mb-3 text-left"><label for="t_p1Name" class="block mb-1 text-[#ccc] text-sm">Name:</label><input type="text" id="t_p1Name" value="Player 1" class="w-full p-2.5 rounded border border-[#444] bg-[#333] text-white box-border text-base"></div>
+                <div class="form-group mb-3 text-left"><label for="t_p1Color" class="block mb-1 text-[#ccc] text-sm">Color:</label><select id="t_p1Color" class="w-full p-2.5 rounded border border-[#444] bg-[#333] text-white box-border text-base"><option value="white" selected>White</option><option value="lightblue">Light Blue</option><option value="red">Red</option><option value="lightgreen">Green</option></select></div>
+                <div class="form-group mb-3 text-left"><label for="t_p1Type" class="block mb-1 text-[#ccc] text-sm">Type:</label><select id="t_p1Type" class="w-full p-2.5 rounded border border-[#444] bg-[#333] text-white box-border text-base"><option value="human" selected>Human</option><option value="ai">AI</option></select></div>
             </div>
-            <div class="player-setup-block">
-                <h4>Player 2 (Semi-Final 1)</h4>
-                <div class="form-group"><label for="t_p2Name">Name:</label><input type="text" id="t_p2Name" value="Player 2"></div>
-                <div class="form-group"><label for="t_p2Color">Color:</label><select id="t_p2Color"><option value="lightblue" selected>Light Blue</option><option value="white">White</option><option value="red">Red</option><option value="lightgreen">Green</option></select></div>
-                <div class="form-group"><label for="t_p2Type">Type:</label><select id="t_p2Type"><option value="human" selected>Human</option><option value="ai">AI</option></select></div>
+            <div class="player-setup-block border border-[#444] p-4 mb-4 rounded bg-[#2a2a2a]">
+                <h4 class="mt-0 mb-2.5 text-[#ddd] text-left text-lg">Player 2 (Semi-Final 1)</h4>
+                <div class="form-group mb-3 text-left"><label for="t_p2Name" class="block mb-1 text-[#ccc] text-sm">Name:</label><input type="text" id="t_p2Name" value="Player 2" class="w-full p-2.5 rounded border border-[#444] bg-[#333] text-white box-border text-base"></div>
+                <div class="form-group mb-3 text-left"><label for="t_p2Color" class="block mb-1 text-[#ccc] text-sm">Color:</label><select id="t_p2Color" class="w-full p-2.5 rounded border border-[#444] bg-[#333] text-white box-border text-base"><option value="lightblue" selected>Light Blue</option><option value="white">White</option><option value="red">Red</option><option value="lightgreen">Green</option></select></div>
+                <div class="form-group mb-3 text-left"><label for="t_p2Type" class="block mb-1 text-[#ccc] text-sm">Type:</label><select id="t_p2Type" class="w-full p-2.5 rounded border border-[#444] bg-[#333] text-white box-border text-base"><option value="human" selected>Human</option><option value="ai">AI</option></select></div>
             </div>
-            <hr style="border-color: #333; margin: 15px 0;">
-            <div class="player-setup-block">
-                <h4>Player 3 (Semi-Final 2)</h4>
-                <div class="form-group"><label for="t_p3Name">Name:</label><input type="text" id="t_p3Name" value="Player 3"></div>
-                <div class="form-group"><label for="t_p3Color">Color:</label><select id="t_p3Color"><option value="red" selected>Red</option><option value="white">White</option><option value="lightblue">Light Blue</option><option value="lightgreen">Green</option></select></div>
-                <div class="form-group"><label for="t_p3Type">Type:</label><select id="t_p3Type"><option value="human" selected>Human</option><option value="ai">AI</option></select></div>
+            <hr class="border-t border-[#333] my-4">
+            <div class="player-setup-block border border-[#444] p-4 mb-4 rounded bg-[#2a2a2a]">
+                <h4 class="mt-0 mb-2.5 text-[#ddd] text-left text-lg">Player 3 (Semi-Final 2)</h4>
+                <div class="form-group mb-3 text-left"><label for="t_p3Name" class="block mb-1 text-[#ccc] text-sm">Name:</label><input type="text" id="t_p3Name" value="Player 3" class="w-full p-2.5 rounded border border-[#444] bg-[#333] text-white box-border text-base"></div>
+                <div class="form-group mb-3 text-left"><label for="t_p3Color" class="block mb-1 text-[#ccc] text-sm">Color:</label><select id="t_p3Color" class="w-full p-2.5 rounded border border-[#444] bg-[#333] text-white box-border text-base"><option value="red" selected>Red</option><option value="white">White</option><option value="lightblue">Light Blue</option><option value="lightgreen">Green</option></select></div>
+                <div class="form-group mb-3 text-left"><label for="t_p3Type" class="block mb-1 text-[#ccc] text-sm">Type:</label><select id="t_p3Type" class="w-full p-2.5 rounded border border-[#444] bg-[#333] text-white box-border text-base"><option value="human" selected>Human</option><option value="ai">AI</option></select></div>
             </div>
-            <div class="player-setup-block">
-                <h4>Player 4 (Semi-Final 2)</h4>
-                <div class="form-group"><label for="t_p4Name">Name:</label><input type="text" id="t_p4Name" value="Player 4"></div>
-                <div class="form-group"><label for="t_p4Color">Color:</label><select id="t_p4Color"><option value="lightgreen" selected>Green</option><option value="white">White</option><option value="lightblue">Light Blue</option><option value="red">Red</option></select></div>
-                <div class="form-group"><label for="t_p4Type">Type:</label><select id="t_p4Type"><option value="human" selected>Human</option><option value="ai">AI</option></select></div>
+            <div class="player-setup-block border border-[#444] p-4 mb-4 rounded bg-[#2a2a2a]">
+                <h4 class="mt-0 mb-2.5 text-[#ddd] text-left text-lg">Player 4 (Semi-Final 2)</h4>
+                <div class="form-group mb-3 text-left"><label for="t_p4Name" class="block mb-1 text-[#ccc] text-sm">Name:</label><input type="text" id="t_p4Name" value="Player 4" class="w-full p-2.5 rounded border border-[#444] bg-[#333] text-white box-border text-base"></div>
+                <div class="form-group mb-3 text-left"><label for="t_p4Color" class="block mb-1 text-[#ccc] text-sm">Color:</label><select id="t_p4Color" class="w-full p-2.5 rounded border border-[#444] bg-[#333] text-white box-border text-base"><option value="lightgreen" selected>Green</option><option value="white">White</option><option value="lightblue">Light Blue</option><option value="red">Red</option></select></div>
+                <div class="form-group mb-3 text-left"><label for="t_p4Type" class="block mb-1 text-[#ccc] text-sm">Type:</label><select id="t_p4Type" class="w-full p-2.5 rounded border border-[#444] bg-[#333] text-white box-border text-base"><option value="human" selected>Human</option><option value="ai">AI</option></select></div>
             </div>
-            <div class="form-group">
-                <label for="t_scoreLimit">Points to Win (per match):</label>
-                <input type="number" id="t_scoreLimit" value="3" min="1" max="21">
+            <div class="form-group mb-3 text-left">
+                <label for="t_scoreLimit" class="block mb-1 text-[#ccc] text-sm">Points to Win (per match):</label>
+                <input type="number" id="t_scoreLimit" value="3" min="1" max="21" class="w-full p-2.5 rounded border border-[#444] bg-[#333] text-white box-border text-base">
             </div>
-            <button type="submit" id="startTournamentBtn" class="action-button full-width">Begin Tournament</button>
-            <button type="button" id="t_backToMainBtn" class="action-button secondary full-width" style="margin-top:10px;">Back to Main Menu</button>
+            <button type="submit" id="startTournamentBtn" class="action-button full-width inline-block my-[10px] mx-[5px] py-3 px-3 bg-[#4CAF50] text-white border-none rounded cursor-pointer text-base text-center box-border w-[calc(100%-10px)]">Begin Tournament</button>
+            <button type="button" id="t_backToMainBtn" class="action-button secondary full-width inline-block my-[10px] mx-[5px] py-3 px-3 bg-[#007bff] text-white border-none rounded cursor-pointer text-base text-center box-border w-[calc(100%-10px)] mt-2.5">Back to Main Menu</button>
         </form>
     </div>
 
 
-    <!-- GAME ANNOUNCEMENT (for tournament games) -->
-    <div id="matchAnnouncementScreen" class="screen">
-        <h2 id="announceMatchTitleText">Match Title</h2> <h3 id="announceMatchVersusText">Player A plays against Player B!</h3> <button id="announceMatchGoBtn" class="action-button">GO!</button>
+    <div id="matchAnnouncementScreen" class="screen hidden box-border z-[100] bg-[rgba(0,0,0,0.9)] flex flex-col justify-center items-center text-white text-center p-[30px] absolute inset-0">
+        <h2 id="announceMatchTitleText" class="text-[2.8em] text-[#FFD700] mb-[15px] font-bold">Match Title</h2> <h3 id="announceMatchVersusText" class="text-2xl mt-2.5 mb-10 leading-snug">Player A plays against Player B!</h3> <button id="announceMatchGoBtn" class="action-button py-4 px-12 text-2xl bg-[#28a745] border-none text-white rounded-lg cursor-pointer uppercase font-bold hover:bg-[#218838]">GO!</button>
     </div>
 
 
-    <!-- PONG GAME -->
-    <canvas id="pongCanvas"></canvas>
+    <canvas id="pongCanvas" class="border border-white hidden z-0"></canvas>
 
 
-    <!-- MATCH OVER -->
-    <div id="matchOverScreen" class="screen">
-        <h2 id="matchOverMessage">Player X wins the match!</h2> <br>
+    <div id="matchOverScreen" class="screen hidden box-border z-10 w-[500px] bg-[#222] p-[30px] rounded-lg shadow-lg text-center">
+        <h2 id="matchOverMessage" class="text-2xl text-[#FFD700] mb-5">Player X wins the match!</h2> <br>
         <div id="singleMatchOverButtons">
-            <button id="playAgainBtn" class="action-button full-width">Play Again</button>
+            <button id="playAgainBtn" class="action-button full-width inline-block my-[10px] mx-[5px] py-3 px-3 bg-[#4CAF50] text-white border-none rounded cursor-pointer text-base text-center box-border w-[calc(100%-10px)]">Play Again</button>
         </div>
         <br>
-        <div id="tournamentMatchOverButtons" style="display:none;">
-            <button id="nextMatchBtn" class="action-button full-width">Next Match</button>
+        <div id="tournamentMatchOverButtons" class="hidden">
+            <button id="nextMatchBtn" class="action-button full-width inline-block my-[10px] mx-[5px] py-3 px-3 bg-[#4CAF50] text-white border-none rounded cursor-pointer text-base text-center box-border w-[calc(100%-10px)]">Next Match</button>
         </div>
-        <button id="matchOver_MainMenuBtn" class="action-button tertiary" style="margin-top:10px;">Main Menu</button>
+        <button id="matchOver_MainMenuBtn" class="action-button tertiary inline-block my-[10px] mx-[5px] py-3 px-3 bg-[#6c757d] text-white border-none rounded cursor-pointer text-base text-center box-border w-[45%] mt-2.5">Main Menu</button>
     </div>
 
 
-    <!-- TOURNAMENT OVER -->
-    <div id="tournamentWinnerScreen" class="screen">
-        <h2 id="tournamentWinnerMessage">Congratulations! Player X has won the tournament!</h2> <button id="startNewTournamentBtn" class="action-button">Play New Tournament</button> <button id="tournamentEnd_MainMenuBtn" class="action-button secondary">Main Menu</button>
-    </div>
-
-
-    <!-- TIC-TAC-TOE SETUP FORM -->
-    <div id="ticTacToeSetupScreen" class="screen">
-        <h2>Tic-Tac-Toe Setup</h2>
-        <form id="ticTacToeSettingsForm">
-            <div class="player-setup-block">
-                <h4>Player 1 (Cross - X)</h4>
-                <div class="form-group">
-                    <label for="tt_player1Name">Name:</label>
-                    <input type="text" id="tt_player1Name" value="Player 1 (X)" required maxlength="20">
-                </div>
-            </div>
-            <hr style="border-color: #444; margin: 20px 0;">
-            <div class="player-setup-block">
-                <h4>Player 2 (Circle - O)</h4>
-                <div class="form-group">
-                    <label for="tt_player2Name">Name:</label>
-                    <input type="text" id="tt_player2Name" value="Player 2 (O)" required maxlength="20">
-                </div>
-            </div>
-            <button type="submit" id="tt_startGameBtn" class="action-button full-width">Play Tic-Tac-Toe</button>
-            <button type="button" id="tt_backToMainBtn" class="action-button secondary full-width" style="margin-top:10px;">Back to Main Menu</button>
-        </form>
-    </div>
-
-
-    <!-- TIC-TAC-TOE GAME -->
-    <div id="ticTacToeGameScreen" class="screen">
-        <h2 id="ticTacToeGameMessage"></h2>
-        <div id="ticTacToeBoard"></div>
-    </div>
-
-
-    <!-- TIC-TAC-TOE MATCH OVER -->
-    <div id="ticTacToeGameOverScreen" class="screen">
-        <h2 id="ticTacToeGameOverMessage"></h2> <button id="tt_playAgainBtn" class="action-button full-width">Play Again</button> <button id="tt_mainMenuBtn" class="action-button secondary full-width" style="margin-top:10px;">Main Menu</button>
+    <div id="tournamentWinnerScreen" class="screen hidden box-border z-10 w-[500px] bg-[#222] p-[30px] rounded-lg shadow-lg text-center">
+        <h2 id="tournamentWinnerMessage" class="text-2xl text-[#FFD700] mb-5">Congratulations! Player X has won the tournament!</h2> <button id="startNewTournamentBtn" class="action-button inline-block my-[10px] mx-[5px] py-3 px-3 bg-[#4CAF50] text-white border-none rounded cursor-pointer text-base text-center box-border w-[45%]">Play New Tournament</button> <button id="tournamentEnd_MainMenuBtn" class="action-button secondary inline-block my-[10px] mx-[5px] py-3 px-3 bg-[#007bff] text-white border-none rounded cursor-pointer text-base text-center box-border w-[45%]">Main Menu</button>
     </div>
 
     <script src="dist/bundle.js"></script>

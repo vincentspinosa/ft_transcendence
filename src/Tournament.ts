@@ -11,7 +11,7 @@ import { Game } from './Game';
 export class Tournament {
     // Private properties to store tournament state and configuration.
     private players: PlayerConfig[]; // An array of all player configurations participating in the tournament (4 players).
-    private pointsToWin: number; // The score limit for each individual match within the tournament.
+    private scoreLimit: number; // The score limit for each individual match within the tournament.
     private gameInstance: Game; // A reference to the main Game class instance, used to run individual Pong matches.
 
     private currentMatchIndex: number = 0; // Tracks which match is currently being played (0 for Semi-Final 1, 1 for Semi-Final 2, 2 for The Final).
@@ -34,8 +34,6 @@ export class Tournament {
     private announceMatchGoButton: HTMLButtonElement; // The button to start the announced match.
 
     private currentMatchPlayers: { playerA: PlayerConfig, playerB: PlayerConfig } | null = null; // Temporarily holds the PlayerConfig for the current match being announced/played.
-
-    public onTournamentEnd: (() => void) | null = null; // Callback function to be executed when the tournament finishes.
 
     /**
      * Constructs a new Tournament instance.
@@ -62,7 +60,7 @@ export class Tournament {
     ) {
         // Initialize tournament properties with values from settings and the game instance.
         this.players = [settings.player1, settings.player2, settings.player3, settings.player4]; // Store all 4 players.
-        this.pointsToWin = settings.pointsToWin; // Set the score limit for each match.
+        this.scoreLimit = settings.scoreLimit; // Set the score limit for each match.
         this.gameInstance = gameInstance; // Store the game instance.
 
         // Assign UI element references from the passed object.
@@ -81,9 +79,9 @@ export class Tournament {
 
         // --- Basic Verification of UI Elements ---
         // Log errors to the console if any critical UI elements are not provided.
-        if (!this.announceMatchTitleElement) console.error("Tournament Constructor: announceMatchTitleElement is null!");
-        if (!this.announceMatchVersusElement) console.error("Tournament Constructor: announceMatchVersusElement is null!");
-        if (!this.announceMatchGoButton) console.error("Tournament Constructor: announceMatchGoButton is null!");
+        if (!this.announceMatchTitleElement) console.log("Tournament Constructor: announceMatchTitleElement is null!");
+        if (!this.announceMatchVersusElement) console.log("Tournament Constructor: announceMatchVersusElement is null!");
+        if (!this.announceMatchGoButton) console.log("Tournament Constructor: announceMatchGoButton is null!");
         // --- End Verification ---
 
         // Attach event listener to the "Next Match" button.
@@ -91,7 +89,7 @@ export class Tournament {
         if (this.nextMatchButton) {
             this.nextMatchButton.onclick = () => this.proceedToNextStage();
         } else {
-            console.error("Tournament: 'nextMatchButton' not found or passed incorrectly in UI elements.");
+            console.log("Tournament: 'nextMatchButton' not found or passed incorrectly in UI elements.");
         }
 
         // Attach event listener to the "Go" button on the announcement screen.
@@ -99,7 +97,7 @@ export class Tournament {
         if (this.announceMatchGoButton) {
             this.announceMatchGoButton.onclick = () => this.startAnnouncedMatch();
         } else {
-            console.error("Tournament: 'announceMatchGoButton' not found or passed incorrectly in UI elements.");
+            console.log("Tournament: 'announceMatchGoButton' not found or passed incorrectly in UI elements.");
         }
     }
 
@@ -142,22 +140,19 @@ export class Tournament {
             playerB = this.semiFinalWinners[1];
             // If for some reason semi-final winners are not determined, log an error and end the tournament.
             if (!playerA || !playerB) {
-                console.error("Cannot start final: semi-final winners not determined.", this.semiFinalWinners);
-                if (this.onTournamentEnd) this.onTournamentEnd(); // Call end callback.
+                console.log("Cannot start final: semi-final winners not determined.", this.semiFinalWinners);
                 return;
             }
             matchTitle = "THE FINAL";
         } else {
             // Invalid match index, indicating an unexpected state. Log and end tournament.
-            console.error("Invalid match index for tournament: " + this.currentMatchIndex);
-            if (this.onTournamentEnd) this.onTournamentEnd(); // Call end callback.
+            console.log("Invalid match index for tournament: " + this.currentMatchIndex);
             return;
         }
 
         // Additional safeguard to ensure players are defined before proceeding.
         if (!playerA || !playerB) {
-            console.error("Players for the match are unexpectedly undefined. Match Title was:", matchTitle);
-            if (this.onTournamentEnd) this.onTournamentEnd();
+            console.log("Players for the match are unexpectedly undefined. Match Title was:", matchTitle);
             return;
         }
         
@@ -178,19 +173,19 @@ export class Tournament {
         if (this.announceMatchTitleElement) {
             this.announceMatchTitleElement.textContent = matchTitle;
         } else { 
-            console.error("Tournament.setupNextMatch: announceMatchTitleElement is null, cannot set title.");
+            console.log("Tournament.setupNextMatch: announceMatchTitleElement is null, cannot set title.");
         }
 
         if (this.announceMatchVersusElement) {
             this.announceMatchVersusElement.textContent = `${playerA.name} plays against ${playerB.name}!`;
         } else { 
-            console.error("Tournament.setupNextMatch: announceMatchVersusElement is null, cannot set versus text.");
+            console.log("Tournament.setupNextMatch: announceMatchVersusElement is null, cannot set versus text.");
         }
 
         if (this.matchAnnouncementScreenDiv) {
             this.matchAnnouncementScreenDiv.style.display = 'flex'; // Display the announcement screen (typically centered).
         } else { 
-            console.error("Tournament.setupNextMatch: matchAnnouncementScreenDiv is null, cannot show announcement.");
+            console.log("Tournament.setupNextMatch: matchAnnouncementScreenDiv is null, cannot show announcement.");
         }
     }
 
@@ -201,9 +196,8 @@ export class Tournament {
     private startAnnouncedMatch(): void {
         // Prevent starting if no players are set for the current match.
         if (!this.currentMatchPlayers) {
-            console.error("Cannot start match: currentMatchPlayers not set (Go button clicked too early or error).");
+            console.log("Cannot start match: currentMatchPlayers not set (Go button clicked too early or error).");
             if (this.matchAnnouncementScreenDiv) this.matchAnnouncementScreenDiv.style.display = 'none';
-            if (this.onTournamentEnd) this.onTournamentEnd(); // End tournament if an error occurs.
             return;
         }
 
@@ -218,7 +212,7 @@ export class Tournament {
         const matchSettings: MatchSettings = {
             playerA: this.currentMatchPlayers.playerA,
             playerB: this.currentMatchPlayers.playerB,
-            scoreLimit: this.pointsToWin // Use the tournament's points to win.
+            scoreLimit: this.scoreLimit // Use the tournament's points to win.
         };
 
         // Initialize the Game instance with the match settings.
@@ -276,15 +270,11 @@ export class Tournament {
             if (this.semiFinalWinners[0] && this.semiFinalWinners[1]) {
                 this.setupNextMatch(); // Set up The Final match.
             } else {
-                console.error("Error proceeding to final: one or both semi-final winners are missing.", this.semiFinalWinners);
-                if (this.onTournamentEnd) this.onTournamentEnd(); // Call end callback if an error prevents final.
+                console.log("Error proceeding to final: one or both semi-final winners are missing.", this.semiFinalWinners);
             }
         } else {
             // This `else` block should ideally not be reached if `displayTournamentWinner` is called correctly after the final.
-            console.warn("Tournament.proceedToNextStage: Attempted to proceed beyond the final match index or unexpected state.");
-            if (!this.tournamentWinner && this.onTournamentEnd) { // If for some reason the tournament didn't conclude properly.
-                this.onTournamentEnd(); // Call the tournament end callback.
-            }
+            console.log("Tournament.proceedToNextStage: Attempted to proceed beyond the final match index or unexpected state.");
         }
     }
 
@@ -303,11 +293,9 @@ export class Tournament {
             this.tournamentWinnerMessageElement.textContent = `Congratulations! ${this.tournamentWinner.name} has won the tournament!`;
         } else if (this.tournamentWinnerMessageElement) {
             this.tournamentWinnerMessageElement.textContent = `The tournament has concluded!`; // Fallback message if winner is not set.
-            console.error("Tournament.displayTournamentWinner: tournamentWinner is null.");
+            console.log("Tournament.displayTournamentWinner: tournamentWinner is null.");
         }
         // Display the tournament winner screen.
         if (this.tournamentWinnerScreenDiv) this.tournamentWinnerScreenDiv.style.display = 'flex';
-        // Call `onTournamentEnd` callback to signal the main application that the tournament is over.
-        if (this.onTournamentEnd) this.onTournamentEnd();
     }
 }
