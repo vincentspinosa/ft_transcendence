@@ -15,6 +15,7 @@ export class Tournament {
     private currentMatchIndex: number = 0; // Tracks which match is currently being played (0 for Semi-Final 1, 1 for Semi-Final 2, 2 for The Final).
     private semiFinalWinners: (PlayerConfig | null)[] = [null, null]; // Stores the PlayerConfig of the winners of Semi-Final 1 and Semi-Final 2.
     private tournamentWinner: PlayerConfig | null = null; // Stores the PlayerConfig of the tournament champion.
+    private enablePowerUp: boolean; // NEW: Flag to control power-up availability for all tournament matches.
 
     // HTML Elements for updating the User Interface.
     private pongCanvasElement: HTMLCanvasElement; // The canvas element where Pong matches are rendered.
@@ -38,6 +39,7 @@ export class Tournament {
      * @param settings The setup information for the tournament, including players and points to win.
      * @param gameInstance A reference to the Game class instance that will run individual Pong matches.
      * @param uiElements An object containing references to all necessary HTML elements for UI updates.
+     * @param enablePowerUp True if power-ups should be enabled for all matches in this tournament.
      */
     constructor(
         settings: TournamentSetupInfo,
@@ -54,12 +56,14 @@ export class Tournament {
             announceMatchTitleElement: HTMLElement,
             announceMatchVersusElement: HTMLElement,
             announceMatchGoButton: HTMLButtonElement
-        }
+        },
+        enablePowerUp: boolean = false // NEW parameter: whether to enable power-ups
     ) {
         // Initialize tournament properties with values from settings and the game instance.
         this.players = [settings.player1, settings.player2, settings.player3, settings.player4]; // Store all 4 players.
         this.scoreLimit = settings.scoreLimit; // Set the score limit for each match.
         this.gameInstance = gameInstance; // Store the game instance.
+        this.enablePowerUp = enablePowerUp; // NEW: Store the power-up setting for the tournament.
 
         // Assign UI element references from the passed object.
         this.pongCanvasElement = uiElements.pongCanvasElement;
@@ -161,6 +165,7 @@ export class Tournament {
         console.log(`Tournament.setupNextMatch: Announcing - Title: "${matchTitle}", Versus: "${playerA.name} plays against ${playerB.name}!"`);
         console.log("Player A details:", JSON.stringify(playerA));
         console.log("Player B details:", JSON.stringify(playerB));
+        console.log("Power-Up enabled for tournament:", this.enablePowerUp); // NEW: Log power-up state
         // --- End Log ---
 
         // Hide other game-related screens (canvas, match over screen) to show the announcement.
@@ -215,7 +220,8 @@ export class Tournament {
 
         // Initialize the Game instance with the match settings.
         // Pass `true` for `isTournamentMatch` and provide a callback for when the match completes.
-        this.gameInstance.initializeGame(matchSettings, true, (winner) => this.handleMatchCompletion(winner));
+        // NEW: Pass the enablePowerUp flag here!
+        this.gameInstance.initializeGame(matchSettings, true, (winner) => this.handleMatchCompletion(winner), this.enablePowerUp);
         this.gameInstance.start(); // Start the actual Pong game.
     }
 

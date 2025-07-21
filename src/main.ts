@@ -1,7 +1,6 @@
 // src/main.ts
 
-/* 
-
+/*
 Core Functionality and Structure :
 
 The file is structured to initialize and manage various aspects of the application upon the browser's DOMContentLoaded event:
@@ -99,6 +98,11 @@ let singleMatchModeBtn: HTMLButtonElement,     // Button to select 1v1 Pong mode
     matchOver_MainMenuBtn: HTMLButtonElement,  // Button to go to main menu from match over screen.
     tournamentEnd_MainMenuBtn: HTMLButtonElement, // Button to go to main menu from tournament winner screen.
     startNewTournamentBtn: HTMLButtonElement;  // Button to start a new tournament from tournament winner screen.
+
+// NEW: Add variables for the power-up checkboxes
+let s_enablePowerUpCheckbox: HTMLInputElement;
+let fp_enablePowerUpCheckbox: HTMLInputElement;
+let t_enablePowerUpCheckbox: HTMLInputElement; // For tournament setup
 
 // --- Browser History (popstate) Handling ---
 window.addEventListener('popstate', (event) => {
@@ -273,7 +277,7 @@ window.addEventListener('DOMContentLoaded', () => {
     matchAnnouncementScreen = document.getElementById('matchAnnouncementScreen') as HTMLElement;
 
     // Populate the `screenElements` map for easier lookup.
-    // This allows `navigateTo` function to quickly find elements by ID.
+    // This allows `MapsTo` function to quickly find elements by ID.
     if (initialChoiceScreen) screenElements['initialChoiceScreen'] = initialChoiceScreen;
     if (gameSetupScreen) screenElements['gameSetup'] = gameSetupScreen;
     if (fourPlayerMatchSetupScreen) screenElements['fourPlayerMatchSetupScreen'] = fourPlayerMatchSetupScreen;
@@ -300,6 +304,11 @@ window.addEventListener('DOMContentLoaded', () => {
     tournamentEnd_MainMenuBtn = document.getElementById('tournamentEnd_MainMenuBtn') as HTMLButtonElement;
     startNewTournamentBtn = document.getElementById('startNewTournamentBtn') as HTMLButtonElement;
 
+    // NEW: Get references to power-up checkboxes
+    s_enablePowerUpCheckbox = document.getElementById('s_enablePowerUp') as HTMLInputElement;
+    fp_enablePowerUpCheckbox = document.getElementById('fp_enablePowerUp') as HTMLInputElement;
+    t_enablePowerUpCheckbox = document.getElementById('t_enablePowerUp') as HTMLInputElement;
+
 
     // --- Game Instance Initialization ---
     // Initialize the Pong game instance. This sets up the canvas and links to relevant UI elements
@@ -313,7 +322,7 @@ window.addEventListener('DOMContentLoaded', () => {
         'tournamentMatchOverButtons'
     );
     // Note: The `playAgainBtn` behavior is handled internally by the `Game` class.
-    // If it were to navigate, `navigateTo('gameSetup')` would be called.
+    // If it were to navigate, `MapsTo('gameSetup')` would be called.
 
 
     // --- Event Listener Setup for Navigation Buttons ---
@@ -376,7 +385,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
             // Get player configurations and score limit from the form.
             const p1 = getSinglePlayer1v1Config('s', 1, 'Player 1');
-            const p2 = getSinglePlayer1v1Config('s', 2, 'Player 2');
+            const p2 = getSinglePlayer1v1Config('s', 2, 'Player 2'); // Corrected typo
             const scoreLimitInput = document.getElementById('s_scoreLimit') as HTMLInputElement;
             const scoreLimit = parseInt(scoreLimitInput.value, 10);
 
@@ -392,7 +401,9 @@ window.addEventListener('DOMContentLoaded', () => {
             // Create the MatchSettings object.
             const matchSettings: MatchSettings = { playerA: p1, playerB: p2, scoreLimit };
 
-            // Initialize and start the Pong game.
+            // Get the power-up checkbox state for single match
+            const enablePowerUp = s_enablePowerUpCheckbox.checked;
+
             if (gameInstance) {
                 // Ensure correct "Match Over" buttons are displayed for a single match.
                 const singleMB = document.getElementById('singleMatchOverButtons') as HTMLElement;
@@ -400,7 +411,8 @@ window.addEventListener('DOMContentLoaded', () => {
                 if(singleMB) singleMB.style.display = 'block';
                 if(tourneyMB) tourneyMB.style.display = 'none';
 
-                gameInstance.initializeGame(matchSettings, false, null); // Initialize Pong for 1v1.
+                // Pass the enablePowerUp flag here!
+                gameInstance.initializeGame(matchSettings, false, null, enablePowerUp);
                 showScreen(pongCanvas); // Show the Pong game canvas.
                 gameInstance.start(); // Start the game loop.
             }
@@ -439,7 +451,9 @@ window.addEventListener('DOMContentLoaded', () => {
                 scoreLimit
             };
 
-            // Initialize and start the 4-player Pong game.
+            // Get the power-up checkbox state for four-player match
+            const enablePowerUp = fp_enablePowerUpCheckbox.checked;
+
             if (gameInstance) {
                 // Ensure correct "Match Over" buttons are displayed for a 4-player match.
                 const singleMB = document.getElementById('singleMatchOverButtons') as HTMLElement;
@@ -447,7 +461,8 @@ window.addEventListener('DOMContentLoaded', () => {
                 if(singleMB) singleMB.style.display = 'block';
                 if(tourneyMB) tourneyMB.style.display = 'none';
 
-                gameInstance.initializeFourPlayerMatch(fourPlayerSettings); // Initialize Pong for 4 players.
+                // Pass the enablePowerUp flag here!
+                gameInstance.initializeFourPlayerMatch(fourPlayerSettings, enablePowerUp);
                 showScreen(pongCanvas); // Show the Pong canvas.
                 gameInstance.start(); // Start the game loop.
             }
@@ -481,7 +496,9 @@ window.addEventListener('DOMContentLoaded', () => {
             // Create the TournamentSetupInfo object.
             const tournamentSetupData: TournamentSetupInfo = { player1: p1, player2: p2, player3: p3, player4: p4, scoreLimit };
 
-            // Initialize and start the tournament.
+            // Get the power-up checkbox state for tournament
+            const enablePowerUp = t_enablePowerUpCheckbox.checked;
+
             if (gameInstance) {
                 // Create a new Tournament instance, passing setup data, the Pong game instance, and UI element references.
                 tournamentInstance = new Tournament(tournamentSetupData, gameInstance, {
@@ -496,7 +513,8 @@ window.addEventListener('DOMContentLoaded', () => {
                     announceMatchTitleElement: document.getElementById('announceMatchTitleText') as HTMLElement,
                     announceMatchVersusElement: document.getElementById('announceMatchVersusText') as HTMLElement,
                     announceMatchGoButton: document.getElementById('announceMatchGoBtn') as HTMLButtonElement
-                });
+                }, enablePowerUp); // <--- Pass enablePowerUp to Tournament
+
                 showScreen(null); // Hide the current setup screen before tournament starts.
                 tournamentInstance.startTournament(); // Begin the tournament flow.
             }
@@ -512,7 +530,8 @@ window.addEventListener('DOMContentLoaded', () => {
         'settingsForm', 's_backToMainBtn', 'fourPlayerSettingsForm', 'fp_backToMainBtn', 'tournamentSettingsForm', 't_backToMainBtn',
         'matchOver_MainMenuBtn', 'tournamentEnd_MainMenuBtn', 'startNewTournamentBtn',
         'announceMatchTitleText', 'announceMatchVersusText', 'announceMatchGoBtn',
-        'matchOverMessage', 'playAgainBtn', 'singleMatchOverButtons', 'tournamentMatchOverButtons', 'nextMatchBtn'
+        'matchOverMessage', 'playAgainBtn', 'singleMatchOverButtons', 'tournamentMatchOverButtons', 'nextMatchBtn',
+        's_enablePowerUp', 'fp_enablePowerUp', 't_enablePowerUp' // NEW: Add power-up checkboxes to critical list
     ];
     
     // Iterate through the critical elements and check if they exist in the DOM.

@@ -1,6 +1,7 @@
 // Import necessary classes for Paddle and Ball, and interfaces for game configurations.
 import { Paddle } from './Paddle';
 import { Ball } from './Ball';
+import { PowerUp } from './PowerUp'; // Import the new PowerUp class
 import { PlayerConfig, MatchSettings, FourPlayerMatchSettings } from './interfaces';
 
 /**
@@ -61,6 +62,10 @@ export class Game {
     // --- AI specific properties ---
     private lastAIUpdateTime: number = 0; // Timestamp of the last AI decision update.
     private readonly AI_UPDATE_INTERVAL_MS = 1000; // MANDATORY: AI updates its target only once per second to make it less perfect.
+
+    // --- Power-up specific properties ---
+    private powerUp: PowerUp | null = null; // The power-up instance.
+    private powerUpActiveInGame: boolean = false; // Flag to enable/disable power-up feature per game.
 
     /**
      * Constructs a new Game instance.
@@ -133,12 +138,12 @@ export class Game {
         if (this.singleMatchOverScreenDiv) this.hideElement(this.singleMatchOverScreenDiv);
         if (this.canvasElement) this.showElement(this.canvasElement);
 
-        // Re-initialize the game based on the last played mode and settings.
+        // Re-initialize the game based on the last played mode and settings, passing the power-up flag.
         if ((this.gameMode === '2player' || this.gameMode === 'tournament') && this.lastSingleMatchSettings) {
-            this.initializeGame(this.lastSingleMatchSettings, this.isTournamentMatchFlag, this.onMatchCompleteCallback);
+            this.initializeGame(this.lastSingleMatchSettings, this.isTournamentMatchFlag, this.onMatchCompleteCallback, this.powerUpActiveInGame);
             this.start();
         } else if (this.gameMode === '4player' && this.lastFourPlayerMatchSettings) {
-            this.initializeFourPlayerMatch(this.lastFourPlayerMatchSettings);
+            this.initializeFourPlayerMatch(this.lastFourPlayerMatchSettings, this.powerUpActiveInGame);
             this.start();
         } else {
             console.log("Cannot play again: last match settings not available or game mode unclear.", this.gameMode);
@@ -152,18 +157,20 @@ export class Game {
      * @param settings Match settings including player configurations and score limit.
      * @param isTournament True if this match is part of a tournament, false otherwise.
      * @param onCompleteCallback A callback function to be invoked when the match completes (only for tournament matches).
+     * @param enablePowerUp True to enable the power-up for this specific match, false otherwise.
      */
     public initializeGame(
         settings: MatchSettings,
         isTournament: boolean,
-        onCompleteCallback: ((winner: PlayerConfig) => void) | null
+        onCompleteCallback: ((winner: PlayerConfig) => void) | null,
+        enablePowerUp: boolean = false // New parameter for power-up
     ): void {
         // Set game mode and tournament flags.
         this.gameMode = isTournament ? 'tournament' : '2player';
         this.isTournamentMatchFlag = isTournament;
         this.onMatchCompleteCallback = onCompleteCallback;
+        this.powerUpActiveInGame = enablePowerUp; // Set the power-up state for the current game
 
-        /* ... -> for object cloning */
         // Store player configurations and score limit.
         this.playerAConfig = { ...settings.playerA };
         this.playerBConfig = { ...settings.playerB };
@@ -193,18 +200,27 @@ export class Game {
         this.ball = new Ball(this.canvasElement.width / 2, this.canvasElement.height / 2, this.BALL_RADIUS, '#FFF');
         this.setupInput(); // Set up keyboard input listeners.
         this.resetGameInternals(); // Reset core game state (scores, paddle positions, ball position).
+
+        // Initialize power-up if enabled for this game
+        if (this.powerUpActiveInGame) {
+            this.initializePowerUp();
+        } else {
+            this.powerUp = null; // Ensure no power-up if the feature is disabled
+        }
     }
 
     /**
      * Initializes the game for a 4-player (2v2) match.
      * Sets up four paddles, ball, and other game state based on provided settings.
      * @param settings Four-player match settings including team player configurations and score limit.
+     * @param enablePowerUp True to enable the power-up for this specific match, false otherwise.
      */
-    public initializeFourPlayerMatch(settings: FourPlayerMatchSettings): void {
+    public initializeFourPlayerMatch(settings: FourPlayerMatchSettings, enablePowerUp: boolean = false): void {
         // Set game mode and clear tournament flags.
         this.gameMode = '4player';
         this.isTournamentMatchFlag = false;
         this.onMatchCompleteCallback = null;
+        this.powerUpActiveInGame = enablePowerUp; // Set the power-up state for the current game
 
         // Store player configurations for each team member.
         this.team1PlayerAConfig = { ...settings.team1PlayerA };
@@ -247,6 +263,33 @@ export class Game {
         this.ball = new Ball(this.canvasElement.width / 2, this.canvasElement.height / 2, this.BALL_RADIUS, '#FFF');
         this.setupInput(); // Set up keyboard input listeners.
         this.resetGameInternals(); // Reset core game state.
+
+        // Initialize power-up if enabled for this game
+        if (this.powerUpActiveInGame) {
+            this.initializePowerUp();
+        } else {
+            this.powerUp = null; // Ensure no power-up if the feature is disabled
+        }
+    }
+
+    /**
+     * Initializes the position of the power-up randomly within the court.
+     * This is called once per game or per point if power-ups are enabled.
+     */
+    private initializePowerUp(): void {
+        const minX = this.PADDLE_WIDTH * 2; // Avoid placing too close to paddles
+        const maxX = this.canvasElement.width - (this.PADDLE_WIDTH * 2);
+        const minY = this.BALL_RADIUS * 2;
+        const maxY = this.canvasElement.height - (this.BALL_RADIUS * 2);
+
+        // Calculate random X and Y positions within the playable area
+        const randomX = minX + Math.random() * (maxX - minX);
+        const randomY = minY + Math.random() * (maxY - minY);
+
+        // Always create a new PowerUp instance, ensuring it's active.
+        this.powerUp = new PowerUp(randomX, randomY, this.BALL_RADIUS * 3, 'red');
+        console.log("Power Up initialized.");
+        console.log(`Power up x: ${randomX}, Power up y:${randomY}`);
     }
 
     /**
@@ -479,7 +522,7 @@ export class Game {
                     // Predict the ball's Y position when it reaches the paddle's X.
                     predictedTargetY = this.predictBallYAtX(
                         ballX, ballY, ballSpeedX, ballSpeedY,
-                        targetPaddleX, this.canvasElement.width, this.canvasElement.height, this.BALL_RADIUS
+                        targetPaddleX, this.canvasElement.width, this.canvasElement.height, this.ball.radius
                     );
 
                     // This version clamps the *center* of the paddle's potential target Y.
@@ -514,6 +557,19 @@ export class Game {
         } else {
             this.checkTwoPlayerCollisions();
         }
+
+        // --- Power-up Collision Check ---
+        // Only check for power-up collision if the feature is enabled for the current game
+        // and if a power-up object exists and is still active.
+        if (this.powerUpActiveInGame && this.powerUp && this.powerUp.isActive) {
+            if (this.powerUp.checkCollision(this.ball)) {
+                // Apply power-up effects to the ball
+                this.ball.doubleRadius();
+                this.ball.augmentSpeed(0.50); // Increase speed by 50%
+                // The powerUp.isActive flag is set to false inside PowerUp.checkCollision()
+                // so it will no longer be drawn or interact after being hit for this point.
+            }
+        }
     }
 
     /**
@@ -530,7 +586,6 @@ export class Game {
             const hitLeft = isLeftPaddle[i] && this.ball.x - this.ball.radius < paddle.x + paddle.width && this.ball.x - this.ball.radius > paddle.x;
             const hitRight = !isLeftPaddle[i] && this.ball.x + this.ball.radius > paddle.x && this.ball.x + this.ball.radius < paddle.x + paddle.width;
             
-            // Check for collision: ball's horizontal range overlaps paddle's, and ball's vertical range overlaps paddle's.
             if ((hitLeft || hitRight) &&
                 this.ball.y + this.ball.radius > paddle.y &&
                 this.ball.y - this.ball.radius < paddle.y + paddle.height) {
@@ -550,15 +605,25 @@ export class Game {
         // If ball goes past the left wall (into Player 1's goal).
         if (this.ball.x - this.ball.radius < 0) {
             this.player2Paddle.score++; // Player 2 scores.
-            this.ball.reset(this.canvasElement.width, this.canvasElement.height); // Reset ball to center.
+            // When a score happens, the ball needs to be reset to its initial state (original radius and speed)
+            // if a power-up was hit. The Ball.ts `reset` method currently only resets position and direction.
+            // To ensure power-up effects don't persist across points, we re-instantiate the ball.
+            this.ball = new Ball(this.canvasElement.width / 2, this.canvasElement.height / 2, this.BALL_RADIUS, '#FFF');
+            this.ball.reset(this.canvasElement.width, this.canvasElement.height); // Reset ball position.
             this.resetPaddlesToInitialPositions(); // Reset paddles to their initial positions.
+            // Re-initialize a new power-up for the new point if enabled
+            if (this.powerUpActiveInGame) this.initializePowerUp();
             this.checkWinCondition(); // Check if a player has reached the score limit.
         } 
         // If ball goes past the right wall (into Player 2's goal).
         else if (this.ball.x + this.ball.radius > this.canvasElement.width) {
             this.player1Paddle.score++; // Player 1 scores.
-            this.ball.reset(this.canvasElement.width, this.canvasElement.height); // Reset ball to center.
+            // Re-instantiate the ball to reset power-up effects
+            this.ball = new Ball(this.canvasElement.width / 2, this.canvasElement.height / 2, this.BALL_RADIUS, '#FFF');
+            this.ball.reset(this.canvasElement.width, this.canvasElement.height); // Reset ball position.
             this.resetPaddlesToInitialPositions(); // Reset paddles to their initial positions.
+            // Re-initialize a new power-up for the new point if enabled
+            if (this.powerUpActiveInGame) this.initializePowerUp();
             this.checkWinCondition(); // Check win condition.
         }
     }
@@ -610,15 +675,23 @@ export class Game {
         // If ball goes past the left wall (into Team 1's goal).
         if (this.ball.x - this.ball.radius < 0) {
             this.team2Score++; // Team 2 scores.
-            this.ball.reset(this.canvasElement.width, this.canvasElement.height); // Reset ball.
+            // Re-instantiate the ball to reset power-up effects
+            this.ball = new Ball(this.canvasElement.width / 2, this.canvasElement.height / 2, this.BALL_RADIUS, '#FFF');
+            this.ball.reset(this.canvasElement.width, this.canvasElement.height); // Reset ball position.
             this.resetPaddlesToInitialPositions(); // Reset paddles to their initial positions.
+            // Re-initialize a new power-up for the new point if enabled
+            if (this.powerUpActiveInGame) this.initializePowerUp();
             this.checkWinCondition(); // Check if a team has reached the score limit.
         } 
         // If ball goes past the right wall (into Team 2's goal).
         else if (this.ball.x + this.ball.radius > this.canvasElement.width) {
             this.team1Score++; // Team 1 scores.
-            this.ball.reset(this.canvasElement.width, this.canvasElement.height); // Reset ball.
+            // Re-instantiate the ball to reset power-up effects
+            this.ball = new Ball(this.canvasElement.width / 2, this.canvasElement.height / 2, this.BALL_RADIUS, '#FFF');
+            this.ball.reset(this.canvasElement.width, this.canvasElement.height); // Reset ball position.
             this.resetPaddlesToInitialPositions(); // Reset paddles to their initial positions.
+            // Re-initialize a new power-up for the new point if enabled
+            if (this.powerUpActiveInGame) this.initializePowerUp();
             this.checkWinCondition(); // Check win condition.
         }
     }
@@ -704,7 +777,7 @@ export class Game {
         this.handlePlayerInput(); // Process human player controls.
         this.updateAI();         // Update AI paddle positions based on ball.
         if (this.ball) this.ball.update(this.canvasElement.height); // Update ball position and handle wall bounces.
-        this.checkCollision(); // Check for collisions and handle scoring.
+        this.checkCollision(); // Check for collisions and handle scoring (and power-up).
     }
 
     /**
@@ -765,6 +838,11 @@ export class Game {
             }
             if (this.ball) this.ball.draw(this.ctx); // Draw the ball.
             this.drawScores(); // Draw the current scores.
+
+            // Draw PowerUp if it's active and enabled for this game
+            if (this.powerUpActiveInGame && this.powerUp && this.powerUp.isActive) {
+                this.powerUp.draw(this.ctx);
+            }
         }
     }
 
@@ -789,8 +867,18 @@ export class Game {
         // Reset paddle positions to their initial center positions
         this.resetPaddlesToInitialPositions();
 
-        // Reset the ball's position and speed.
-        if (this.ball) this.ball.reset(this.canvasElement.width, this.canvasElement.height);
+        // Always re-instantiate the ball to reset it to its original state (radius and speed).
+        // This ensures power-up effects from previous points/games are cleared for the new one.
+        this.ball = new Ball(this.canvasElement.width / 2, this.canvasElement.height / 2, this.BALL_RADIUS, '#FFF');
+        this.ball.reset(this.canvasElement.width, this.canvasElement.height);
+
+        // Always re-initialize power-up if the feature is enabled for this game.
+        // This ensures a new power-up appears at a random location for the new point/game.
+        if (this.powerUpActiveInGame) {
+            this.initializePowerUp();
+        } else {
+            this.powerUp = null; // Ensure no power-up if the feature is disabled
+        }
     }
 
     /**

@@ -58,6 +58,9 @@
                 <li class="mb-2">Champion is the winner of the Final.</li>
             </ol>
 
+            <h3 class="mt-5 mb-2 text-[#00aaff]">Power-Up Feature</h3>
+            <p class="leading-relaxed mb-2.5">When enabled, a **red circular power-up** will appear randomly on the court. If the ball hits it, the ball will **double in size** and permanently **increase its speed by 50%** for the remainder of that match. The power-up appears once per point if enabled, and its location is randomized.</p>
+
         </div>
         <button id="rules_backToMainBtn" class="action-button full-width secondary inline-block my-[10px] mx-[5px] py-3 px-3 bg-[#007bff] text-white border-none rounded cursor-pointer text-base text-center box-border w-[calc(100%-10px)] mt-5">Back to Main Menu</button>
     </div>
@@ -111,6 +114,10 @@
                 <label for="s_scoreLimit" class="block mb-1 text-[#ccc] text-sm">Points to Win (1-21):</label>
                 <input type="number" id="s_scoreLimit" value="3" min="1" max="21" required class="w-20 p-2.5 rounded border border-[#444] bg-[#333] text-white box-border text-base">
             </div>
+            <div class="form-group mb-3 text-left flex items-center">
+                <input type="checkbox" id="s_enablePowerUp" class="mr-2">
+                <label for="s_enablePowerUp" class="text-[#ccc] text-sm">Enable Power-Up</label>
+            </div>
             <button type="submit" id="startGameBtn" class="action-button full-width inline-block my-[10px] mx-[5px] py-3 px-3 bg-[#4CAF50] text-white border-none rounded cursor-pointer text-base text-center box-border w-[calc(100%-10px)]">Start Game</button>
             <button type="button" id="s_backToMainBtn" class="action-button secondary full-width inline-block my-[10px] mx-[5px] py-3 px-3 bg-[#007bff] text-white border-none rounded cursor-pointer text-base text-center box-border w-[calc(100%-10px)] mt-2.5">Back to Main Menu</button>
         </form>
@@ -152,6 +159,10 @@
                 <label for="fp_scoreLimit" class="block mb-1 text-[#ccc] text-sm">Points to Win:</label>
                 <input type="number" id="fp_scoreLimit" value="3" min="1" max="21" class="w-full p-2.5 rounded border border-[#444] bg-[#333] text-white box-border text-base">
             </div>
+            <div class="form-group mb-3 text-left flex items-center">
+                <input type="checkbox" id="fp_enablePowerUp" class="mr-2">
+                <label for="fp_enablePowerUp" class="text-[#ccc] text-sm">Enable Power-Up</label>
+            </div>
             <button type="submit" id="startFourPlayerMatchBtn" class="action-button full-width inline-block my-[10px] mx-[5px] py-3 px-3 bg-[#4CAF50] text-white border-none rounded cursor-pointer text-base text-center box-border w-[calc(100%-10px)]">Start 2v2 Match</button>
             <button type="button" id="fp_backToMainBtn" class="action-button secondary full-width inline-block my-[10px] mx-[5px] py-3 px-3 bg-[#007bff] text-white border-none rounded cursor-pointer text-base text-center box-border w-[calc(100%-10px)] mt-2.5">Back to Main Menu</button>
         </form>
@@ -189,6 +200,10 @@
             <div class="form-group mb-3 text-left">
                 <label for="t_scoreLimit" class="block mb-1 text-[#ccc] text-sm">Points to Win (per match):</label>
                 <input type="number" id="t_scoreLimit" value="3" min="1" max="21" class="w-full p-2.5 rounded border border-[#444] bg-[#333] text-white box-border text-base">
+            </div>
+            <div class="form-group mb-3 text-left flex items-center">
+                <input type="checkbox" id="t_enablePowerUp" class="mr-2">
+                <label for="t_enablePowerUp" class="text-[#ccc] text-sm">Enable Power-Up</label>
             </div>
             <button type="submit" id="startTournamentBtn" class="action-button full-width inline-block my-[10px] mx-[5px] py-3 px-3 bg-[#4CAF50] text-white border-none rounded cursor-pointer text-base text-center box-border w-[calc(100%-10px)]">Begin Tournament</button>
             <button type="button" id="t_backToMainBtn" class="action-button secondary full-width inline-block my-[10px] mx-[5px] py-3 px-3 bg-[#007bff] text-white border-none rounded cursor-pointer text-base text-center box-border w-[calc(100%-10px)] mt-2.5">Back to Main Menu</button>
