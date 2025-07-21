@@ -2,6 +2,7 @@
 import { Paddle } from './Paddle';
 import { Ball } from './Ball';
 import { PowerUp } from './PowerUp'; // Import the new PowerUp class
+import { SmallPowerUp } from './SmallPowerUp'; // Import the new SmallPowerUp class
 import { PlayerConfig, MatchSettings, FourPlayerMatchSettings } from './interfaces';
 
 /**
@@ -65,6 +66,7 @@ export class Game {
 
     // --- Power-up specific properties ---
     private powerUp: PowerUp | null = null; // The power-up instance.
+    private smallpowerUp: SmallPowerUp | null = null; // The power-up instance.
     private powerUpActiveInGame: boolean = false; // Flag to enable/disable power-up feature per game.
 
     /**
@@ -204,6 +206,7 @@ export class Game {
         // Initialize power-up if enabled for this game
         if (this.powerUpActiveInGame) {
             this.initializePowerUp();
+            this.initializeSmallPowerUp();
         } else {
             this.powerUp = null; // Ensure no power-up if the feature is disabled
         }
@@ -267,6 +270,7 @@ export class Game {
         // Initialize power-up if enabled for this game
         if (this.powerUpActiveInGame) {
             this.initializePowerUp();
+            this.initializeSmallPowerUp();
         } else {
             this.powerUp = null; // Ensure no power-up if the feature is disabled
         }
@@ -290,6 +294,25 @@ export class Game {
         this.powerUp = new PowerUp(randomX, randomY, this.BALL_RADIUS * 3, 'red');
         console.log("Power Up initialized.");
         console.log(`Power up x: ${randomX}, Power up y:${randomY}`);
+    }
+    /**
+     * Initializes the position of the power-up randomly within the court.
+     * This is called once per game or per point if power-ups are enabled.
+     */
+    private initializeSmallPowerUp(): void {
+        const minX = this.PADDLE_WIDTH * 2; // Avoid placing too close to paddles
+        const maxX = this.canvasElement.width - (this.PADDLE_WIDTH * 2);
+        const minY = this.BALL_RADIUS * 2;
+        const maxY = this.canvasElement.height - (this.BALL_RADIUS * 2);
+
+        // Calculate random X and Y positions within the playable area
+        const randomX = minX + Math.random() * (maxX - minX);
+        const randomY = minY + Math.random() * (maxY - minY);
+
+        // CORRECTED LINE: Assign to this.smallpowerUp
+        this.smallpowerUp = new SmallPowerUp(randomX, randomY, this.BALL_RADIUS * 3, 'green');
+        console.log("Small Power Up initialized."); // Changed console log for clarity
+        console.log(`Small Power up x: ${randomX}, Small Power up y:${randomY}`); // Changed console log for clarity
     }
 
     /**
@@ -570,6 +593,19 @@ export class Game {
                 // so it will no longer be drawn or interact after being hit for this point.
             }
         }
+
+        // --- SmallPower-up Collision Check ---
+        // Only check for power-up collision if the feature is enabled for the current game
+        // and if a power-up object exists and is still active.
+        if (this.powerUpActiveInGame && this.smallpowerUp && this.smallpowerUp.isActive) {
+            if (this.smallpowerUp.checkCollision(this.ball)) {
+                // Apply power-up effects to the ball
+                this.ball.shrinkRadius();
+                this.ball.augmentSpeed(0.50); // Increase speed by 50%
+                // The powerUp.isActive flag is set to false inside PowerUp.checkCollision()
+                // so it will no longer be drawn or interact after being hit for this point.
+            }
+        }
     }
 
     /**
@@ -613,6 +649,7 @@ export class Game {
             this.resetPaddlesToInitialPositions(); // Reset paddles to their initial positions.
             // Re-initialize a new power-up for the new point if enabled
             if (this.powerUpActiveInGame) this.initializePowerUp();
+            if (this.powerUpActiveInGame) this.initializeSmallPowerUp();
             this.checkWinCondition(); // Check if a player has reached the score limit.
         } 
         // If ball goes past the right wall (into Player 2's goal).
@@ -624,6 +661,7 @@ export class Game {
             this.resetPaddlesToInitialPositions(); // Reset paddles to their initial positions.
             // Re-initialize a new power-up for the new point if enabled
             if (this.powerUpActiveInGame) this.initializePowerUp();
+            if (this.powerUpActiveInGame) this.initializeSmallPowerUp();
             this.checkWinCondition(); // Check win condition.
         }
     }
@@ -681,6 +719,7 @@ export class Game {
             this.resetPaddlesToInitialPositions(); // Reset paddles to their initial positions.
             // Re-initialize a new power-up for the new point if enabled
             if (this.powerUpActiveInGame) this.initializePowerUp();
+            if (this.powerUpActiveInGame) this.initializeSmallPowerUp();
             this.checkWinCondition(); // Check if a team has reached the score limit.
         } 
         // If ball goes past the right wall (into Team 2's goal).
@@ -692,6 +731,7 @@ export class Game {
             this.resetPaddlesToInitialPositions(); // Reset paddles to their initial positions.
             // Re-initialize a new power-up for the new point if enabled
             if (this.powerUpActiveInGame) this.initializePowerUp();
+            if (this.powerUpActiveInGame) this.initializeSmallPowerUp();
             this.checkWinCondition(); // Check win condition.
         }
     }
@@ -842,6 +882,10 @@ export class Game {
             // Draw PowerUp if it's active and enabled for this game
             if (this.powerUpActiveInGame && this.powerUp && this.powerUp.isActive) {
                 this.powerUp.draw(this.ctx);
+            }
+            // Draw smallpowerUp if it's active and enabled for this game
+            if (this.powerUpActiveInGame && this.smallpowerUp && this.smallpowerUp.isActive) {
+                this.smallpowerUp.draw(this.ctx);
             }
         }
     }

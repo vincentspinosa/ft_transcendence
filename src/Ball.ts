@@ -93,6 +93,13 @@ export class Ball {
     }
 
     /**
+     * Doubles the ball's radius.
+     */
+    public shrinkRadius(): void {
+        this.radius = this.originalRadius / 2;
+    }
+
+    /**
      * Increases the ball's current speed (both X and Y components) by a given percentage.
      * @param percentage The percentage to increase speed by (e.g., 0.50 for 50%).
      */
