@@ -588,7 +588,7 @@ export class Game {
             if (this.powerUp.checkCollision(this.ball)) {
                 // Apply power-up effects to the ball
                 this.ball.doubleRadius();
-                this.ball.augmentSpeed(0.50); // Increase speed by 50%
+                this.ball.augmentSpeed(0.20); // Increase speed by 20%
                 // The powerUp.isActive flag is set to false inside PowerUp.checkCollision()
                 // so it will no longer be drawn or interact after being hit for this point.
             }
@@ -601,7 +601,7 @@ export class Game {
             if (this.smallpowerUp.checkCollision(this.ball)) {
                 // Apply power-up effects to the ball
                 this.ball.shrinkRadius();
-                this.ball.augmentSpeed(0.50); // Increase speed by 50%
+                this.ball.augmentSpeed(0.20); // Increase speed by 20%
                 // The powerUp.isActive flag is set to false inside PowerUp.checkCollision()
                 // so it will no longer be drawn or interact after being hit for this point.
             }
