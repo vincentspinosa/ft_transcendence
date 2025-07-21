@@ -19,7 +19,7 @@ export class Paddle {
      * @param width The width of the paddle.
      * @param height The height of the paddle.
      * @param initialColor The initial color of the paddle.
-     * @param speed The movement speed of the paddle. Defaults to 14 if not provided.
+     * @param speed The movement speed of the paddle. Defaults to 20 if not provided.
      * @param name The name of the paddle. Defaults to "Player" if not provided.
      */
     constructor(
@@ -28,7 +28,7 @@ export class Paddle {
         width: number,
         height: number,
         initialColor: string,
-        speed: number = 14,
+        speed: number = 20,
         name: string = "Player"
     ) {
         // Initialize the paddle's properties with the provided arguments.

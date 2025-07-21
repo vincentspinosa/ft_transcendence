@@ -1,5 +1,3 @@
-// src/Tournament.ts
-
 // Import necessary interfaces and classes for player configurations, tournament setup, and the core game logic.
 import { PlayerConfig, TournamentSetupInfo, MatchSettings } from './interfaces';
 import { Game } from './Game';
@@ -16,7 +14,7 @@ export class Tournament {
 
     private currentMatchIndex: number = 0; // Tracks which match is currently being played (0 for Semi-Final 1, 1 for Semi-Final 2, 2 for The Final).
     private semiFinalWinners: (PlayerConfig | null)[] = [null, null]; // Stores the PlayerConfig of the winners of Semi-Final 1 and Semi-Final 2.
-    private tournamentWinner: PlayerConfig | null = null; // Stores the PlayerConfig of the ultimate tournament champion.
+    private tournamentWinner: PlayerConfig | null = null; // Stores the PlayerConfig of the tournament champion.
 
     // HTML Elements for updating the User Interface.
     private pongCanvasElement: HTMLCanvasElement; // The canvas element where Pong matches are rendered.
@@ -105,10 +103,10 @@ export class Tournament {
      * Initiates the tournament process. Resets tournament state and sets up the first match.
      */
     public startTournament(): void {
-        this.currentMatchIndex = 0; // Reset match index to start from the first semi-final.
-        this.semiFinalWinners = [null, null]; // Clear previous semi-final winners.
-        this.tournamentWinner = null; // Clear any previous tournament winner.
-        this.setupNextMatch(); // Begin by setting up the first match.
+        this.currentMatchIndex = 0;
+        this.semiFinalWinners = [null, null];
+        this.tournamentWinner = null;
+        this.setupNextMatch();
     }
 
     /**
@@ -183,7 +181,7 @@ export class Tournament {
         }
 
         if (this.matchAnnouncementScreenDiv) {
-            this.matchAnnouncementScreenDiv.style.display = 'flex'; // Display the announcement screen (typically centered).
+            this.matchAnnouncementScreenDiv.style.display = 'flex'; // Display the announcement screen.
         } else { 
             console.log("Tournament.setupNextMatch: matchAnnouncementScreenDiv is null, cannot show announcement.");
         }
@@ -196,13 +194,13 @@ export class Tournament {
     private startAnnouncedMatch(): void {
         // Prevent starting if no players are set for the current match.
         if (!this.currentMatchPlayers) {
-            console.log("Cannot start match: currentMatchPlayers not set (Go button clicked too early or error).");
+            console.log("Cannot start match: currentMatchPlayers not set.");
             if (this.matchAnnouncementScreenDiv) this.matchAnnouncementScreenDiv.style.display = 'none';
             return;
         }
 
         // Log which match is starting for debugging.
-        console.log("Tournament.startAnnouncedMatch: Starting match for", this.currentMatchPlayers.playerA.name, "vs", this.currentMatchPlayers.playerB.name);
+        console.log("Tournament.startAnnouncedMatch: Starting match for ", this.currentMatchPlayers.playerA.name, " vs ", this.currentMatchPlayers.playerB.name);
 
         // Hide the announcement screen and show the Pong canvas.
         if (this.matchAnnouncementScreenDiv) this.matchAnnouncementScreenDiv.style.display = 'none';
@@ -263,7 +261,7 @@ export class Tournament {
         console.log("Tournament.proceedToNextStage: Advancing from match index", this.currentMatchIndex);
         this.currentMatchIndex++; // Increment the match index to move to the next stage.
 
-        if (this.currentMatchIndex < 2) { // If current index is 0 or 1, the next match is a semi-final (or the other semi-final).
+        if (this.currentMatchIndex === 1) { // If current index is 1, the next match is the second semi-final.
             this.setupNextMatch(); // Set up the next semi-final.
         } else if (this.currentMatchIndex === 2) { // If current index is 2, the next stage is the final.
             // Ensure both semi-final winners are determined before starting the final.

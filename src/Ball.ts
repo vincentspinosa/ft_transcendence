@@ -102,18 +102,15 @@ export class Ball {
             this.initialSpeedYComponent * this.initialSpeedYComponent
         );
 
-        // Generate a random angle for the ball's new direction.
-        // The angle is chosen between -45 degrees (-Math.PI/4 radians) and 45 degrees (Math.PI/4 radians)
-        // relative to the horizontal axis. This prevents the ball from moving almost perfectly vertically,
-        // which can lead to dull gameplay in some contexts (like Pong).
-        const angle = Math.random() * Math.PI / 2 - Math.PI / 4;
+        // Generate a fixed angle for the ball's new direction: either -45 degrees or 45 degrees.
+        // This ensures the ball always starts with a distinct diagonal trajectory.
+        const angle = Math.random() > 0.5 ? Math.PI / 4 : -Math.PI / 4; // Either 45 degrees or -45 degrees
 
         // Set the new horizontal speed (speedX).
         // A random check (Math.random() > 0.5) determines if the ball moves left or right initially.
-        // The speed is then calculated using the initial speed magnitude and the cosine of the random angle.
+        // The speed is then calculated using the initial speed magnitude and the cosine of the chosen angle.
         this.speedX = (Math.random() > 0.5 ? 1 : -1) * initialSpeedMagnitude * Math.cos(angle);
         // Set the new vertical speed (speedY).
-        // The speed is calculated using the initial speed magnitude and the sine of the random angle.
-        this.speedY = initialSpeedMagnitude * Math.sin(angle);
+        this.speedY = 0;
     }
 }

@@ -1,5 +1,3 @@
-// src/Game.ts
-
 // Import necessary classes for Paddle and Ball, and interfaces for game configurations.
 import { Paddle } from './Paddle';
 import { Ball } from './Ball';
@@ -21,10 +19,10 @@ export class Game {
     private scoreLimit: number = 0; // The score required to win the current match.
 
     // For 2-player modes (1v1 single match, 1v1 tournament match)
-    public player1Paddle!: Paddle; // Represents Player A's paddle (left side). `!` asserts initialization.
-    public player2Paddle!: Paddle; // Represents Player B's paddle (right side). `!` asserts initialization.
-    private playerAConfig!: PlayerConfig; // Configuration for Player A (left side). `!` asserts initialization.
-    private playerBConfig!: PlayerConfig; // Configuration for Player B (right side). `!` asserts initialization.
+    public player1Paddle!: Paddle; // Represents Player A's paddle (left side).
+    public player2Paddle!: Paddle; // Represents Player B's paddle (right side).
+    private playerAConfig!: PlayerConfig; // Configuration for Player A (left side).
+    private playerBConfig!: PlayerConfig; // Configuration for Player B (right side).
     private lastSingleMatchSettings: MatchSettings | null = null; // Stores settings for the last 1v1 match played, for "Play Again".
 
     // For 4-player mode (2v2 single match)
@@ -32,11 +30,10 @@ export class Game {
     private team2Paddles: Paddle[] = []; // Array holding paddles for Team 2 (right side: [TopRight, BottomRight]).
     private team1Score: number = 0; // Current score for Team 1.
     private team2Score: number = 0; // Current score for Team 2.
-    private activePlayers: PlayerConfig[] = []; // Stores all active player configurations for the current game mode.
-    private team1PlayerAConfig!: PlayerConfig; // Config for Team 1, Player A. `!` asserts initialization.
-    private team1PlayerBConfig!: PlayerConfig; // Config for Team 1, Player B. `!` asserts initialization.
-    private team2PlayerAConfig!: PlayerConfig; // Config for Team 2, Player A. `!` asserts initialization.
-    private team2PlayerBConfig!: PlayerConfig; // Config for Team 2, Player B. `!` asserts initialization.
+    private team1PlayerAConfig!: PlayerConfig; // Config for Team 1, Player A.
+    private team1PlayerBConfig!: PlayerConfig; // Config for Team 1, Player B.
+    private team2PlayerAConfig!: PlayerConfig; // Config for Team 2, Player A.
+    private team2PlayerBConfig!: PlayerConfig; // Config for Team 2, Player B.
     private lastFourPlayerMatchSettings: FourPlayerMatchSettings | null = null; // Stores settings for the last 2v2 match, for "Play Again".
 
     // --- Game Constants ---
@@ -46,7 +43,7 @@ export class Game {
     private readonly BALL_RADIUS = 8; // Radius of the ball in pixels.
     private readonly PADDLE_SPEED = 20; // Base movement speed for paddles (also used as AI's base speed).
 
-    private keysPressed: { [key: string]: boolean } = {}; // Object to track currently pressed keyboard keys (only for human input).
+    private keysPressed: { [key: string]: boolean } = {}; // Object to track currently pressed keyboard keys.
     private gameOver: boolean = false; // Flag to indicate if the current match has ended.
     private winnerMessage: string = ""; // Message to display when the match ends (e.g., "Player X wins!").
 
@@ -64,7 +61,6 @@ export class Game {
     // --- AI specific properties ---
     private lastAIUpdateTime: number = 0; // Timestamp of the last AI decision update.
     private readonly AI_UPDATE_INTERVAL_MS = 1000; // MANDATORY: AI updates its target only once per second to make it less perfect.
-    private readonly AI_PERFECTION_OFFSET = 15; // Offset for AI aiming imperfection (higher = easier, lower = harder/more perfect).
 
     /**
      * Constructs a new Game instance.
@@ -171,7 +167,6 @@ export class Game {
         // Store player configurations and score limit.
         this.playerAConfig = { ...settings.playerA };
         this.playerBConfig = { ...settings.playerB };
-        this.activePlayers = [this.playerAConfig, this.playerBConfig]; // Track active players for AI/input.
         this.scoreLimit = settings.scoreLimit;
 
         // Save settings for "Play Again" functionality (only for non-tournament 1v1).
@@ -216,7 +211,6 @@ export class Game {
         this.team1PlayerBConfig = { ...settings.team1PlayerB };
         this.team2PlayerAConfig = { ...settings.team2PlayerA };
         this.team2PlayerBConfig = { ...settings.team2PlayerB };
-        this.activePlayers = [this.team1PlayerAConfig, this.team1PlayerBConfig, this.team2PlayerAConfig, this.team2PlayerBConfig];
         this.scoreLimit = settings.scoreLimit;
         this.lastFourPlayerMatchSettings = { ...settings }; // Save settings for "Play Again".
         this.lastSingleMatchSettings = null; // Clear 1v1 settings.
@@ -242,7 +236,7 @@ export class Game {
         ];
         
         // Explicitly clear 1v1 paddles in case they were initialized from a previous game mode.
-        this.player1Paddle = null as any;
+        this.player1Paddle = null as any; // as any -> no type checking when compiling
         this.player2Paddle = null as any;
 
         // Reset team scores.
@@ -321,8 +315,6 @@ export class Game {
 
     /**
      * Simulates the ball's trajectory to predict its Y position when it reaches a specific X coordinate.
-     * This is a simplified prediction, primarily for AI, assuming reflections off top/bottom walls.
-     * It does NOT account for reflections off opponent paddles or complex game states.
      * @param startX Initial X position of the ball.
      * @param startY Initial Y position of the ball.
      * @param initialSpeedX Ball's horizontal speed at the start of prediction.
@@ -357,9 +349,6 @@ export class Game {
             return currentY;
         }
 
-        // Determine if the ball is moving towards or away from the target X.
-        const movingTowardsTarget = (speedX > 0 && targetX > currentX) || (speedX < 0 && targetX < currentX);
-
         // Loop to simulate ball movement until `targetX` is reached or max iterations.
         while (true && iterations < MAX_ITERATIONS) {
             iterations++;
@@ -384,7 +373,7 @@ export class Game {
             currentY += speedY * timeToNextEvent;
 
             // Check if `targetX` was reached within this simulation step.
-            const epsilon = 0.5; // Small tolerance for floating-point comparisons.
+            const epsilon = 0.2; // Small tolerance for floating-point comparisons.
             if ( (speedX > 0 && currentX >= targetX - epsilon && currentX <= targetX + epsilon) || 
                  (speedX < 0 && currentX <= targetX + epsilon && currentX >= targetX - epsilon) ) {
                 return currentY; // `targetX` reached, return predicted Y.
@@ -397,10 +386,9 @@ export class Game {
             } else if (currentY + ballRadius >= canvasHeight - epsilon && speedY > 0) { // Hit bottom wall.
                 currentY = canvasHeight - ballRadius; // Snap to bottom edge.
                 speedY *= -1; // Reverse vertical speed.
-            } else if (currentX - ballRadius <= 0 + epsilon && speedX < 0) { // Hit left wall (implies a score or reflection).
+            } else if (currentX - ballRadius <= 0 + epsilon && speedX < 0) { // Hit left wall.
                 // For prediction, if the ball goes past the goal line, we simulate a bounce
                 // off an invisible wall to continue trajectory across the court.
-                // A true minimax AI would handle scoring or opponent interaction here.
                  speedX *= -1; // Assume reflection.
                  currentX = ballRadius; // Snap to edge.
             } else if (currentX + ballRadius >= canvasWidth - epsilon && speedX > 0) { // Hit right wall.
@@ -424,7 +412,7 @@ export class Game {
     private updateAI(): void {
         if (this.gameOver || !this.ball) return; // Do nothing if game is over or ball is not initialized.
 
-        const currentTime = performance.now(); // Get current time for AI update interval.
+        const currentTime = performance.now(); // Get current time for AI update interval, in ms.
         
         let paddlesToControl: Paddle[] = []; // Array to store all AI paddles.
         let isLeftPlayer: boolean[] = []; // Array to store if each AI paddle is on the left side.
@@ -563,12 +551,14 @@ export class Game {
         if (this.ball.x - this.ball.radius < 0) {
             this.player2Paddle.score++; // Player 2 scores.
             this.ball.reset(this.canvasElement.width, this.canvasElement.height); // Reset ball to center.
+            this.resetPaddlesToInitialPositions(); // Reset paddles to their initial positions.
             this.checkWinCondition(); // Check if a player has reached the score limit.
         } 
         // If ball goes past the right wall (into Player 2's goal).
         else if (this.ball.x + this.ball.radius > this.canvasElement.width) {
             this.player1Paddle.score++; // Player 1 scores.
             this.ball.reset(this.canvasElement.width, this.canvasElement.height); // Reset ball to center.
+            this.resetPaddlesToInitialPositions(); // Reset paddles to their initial positions.
             this.checkWinCondition(); // Check win condition.
         }
     }
@@ -621,12 +611,14 @@ export class Game {
         if (this.ball.x - this.ball.radius < 0) {
             this.team2Score++; // Team 2 scores.
             this.ball.reset(this.canvasElement.width, this.canvasElement.height); // Reset ball.
+            this.resetPaddlesToInitialPositions(); // Reset paddles to their initial positions.
             this.checkWinCondition(); // Check if a team has reached the score limit.
         } 
         // If ball goes past the right wall (into Team 2's goal).
         else if (this.ball.x + this.ball.radius > this.canvasElement.width) {
             this.team1Score++; // Team 1 scores.
             this.ball.reset(this.canvasElement.width, this.canvasElement.height); // Reset ball.
+            this.resetPaddlesToInitialPositions(); // Reset paddles to their initial positions.
             this.checkWinCondition(); // Check win condition.
         }
     }
@@ -705,7 +697,7 @@ export class Game {
 
     /**
      * Updates the game state for a single frame.
-     * Includes handling player input, AI updates, ball movement, and collision detection.
+     * Includes handling player input, AI updates, ball movement, and collision detection (which includes goal scoring).
      */
     private update(): void {
         if (this.gameOver) return; // Do nothing if game is over.
@@ -776,38 +768,51 @@ export class Game {
         }
     }
 
+    /**
+     * Resets the game internals, including scores, paddle positions, and ball for a new game or after a score.
+     */
     private resetGameInternals(): void {
         this.gameOver = false; // Reset game over flag.
         this.winnerMessage = ""; // Clear winner message.
         this.keysPressed = {}; // Clear any currently pressed keys.
         this.lastAIUpdateTime = 0; // Reset AI timer to allow immediate AI update in next loop.
 
+        // Reset scores
         if (this.gameMode === '4player') {
-            // Reset scores and paddle positions for 4-player mode.
             this.team1Score = 0;
             this.team2Score = 0;
+        } else {
+            if (this.player1Paddle) this.player1Paddle.score = 0;
+            if (this.player2Paddle) this.player2Paddle.score = 0;
+        }
+        
+        // Reset paddle positions to their initial center positions
+        this.resetPaddlesToInitialPositions();
+
+        // Reset the ball's position and speed.
+        if (this.ball) this.ball.reset(this.canvasElement.width, this.canvasElement.height);
+    }
+
+    /**
+     * Resets the paddles to their initial, centered Y-positions for the current game mode.
+     */
+    private resetPaddlesToInitialPositions(): void {
+        if (!this.canvasElement) return;
+
+        if (this.gameMode === '4player') {
             const paddleHeight = this.PADDLE_HEIGHT_FOUR_PLAYER;
             const topY = this.canvasElement.height / 4 - paddleHeight / 2;
             const bottomY = (3 * this.canvasElement.height) / 4 - paddleHeight / 2;
 
-            // Reset each paddle's Y position and score.
-            if (this.team1Paddles[0]) { this.team1Paddles[0].y = topY; this.team1Paddles[0].score = 0; }
-            if (this.team1Paddles[1]) { this.team1Paddles[1].y = bottomY; this.team1Paddles[1].score = 0; }
-            if (this.team2Paddles[0]) { this.team2Paddles[0].y = topY; this.team2Paddles[0].score = 0; }
-            if (this.team2Paddles[1]) { this.team2Paddles[1].y = bottomY; this.team2Paddles[1].score = 0; }
-        } else {
-            // Reset scores and paddle positions for 2-player/tournament mode.
-            if (this.player1Paddle) {
-                this.player1Paddle.score = 0;
-                this.player1Paddle.y = this.canvasElement.height / 2 - this.PADDLE_HEIGHT_NORMAL / 2;
-            }
-            if (this.player2Paddle) {
-                this.player2Paddle.score = 0;
-                this.player2Paddle.y = this.canvasElement.height / 2 - this.PADDLE_HEIGHT_NORMAL / 2;
-            }
+            if (this.team1Paddles[0]) { this.team1Paddles[0].y = topY; }
+            if (this.team1Paddles[1]) { this.team1Paddles[1].y = bottomY; }
+            if (this.team2Paddles[0]) { this.team2Paddles[0].y = topY; }
+            if (this.team2Paddles[1]) { this.team2Paddles[1].y = bottomY; }
+        } else { // 2-player or tournament mode
+            const initialY = this.canvasElement.height / 2 - this.PADDLE_HEIGHT_NORMAL / 2;
+            if (this.player1Paddle) { this.player1Paddle.y = initialY; }
+            if (this.player2Paddle) { this.player2Paddle.y = initialY; }
         }
-        // Reset the ball's position and speed.
-        if (this.ball) this.ball.reset(this.canvasElement.width, this.canvasElement.height);
     }
 
     /**
