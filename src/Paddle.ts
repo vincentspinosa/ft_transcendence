@@ -28,7 +28,7 @@ export class Paddle {
         width: number,
         height: number,
         initialColor: string,
-        speed: number = 20,
+        speed: number = 13,
         name: string = "Player"
     ) {
         // Initialize the paddle's properties with the provided arguments.
@@ -37,6 +37,9 @@ export class Paddle {
         this.width = width;
         this.height = height;
         this.color = initialColor;
+        if (navigator.userAgent.toLowerCase().includes("chrome")) {
+            this.speed = 20;
+        }
         this.speed = speed;
         this.score = 0; // Initialize score to 0 for a new paddle.
         this.name = name;

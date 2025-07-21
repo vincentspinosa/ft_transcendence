@@ -43,7 +43,7 @@ export class Game {
     private readonly PADDLE_HEIGHT_NORMAL = 100; // Standard height for paddles in 1v1 mode.
     private readonly PADDLE_HEIGHT_FOUR_PLAYER = 75; // Shorter height for paddles in 2v2 mode.
     private readonly BALL_RADIUS = 8; // Radius of the ball in pixels.
-    private readonly PADDLE_SPEED = 20; // Base movement speed for paddles (also used as AI's base speed).
+    private readonly PADDLE_SPEED = 13; // Base movement speed for paddles (also used as AI's base speed).
 
     private keysPressed: { [key: string]: boolean } = {}; // Object to track currently pressed keyboard keys.
     private gameOver: boolean = false; // Flag to indicate if the current match has ended.
