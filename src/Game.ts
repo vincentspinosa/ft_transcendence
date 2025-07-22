@@ -2,7 +2,6 @@
 import { Paddle } from './Paddle';
 import { Ball } from './Ball';
 import { PowerUp } from './PowerUp'; // Import the new PowerUp class
-import { SmallPowerUp } from './SmallPowerUp'; // Import the new SmallPowerUp class
 import { PlayerConfig, MatchSettings, FourPlayerMatchSettings } from './interfaces';
 
 /**
@@ -66,7 +65,7 @@ export class Game {
 
     // --- Power-up specific properties ---
     private powerUp: PowerUp | null = null; // The power-up instance.
-    private smallpowerUp: SmallPowerUp | null = null; // The power-up instance.
+    private smallpowerUp: PowerUp | null = null; // The smallPower-up instance.
     private powerUpActiveInGame: boolean = false; // Flag to enable/disable power-up feature per game.
 
     /**
@@ -310,7 +309,7 @@ export class Game {
         const randomY = minY + Math.random() * (maxY - minY);
 
         // CORRECTED LINE: Assign to this.smallpowerUp
-        this.smallpowerUp = new SmallPowerUp(randomX, randomY, this.BALL_RADIUS * 3, 'green');
+        this.smallpowerUp = new PowerUp(randomX, randomY, this.BALL_RADIUS * 3, 'green');
         console.log("Small Power Up initialized."); // Changed console log for clarity
         console.log(`Small Power up x: ${randomX}, Small Power up y:${randomY}`); // Changed console log for clarity
     }
@@ -582,28 +581,18 @@ export class Game {
         }
 
         // --- Power-up Collision Check ---
-        // Only check for power-up collision if the feature is enabled for the current game
-        // and if a power-up object exists and is still active.
         if (this.powerUpActiveInGame && this.powerUp && this.powerUp.isActive) {
             if (this.powerUp.checkCollision(this.ball)) {
-                // Apply power-up effects to the ball
                 this.ball.doubleRadius();
-                this.ball.augmentSpeed(0.20); // Increase speed by 20%
-                // The powerUp.isActive flag is set to false inside PowerUp.checkCollision()
-                // so it will no longer be drawn or interact after being hit for this point.
+                this.ball.augmentSpeed(0.20);
             }
         }
 
         // --- SmallPower-up Collision Check ---
-        // Only check for power-up collision if the feature is enabled for the current game
-        // and if a power-up object exists and is still active.
         if (this.powerUpActiveInGame && this.smallpowerUp && this.smallpowerUp.isActive) {
             if (this.smallpowerUp.checkCollision(this.ball)) {
-                // Apply power-up effects to the ball
                 this.ball.shrinkRadius();
-                this.ball.augmentSpeed(0.20); // Increase speed by 20%
-                // The powerUp.isActive flag is set to false inside PowerUp.checkCollision()
-                // so it will no longer be drawn or interact after being hit for this point.
+                this.ball.augmentSpeed(0.20);
             }
         }
     }

@@ -8,6 +8,7 @@
 </head>
 <body class="font-sans m-0 flex flex-col justify-center items-center min-h-screen bg-[#111] text-white pt-5 pb-5 box-border relative">
     
+    <!-- MAIN MENU -->
     <div id="initialChoiceScreen" class="screen hidden box-border z-10 w-[500px] bg-[#222] p-[30px] rounded-lg shadow-lg text-center">
         <button id="singleMatchModeBtn" class="action-button inline-block my-[10px] mx-[5px] py-3 px-3 bg-[#4CAF50] text-white border-none rounded cursor-pointer text-base text-center box-border w-[250px]">Single Match (1v1)</button>
         <button id="fourPlayerMatchModeBtn" class="action-button inline-block my-[10px] mx-[5px] py-3 px-3 bg-[#4CAF50] text-white border-none rounded cursor-pointer text-base text-center box-border w-[250px]">Single Match (2v2)</button>
@@ -16,6 +17,7 @@
     </div>
 
 
+    <!-- RULES -->
     <div id="rulesScreen" class="screen hidden box-border z-10 w-[550px] bg-[#222] p-[30px] rounded-lg shadow-lg text-left">
         <h2 class="mt-0 mb-5 text-[#eee]">Game Rules & Tournament Format</h2>
         <div class="max-h-[65vh] overflow-y-auto pr-4 pl-1">
@@ -59,13 +61,14 @@
             </ol>
 
             <h3 class="mt-5 mb-2 text-[#00aaff]">Power-Up Feature</h3>
-            <p class="leading-relaxed mb-2.5">When enabled, a **red circular power-up** will appear randomly on the court. If the ball hits it, the ball will **double in size** and permanently **increase its speed by 50%** for the remainder of that match. The power-up appears once per point if enabled, and its location is randomized.</p>
+            <p class="leading-relaxed mb-2.5">When enabled, a red and a green circle will appear randomly on the court. If the ball hits the red one, the ball size will increase to twice of the original one, and increase its speed by 20%. If it hits the green one, its size will shrink to half of the initial one, and its speed will be increased by 20%. The power-ups appear once per point if enabled, and their location is randomized.</p>
 
         </div>
         <button id="rules_backToMainBtn" class="action-button full-width secondary inline-block my-[10px] mx-[5px] py-3 px-3 bg-[#007bff] text-white border-none rounded cursor-pointer text-base text-center box-border w-[calc(100%-10px)] mt-5">Back to Main Menu</button>
     </div>
 
 
+    <!-- 1V1 FORM -->
     <div id="gameSetup" class="screen hidden box-border z-10 w-[500px] bg-[#222] p-[30px] rounded-lg shadow-lg text-center">
         <h2 class="mt-0 mb-5 text-[#eee]">Single Match Setup (1 vs 1)</h2>
         <form id="settingsForm">
@@ -73,7 +76,7 @@
                 <h4 class="mt-0 mb-2.5 text-[#ddd] text-left text-lg">Player 1 (Left - 'Q'/'A')</h4>
                 <div class="form-group mb-3 text-left">
                     <label for="s_player1Name" class="block mb-1 text-[#ccc] text-sm">Name:</label>
-                    <input type="text" id="s_player1Name" value="Player 1" required class="w-full p-2.5 rounded border border-[#444] bg-[#333] text-white box-border text-base">
+                    <input type="text" id="s_player1Name" value="Player 1" maxlength="20" required class="w-full p-2.5 rounded border border-[#444] bg-[#333] text-white box-border text-base">
                 </div>
                 <div class="form-group mb-3 text-left">
                     <label for="s_player1Color" class="block mb-1 text-[#ccc] text-sm">Paddle Color:</label>
@@ -97,7 +100,7 @@
                 </div>
                 <div class="form-group mb-3 text-left">
                     <label for="s_player2Name" class="block mb-1 text-[#ccc] text-sm">Name:</label>
-                    <input type="text" id="s_player2Name" value="Player 2" required class="w-full p-2.5 rounded border border-[#444] bg-[#333] text-white box-border text-base">
+                    <input type="text" id="s_player2Name" value="Player 2" maxlength="20" required class="w-full p-2.5 rounded border border-[#444] bg-[#333] text-white box-border text-base">
                 </div>
                 <div class="form-group mb-3 text-left">
                     <label for="s_player2Color" class="block mb-1 text-[#ccc] text-sm">Paddle Color:</label>
@@ -124,19 +127,20 @@
     </div>
 
 
+    <!-- 2V2 FORM -->
     <div id="fourPlayerMatchSetupScreen" class="screen hidden box-border z-10 w-[500px] bg-[#222] p-[30px] rounded-lg shadow-lg text-center">
         <h2 class="mt-0 mb-5 text-[#eee]">4-Player Match Setup (2 vs 2)</h2>
         <form id="fourPlayerSettingsForm">
             <h3 class="text-[#ccc] text-left mb-2.5">Team 1 (Left Side)</h3>
             <div class="player-setup-block border border-[#444] p-4 mb-4 rounded bg-[#2a2a2a]">
                 <h4 class="mt-0 mb-2.5 text-[#ddd] text-left text-lg">Player 1 (Top Left) <span class="control-hint text-xs text-[#aaa] block mt-0.5">'Q' (up) / 'A' (down)</span></h4>
-                <div class="form-group mb-3 text-left"><label for="fp_p1Name" class="block mb-1 text-[#ccc] text-sm">Name:</label><input type="text" id="fp_p1Name" value="Player 1" class="w-full p-2.5 rounded border border-[#444] bg-[#333] text-white box-border text-base"></div>
+                <div class="form-group mb-3 text-left"><label for="fp_p1Name" class="block mb-1 text-[#ccc] text-sm">Name:</label><input type="text" id="fp_p1Name" value="Player 1" maxlength="20" class="w-full p-2.5 rounded border border-[#444] bg-[#333] text-white box-border text-base"></div>
                 <div class="form-group mb-3 text-left"><label for="fp_p1Color" class="block mb-1 text-[#ccc] text-sm">Color:</label><select id="fp_p1Color" class="w-full p-2.5 rounded border border-[#444] bg-[#333] text-white box-border text-base"><option value="white" selected>White</option><option value="lightblue">Light Blue</option><option value="red">Red</option><option value="lightgreen">Green</option></select></div>
                 <div class="form-group mb-3 text-left"><label for="fp_p1Type" class="block mb-1 text-[#ccc] text-sm">Type:</label><select id="fp_p1Type" class="w-full p-2.5 rounded border border-[#444] bg-[#333] text-white box-border text-base"><option value="human" selected>Human</option><option value="ai">AI</option></select></div>
             </div>
             <div class="player-setup-block border border-[#444] p-4 mb-4 rounded bg-[#2a2a2a]">
                 <h4 class="mt-0 mb-2.5 text-[#ddd] text-left text-lg">Player 2 (Bottom Left) <span class="control-hint text-xs text-[#aaa] block mt-0.5">'W' (up) / 'S' (down)</span></h4>
-                <div class="form-group mb-3 text-left"><label for="fp_p2Name" class="block mb-1 text-[#ccc] text-sm">Name:</label><input type="text" id="fp_p2Name" value="Player 2" class="w-full p-2.5 rounded border border-[#444] bg-[#333] text-white box-border text-base"></div>
+                <div class="form-group mb-3 text-left"><label for="fp_p2Name" class="block mb-1 text-[#ccc] text-sm">Name:</label><input type="text" id="fp_p2Name" value="Player 2" maxlength="20" class="w-full p-2.5 rounded border border-[#444] bg-[#333] text-white box-border text-base"></div>
                 <div class="form-group mb-3 text-left"><label for="fp_p2Color" class="block mb-1 text-[#ccc] text-sm">Color:</label><select id="fp_p2Color" class="w-full p-2.5 rounded border border-[#444] bg-[#333] text-white box-border text-base"><option value="lightblue" selected>Light Blue</option><option value="white">White</option><option value="red">Red</option><option value="lightgreen">Green</option></select></div>
                 <div class="form-group mb-3 text-left"><label for="fp_p2Type" class="block mb-1 text-[#ccc] text-sm">Type:</label><select id="fp_p2Type" class="w-full p-2.5 rounded border border-[#444] bg-[#333] text-white box-border text-base"><option value="human" selected>Human</option><option value="ai">AI</option></select></div>
             </div>
@@ -144,13 +148,13 @@
             <h3 class="text-[#ccc] text-left mb-2.5">Team 2 (Right Side)</h3>
             <div class="player-setup-block border border-[#444] p-4 mb-4 rounded bg-[#2a2a2a]">
                 <h4 class="mt-0 mb-2.5 text-[#ddd] text-left text-lg">Player 3 (Top Right) <span class="control-hint text-xs text-[#aaa] block mt-0.5">'P' (up) / 'L' (down)</span></h4>
-                <div class="form-group mb-3 text-left"><label for="fp_p3Name" class="block mb-1 text-[#ccc] text-sm">Name:</label><input type="text" id="fp_p3Name" value="Player 3" class="w-full p-2.5 rounded border border-[#444] bg-[#333] text-white box-border text-base"></div>
+                <div class="form-group mb-3 text-left"><label for="fp_p3Name" class="block mb-1 text-[#ccc] text-sm">Name:</label><input type="text" id="fp_p3Name" value="Player 3" maxlength="20" class="w-full p-2.5 rounded border border-[#444] bg-[#333] text-white box-border text-base"></div>
                 <div class="form-group mb-3 text-left"><label for="fp_p3Color" class="block mb-1 text-[#ccc] text-sm">Color:</label><select id="fp_p3Color" class="w-full p-2.5 rounded border border-[#444] bg-[#333] text-white box-border text-base"><option value="red" selected>Red</option><option value="white">White</option><option value="lightblue">Light Blue</option><option value="lightgreen">Green</option></select></div>
                 <div class="form-group mb-3 text-left"><label for="fp_p3Type" class="block mb-1 text-[#ccc] text-sm">Type:</label><select id="fp_p3Type" class="w-full p-2.5 rounded border border-[#444] bg-[#333] text-white box-border text-base"><option value="human" selected>Human</option><option value="ai">AI</option></select></div>
             </div>
             <div class="player-setup-block border border-[#444] p-4 mb-4 rounded bg-[#2a2a2a]">
                 <h4 class="mt-0 mb-2.5 text-[#ddd] text-left text-lg">Player 4 (Bottom Right) <span class="control-hint text-xs text-[#aaa] block mt-0.5">'O' (up) / 'K' (down)</span></h4>
-                <div class="form-group mb-3 text-left"><label for="fp_p4Name" class="block mb-1 text-[#ccc] text-sm">Name:</label><input type="text" id="fp_p4Name" value="Player 4" class="w-full p-2.5 rounded border border-[#444] bg-[#333] text-white box-border text-base"></div>
+                <div class="form-group mb-3 text-left"><label for="fp_p4Name" class="block mb-1 text-[#ccc] text-sm">Name:</label><input type="text" id="fp_p4Name" value="Player 4" maxlength="20" class="w-full p-2.5 rounded border border-[#444] bg-[#333] text-white box-border text-base"></div>
                 <div class="form-group mb-3 text-left"><label for="fp_p4Color" class="block mb-1 text-[#ccc] text-sm">Color:</label><select id="fp_p4Color" class="w-full p-2.5 rounded border border-[#444] bg-[#333] text-white box-border text-base"><option value="lightgreen" selected>Green</option><option value="white">White</option><option value="lightblue">Light Blue</option><option value="red">Red</option></select></div>
                 <div class="form-group mb-3 text-left"><label for="fp_p4Type" class="block mb-1 text-[#ccc] text-sm">Type:</label><select id="fp_p4Type" class="w-full p-2.5 rounded border border-[#444] bg-[#333] text-white box-border text-base"><option value="human" selected>Human</option><option value="ai">AI</option></select></div>
             </div>
@@ -169,31 +173,32 @@
     </div>
 
 
+    <!-- TOURNAMENT FORM -->
     <div id="tournamentSetupScreen" class="screen hidden box-border z-10 w-[500px] bg-[#222] p-[30px] rounded-lg shadow-lg text-center">
         <h2 class="mt-0 mb-5 text-[#eee]">Tournament Setup (4 Players for 1v1 Matches)</h2>
         <form id="tournamentSettingsForm">
              <div class="player-setup-block border border-[#444] p-4 mb-4 rounded bg-[#2a2a2a]">
                 <h4 class="mt-0 mb-2.5 text-[#ddd] text-left text-lg">Player 1 (Semi-Final 1)</h4>
-                <div class="form-group mb-3 text-left"><label for="t_p1Name" class="block mb-1 text-[#ccc] text-sm">Name:</label><input type="text" id="t_p1Name" value="Player 1" class="w-full p-2.5 rounded border border-[#444] bg-[#333] text-white box-border text-base"></div>
+                <div class="form-group mb-3 text-left"><label for="t_p1Name" class="block mb-1 text-[#ccc] text-sm">Name:</label><input type="text" id="t_p1Name" value="Player 1" maxlength="20" class="w-full p-2.5 rounded border border-[#444] bg-[#333] text-white box-border text-base"></div>
                 <div class="form-group mb-3 text-left"><label for="t_p1Color" class="block mb-1 text-[#ccc] text-sm">Color:</label><select id="t_p1Color" class="w-full p-2.5 rounded border border-[#444] bg-[#333] text-white box-border text-base"><option value="white" selected>White</option><option value="lightblue">Light Blue</option><option value="red">Red</option><option value="lightgreen">Green</option></select></div>
                 <div class="form-group mb-3 text-left"><label for="t_p1Type" class="block mb-1 text-[#ccc] text-sm">Type:</label><select id="t_p1Type" class="w-full p-2.5 rounded border border-[#444] bg-[#333] text-white box-border text-base"><option value="human" selected>Human</option><option value="ai">AI</option></select></div>
             </div>
             <div class="player-setup-block border border-[#444] p-4 mb-4 rounded bg-[#2a2a2a]">
                 <h4 class="mt-0 mb-2.5 text-[#ddd] text-left text-lg">Player 2 (Semi-Final 1)</h4>
-                <div class="form-group mb-3 text-left"><label for="t_p2Name" class="block mb-1 text-[#ccc] text-sm">Name:</label><input type="text" id="t_p2Name" value="Player 2" class="w-full p-2.5 rounded border border-[#444] bg-[#333] text-white box-border text-base"></div>
+                <div class="form-group mb-3 text-left"><label for="t_p2Name" class="block mb-1 text-[#ccc] text-sm">Name:</label><input type="text" id="t_p2Name" value="Player 2" maxlength="20" class="w-full p-2.5 rounded border border-[#444] bg-[#333] text-white box-border text-base"></div>
                 <div class="form-group mb-3 text-left"><label for="t_p2Color" class="block mb-1 text-[#ccc] text-sm">Color:</label><select id="t_p2Color" class="w-full p-2.5 rounded border border-[#444] bg-[#333] text-white box-border text-base"><option value="lightblue" selected>Light Blue</option><option value="white">White</option><option value="red">Red</option><option value="lightgreen">Green</option></select></div>
                 <div class="form-group mb-3 text-left"><label for="t_p2Type" class="block mb-1 text-[#ccc] text-sm">Type:</label><select id="t_p2Type" class="w-full p-2.5 rounded border border-[#444] bg-[#333] text-white box-border text-base"><option value="human" selected>Human</option><option value="ai">AI</option></select></div>
             </div>
             <hr class="border-t border-[#333] my-4">
             <div class="player-setup-block border border-[#444] p-4 mb-4 rounded bg-[#2a2a2a]">
                 <h4 class="mt-0 mb-2.5 text-[#ddd] text-left text-lg">Player 3 (Semi-Final 2)</h4>
-                <div class="form-group mb-3 text-left"><label for="t_p3Name" class="block mb-1 text-[#ccc] text-sm">Name:</label><input type="text" id="t_p3Name" value="Player 3" class="w-full p-2.5 rounded border border-[#444] bg-[#333] text-white box-border text-base"></div>
+                <div class="form-group mb-3 text-left"><label for="t_p3Name" class="block mb-1 text-[#ccc] text-sm">Name:</label><input type="text" id="t_p3Name" value="Player 3" maxlength="20" class="w-full p-2.5 rounded border border-[#444] bg-[#333] text-white box-border text-base"></div>
                 <div class="form-group mb-3 text-left"><label for="t_p3Color" class="block mb-1 text-[#ccc] text-sm">Color:</label><select id="t_p3Color" class="w-full p-2.5 rounded border border-[#444] bg-[#333] text-white box-border text-base"><option value="red" selected>Red</option><option value="white">White</option><option value="lightblue">Light Blue</option><option value="lightgreen">Green</option></select></div>
                 <div class="form-group mb-3 text-left"><label for="t_p3Type" class="block mb-1 text-[#ccc] text-sm">Type:</label><select id="t_p3Type" class="w-full p-2.5 rounded border border-[#444] bg-[#333] text-white box-border text-base"><option value="human" selected>Human</option><option value="ai">AI</option></select></div>
             </div>
             <div class="player-setup-block border border-[#444] p-4 mb-4 rounded bg-[#2a2a2a]">
                 <h4 class="mt-0 mb-2.5 text-[#ddd] text-left text-lg">Player 4 (Semi-Final 2)</h4>
-                <div class="form-group mb-3 text-left"><label for="t_p4Name" class="block mb-1 text-[#ccc] text-sm">Name:</label><input type="text" id="t_p4Name" value="Player 4" class="w-full p-2.5 rounded border border-[#444] bg-[#333] text-white box-border text-base"></div>
+                <div class="form-group mb-3 text-left"><label for="t_p4Name" class="block mb-1 text-[#ccc] text-sm">Name:</label><input type="text" id="t_p4Name" value="Player 4" maxlength="20" class="w-full p-2.5 rounded border border-[#444] bg-[#333] text-white box-border text-base"></div>
                 <div class="form-group mb-3 text-left"><label for="t_p4Color" class="block mb-1 text-[#ccc] text-sm">Color:</label><select id="t_p4Color" class="w-full p-2.5 rounded border border-[#444] bg-[#333] text-white box-border text-base"><option value="lightgreen" selected>Green</option><option value="white">White</option><option value="lightblue">Light Blue</option><option value="red">Red</option></select></div>
                 <div class="form-group mb-3 text-left"><label for="t_p4Type" class="block mb-1 text-[#ccc] text-sm">Type:</label><select id="t_p4Type" class="w-full p-2.5 rounded border border-[#444] bg-[#333] text-white box-border text-base"><option value="human" selected>Human</option><option value="ai">AI</option></select></div>
             </div>
@@ -211,14 +216,17 @@
     </div>
 
 
+    <!-- MATCH ANNOUNCEMENT -->
     <div id="matchAnnouncementScreen" class="screen hidden box-border z-[100] bg-[rgba(0,0,0,0.9)] flex flex-col justify-center items-center text-white text-center p-[30px] absolute inset-0">
         <h2 id="announceMatchTitleText" class="text-[2.8em] text-[#FFD700] mb-[15px] font-bold">Match Title</h2> <h3 id="announceMatchVersusText" class="text-2xl mt-2.5 mb-10 leading-snug">Player A plays against Player B!</h3> <button id="announceMatchGoBtn" class="action-button py-4 px-12 text-2xl bg-[#28a745] border-none text-white rounded-lg cursor-pointer uppercase font-bold hover:bg-[#218838]">GO!</button>
     </div>
 
 
+    <!-- PONG CANVAS -->
     <canvas id="pongCanvas" class="border border-white hidden z-0"></canvas>
 
 
+    <!-- MATCH OVER -->
     <div id="matchOverScreen" class="screen hidden box-border z-10 w-[500px] bg-[#222] p-[30px] rounded-lg shadow-lg text-center">
         <h2 id="matchOverMessage" class="text-2xl text-[#FFD700] mb-5">Player X wins the match!</h2> <br>
         <div id="singleMatchOverButtons">
@@ -232,6 +240,7 @@
     </div>
 
 
+    <!-- TOURNAMENT OVER -->
     <div id="tournamentWinnerScreen" class="screen hidden box-border z-10 w-[500px] bg-[#222] p-[30px] rounded-lg shadow-lg text-center">
         <h2 id="tournamentWinnerMessage" class="text-2xl text-[#FFD700] mb-5">Congratulations! Player X has won the tournament!</h2> <button id="startNewTournamentBtn" class="action-button inline-block my-[10px] mx-[5px] py-3 px-3 bg-[#4CAF50] text-white border-none rounded cursor-pointer text-base text-center box-border w-[45%]">Play New Tournament</button> <button id="tournamentEnd_MainMenuBtn" class="action-button secondary inline-block my-[10px] mx-[5px] py-3 px-3 bg-[#007bff] text-white border-none rounded cursor-pointer text-base text-center box-border w-[45%]">Main Menu</button>
     </div>
