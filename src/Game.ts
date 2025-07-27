@@ -38,7 +38,7 @@ export class Game {
     private lastFourPlayerMatchSettings: FourPlayerMatchSettings | null = null; // Stores settings for the last 2v2 match, for "Play Again".
 
     // --- Game Constants ---
-    private readonly PADDLE_WIDTH = 30; // Width of the paddles in pixels.
+    private readonly PADDLE_WIDTH = 23; // Width of the paddles in pixels.
     private readonly PADDLE_HEIGHT_NORMAL = 100; // Standard height for paddles in 1v1 mode.
     private readonly PADDLE_HEIGHT_FOUR_PLAYER = 75; // Shorter height for paddles in 2v2 mode.
     private readonly BALL_RADIUS = 8; // Radius of the ball in pixels.
@@ -622,7 +622,7 @@ export class Game {
                 // Calculate `deltaY` (distance from ball center to paddle center) to determine vertical bounce angle.
                 let deltaY = this.ball.y - (paddle.y + paddle.height / 2);
                 this.ball.speedY = deltaY * 0.25; // Adjust vertical speed based on where it hit the paddle.
-                this.ball.augmentSpeed(0.01); // Slightly increase speed on paddle hit.
+                this.ball.augmentSpeed(0.05); // Slightly increase speed on paddle hit.
                 break; // Exit loop after first collision to prevent double bounces.
             }
         }
@@ -676,7 +676,7 @@ export class Game {
                 this.ball.x = paddle.x + paddle.width + this.ball.radius; // Adjust ball position to prevent sticking.
                 let deltaY = this.ball.y - (paddle.y + paddle.height / 2);
                 this.ball.speedY = deltaY * 0.25;
-                this.ball.augmentSpeed(0.01);
+                this.ball.augmentSpeed(0.05);
                 collisionOccurred = true;
                 break; // Only process one collision.
             }
@@ -695,7 +695,7 @@ export class Game {
                 this.ball.x = paddle.x - this.ball.radius; // Adjust ball position.
                 let deltaY = this.ball.y - (paddle.y + paddle.height / 2);
                 this.ball.speedY = deltaY * 0.25;
-                this.ball.augmentSpeed(0.01);
+                this.ball.augmentSpeed(0.05);
                 collisionOccurred = true;
                 break; // Only process one collision.
             }
