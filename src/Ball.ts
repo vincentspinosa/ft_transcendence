@@ -26,11 +26,6 @@ export class Ball {
         this.color = color;
         this.originalRadius = radius; // Store the original radius
 
-        if (navigator.userAgent.toLowerCase().includes("chrome")) {
-            speedX = 12;
-            speedY = 12;
-        }
-
         this.speedX = speedX;
         this.speedY = speedY;
 

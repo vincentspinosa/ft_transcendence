@@ -19,7 +19,7 @@ export class Paddle {
      * @param width The width of the paddle.
      * @param height The height of the paddle.
      * @param initialColor The initial color of the paddle.
-     * @param speed The movement speed of the paddle. Defaults to 20 if not provided.
+     * @param speed The movement speed of the paddle. Defaults to 13 if not provided.
      * @param name The name of the paddle. Defaults to "Player" if not provided.
      */
     constructor(
@@ -37,9 +37,6 @@ export class Paddle {
         this.width = width;
         this.height = height;
         this.color = initialColor;
-        if (navigator.userAgent.toLowerCase().includes("chrome")) {
-            this.speed = 20;
-        }
         this.speed = speed;
         this.score = 0; // Initialize score to 0 for a new paddle.
         this.name = name;
