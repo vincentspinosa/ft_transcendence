@@ -121,7 +121,7 @@ export class Paddle {
      * This method is called every frame by the main game loop (e.g., in Game.ts).
      * @param canvasHeight The height of the canvas, used for boundary checking after movement.
      */
-    updateAI(canvasHeight: number): void {
+    updateAI(): void {
         // Calculate the difference between the target Y and the paddle's current Y.
         // This `dy` value indicates the direction and distance the paddle needs to move.
         let dy = this.aiTargetY - this.y;
@@ -134,20 +134,11 @@ export class Paddle {
         else if (dy < -this.speed) {
             this.y -= this.speed;
         }
-        // If the paddle is very close to the target (within one speed increment), snap it to the target.
-        // This prevents the paddle from "jittering" back and forth when it's almost at the target.
-        else {
-            this.y = this.aiTargetY;
+        else if (dy > this.height) {
+            this.y += this.speed;
         }
-
-        // After moving, ensure the paddle remains within the canvas bounds.
-        // This is a safety check, as the `aiTargetY` calculation already tries to keep it in bounds,
-        // but continuous movement might slightly overshoot or be affected by floating point inaccuracies.
-        if (this.y < 0) {
-            this.y = 0; // Clamp to the top edge.
-        }
-        if (this.y + this.height > canvasHeight) {
-            this.y = canvasHeight - this.height; // Clamp to the bottom edge.
+        else if (dy < -this.height) {
+            this.y -= this.speed;
         }
     }
 }
