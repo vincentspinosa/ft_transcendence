@@ -564,7 +564,7 @@ export class Game {
         // Regardless of whether a new decision was made (which happens once per second),
         // the AI paddles continuously move towards their *current* stored target Y.
         paddlesToControl.forEach(paddle => {
-            paddle.updateAI(); // Call the paddle's AI update method.
+            paddle.updateAI(this.canvasElement.height); // Call the paddle's AI update method.
         });
     }
 
