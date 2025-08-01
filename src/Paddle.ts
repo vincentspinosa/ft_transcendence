@@ -109,8 +109,7 @@ export class Paddle {
         }
 
         // ANGLE RANDOMIZATION
-        let x : number = Math.random();
-        if (x > 0.5)
+        if (Math.random() > 0.5)
             this.aiTargetY += this.height / 4;
         else
             this.aiTargetY -= this.height / 4;
@@ -126,24 +125,14 @@ export class Paddle {
         // This `dy` value indicates the direction and distance the paddle needs to move.
         let dy = this.aiTargetY - this.y;
 
-        // If the target is significantly below the current position (more than one speed increment), move down.
-        if (dy > this.speed) {
+        if (dy >= this.speed || dy >= this.height) {
             this.y += this.speed;
         }
-        // If the target is significantly above the current position (more than one speed increment in the negative direction), move up.
-        else if (dy < -this.speed) {
-            this.y -= this.speed;
-        }
-        else if (dy > this.height) {
-            this.y += this.speed;
-        }
-        else if (dy < -this.height) {
+        else if (dy <= -this.speed || dy <= -this.height) {
             this.y -= this.speed;
         }
 
         // After moving, ensure the paddle remains within the canvas bounds.
-        // This is a safety check, as the `aiTargetY` calculation already tries to keep it in bounds,
-        // but continuous movement might slightly overshoot or be affected by floating point inaccuracies.
         if (this.y < 0) {
             this.y = 0; // Clamp to the top edge.
         }

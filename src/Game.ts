@@ -401,17 +401,8 @@ export class Game {
         let speedX = initialSpeedX;
         let speedY = initialSpeedY;
 
-        // Safety break to prevent infinite loops in extreme edge cases.
-        const MAX_ITERATIONS = 1000;
         let iterations = 0;
-
-        // If ball is not moving horizontally, or already at target X, return current Y.
-        if (Math.abs(speedX) < 0.1 || Math.abs(targetX - currentX) < 1) {
-            return currentY;
-        }
-
-        // Loop to simulate ball movement until `targetX` is reached or max iterations.
-        while (true && iterations < MAX_ITERATIONS) {
+        while (iterations < 1000) {
             iterations++;
 
             // Calculate the time it would take to reach `targetX`.
@@ -424,22 +415,13 @@ export class Game {
             // Determine the earliest event (hitting target X or a wall).
             const timeToNextEvent = Math.min(Math.abs(timeToTargetX), timeToTopWall, timeToBottomWall);
 
-            // Handle cases where no valid next event time can be calculated.
-            if (!isFinite(timeToNextEvent) || timeToNextEvent < 0.001) {
-                return currentY; // Return current Y if prediction cannot proceed.
-            }
-
             // Update ball's position to the point of the next event.
             currentX += speedX * timeToNextEvent;
             currentY += speedY * timeToNextEvent;
 
-            // Check if `targetX` was reached within this simulation step.
             if ((speedX > 0 && currentX >= targetX) || (speedX < 0 && currentX <= targetX)) {
                 return currentY; // `targetX` reached, return predicted Y.
-            }
-
-            // If a wall was hit, reflect the ball's `speedY` and adjust `currentY`.
-            if (speedY < 0 && currentY - ballRadius <= 0) { // Hit top wall.
+            } else if (speedY < 0 && currentY - ballRadius <= 0) { // Hit top wall.
                 currentY = ballRadius; // Snap to top edge.
                 speedY *= -1; // Reverse vertical speed.
             } else if (speedY > 0 && currentY + ballRadius >= canvasHeight) { // Hit bottom wall.
@@ -448,8 +430,6 @@ export class Game {
             }
         }
         
-        // Fallback: If max iterations are reached, return the current Y.
-        // This indicates an issue or a very long trajectory.
         return currentY;
     }
 
