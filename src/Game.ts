@@ -438,12 +438,11 @@ export class Game {
                 return currentY; // `targetX` reached, return predicted Y.
             }
 
-            const epsilon = 0.2; // Small tolerance for floating-point comparisons.
             // If a wall was hit, reflect the ball's `speedY` and adjust `currentY`.
-            if (currentY - ballRadius <= 0 + epsilon && speedY < 0) { // Hit top wall.
+            if (speedY < 0 && currentY - ballRadius <= 0) { // Hit top wall.
                 currentY = ballRadius; // Snap to top edge.
                 speedY *= -1; // Reverse vertical speed.
-            } else if (currentY + ballRadius >= canvasHeight - epsilon && speedY > 0) { // Hit bottom wall.
+            } else if (speedY > 0 && currentY + ballRadius >= canvasHeight) { // Hit bottom wall.
                 currentY = canvasHeight - ballRadius; // Snap to bottom edge.
                 speedY *= -1; // Reverse vertical speed.
             }
