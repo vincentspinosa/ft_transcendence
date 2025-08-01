@@ -499,9 +499,9 @@ export class Game {
 
                 // AI only calculates a new prediction if the ball is on its side of the court
                 // AND moving towards its goal (i.e., it's a threat to score on its side).
-                const ballMovingTowardsAIsGoal = (isLeft && ballSpeedX < 0) || (!isLeft && ballSpeedX > 0);
+                const isBallMovingTowardsAI = (isLeft && ballSpeedX < 0) || (!isLeft && ballSpeedX > 0);
 
-                if (ballMovingTowardsAIsGoal) {
+                if (isBallMovingTowardsAI) {
                     // Determine the X-coordinate of the paddle's "hitting" edge for prediction.
                     // For a left paddle, it's `paddle.x + paddle.width`. For a right paddle, it's `paddle.x`.
                     const targetPaddleX = isLeft ? paddle.x + paddle.width : paddle.x;
