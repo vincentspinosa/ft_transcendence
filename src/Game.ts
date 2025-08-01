@@ -413,7 +413,7 @@ export class Game {
             const timeToBottomWall = (speedY > 0) ? (canvasHeight - (currentY + ballRadius)) / speedY : Infinity;
             
             // Determine the earliest event (hitting target X or a wall).
-            const timeToNextEvent = Math.min(Math.abs(timeToTargetX), timeToTopWall, timeToBottomWall);
+            const timeToNextEvent = Math.min(timeToTargetX, timeToTopWall, timeToBottomWall);
 
             // Update ball's position to the point of the next event.
             currentX += speedX * timeToNextEvent;
