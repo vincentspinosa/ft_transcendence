@@ -277,13 +277,14 @@ export class Game {
 
     /**
      * Initializes the position of the power-up randomly within the court.
-     * This is called once per game or per point if power-ups are enabled.
+     * This is called once per point if power-ups are enabled.
+     * Power-ups are initialized towards the center of the canvas.
      */
     private initializePowerUp(): void {
-        const minX = this.PADDLE_WIDTH * 2; // Avoid placing too close to paddles
-        const maxX = this.canvasElement.width - (this.PADDLE_WIDTH * 2);
-        const minY = this.BALL_RADIUS * 2;
-        const maxY = this.canvasElement.height - (this.BALL_RADIUS * 2);
+        const minX = this.canvasElement.width / 4;
+        const maxX = this.canvasElement.width / 1.33;
+        const minY = this.canvasElement.height / 4;
+        const maxY = this.canvasElement.height / 1.33;
 
         // Calculate random X and Y positions within the playable area
         const randomX = minX + Math.random() * (maxX - minX);
@@ -294,15 +295,12 @@ export class Game {
         console.log("Power Up initialized.");
         console.log(`Power up x: ${randomX}, Power up y:${randomY}`);
     }
-    /**
-     * Initializes the position of the power-up randomly within the court.
-     * This is called once per game or per point if power-ups are enabled.
-     */
+
     private initializeSmallPowerUp(): void {
-        const minX = this.PADDLE_WIDTH * 2; // Avoid placing too close to paddles
-        const maxX = this.canvasElement.width - (this.PADDLE_WIDTH * 2);
-        const minY = this.BALL_RADIUS * 2;
-        const maxY = this.canvasElement.height - (this.BALL_RADIUS * 2);
+        const minX = this.canvasElement.width / 4;
+        const maxX = this.canvasElement.width / 1.33;
+        const minY = this.canvasElement.height / 4;
+        const maxY = this.canvasElement.height / 1.33;
 
         // Calculate random X and Y positions within the playable area
         const randomX = minX + Math.random() * (maxX - minX);
