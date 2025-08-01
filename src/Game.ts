@@ -383,7 +383,6 @@ export class Game {
      * @param initialSpeedX Ball's horizontal speed at the start of prediction.
      * @param initialSpeedY Ball's vertical speed at the start of prediction.
      * @param targetX The X coordinate at which to predict the ball's Y position (typically a paddle's X-coordinate).
-     * @param canvasWidth The width of the canvas, for boundary checks.
      * @param canvasHeight The height of the canvas, for boundary checks.
      * @param ballRadius The radius of the ball, for accurate collision checks.
      * @returns The predicted Y position of the ball when it reaches `targetX`.
@@ -394,7 +393,6 @@ export class Game {
         initialSpeedX: number,
         initialSpeedY: number,
         targetX: number,
-        canvasWidth: number,
         canvasHeight: number,
         ballRadius: number
     ): number {
@@ -436,12 +434,11 @@ export class Game {
             currentY += speedY * timeToNextEvent;
 
             // Check if `targetX` was reached within this simulation step.
-            const epsilon = 0.2; // Small tolerance for floating-point comparisons.
-            if ( (speedX > 0 && currentX >= targetX - epsilon && currentX <= targetX + epsilon) || 
-                 (speedX < 0 && currentX <= targetX + epsilon && currentX >= targetX - epsilon) ) {
+            if ((speedX > 0 && currentX >= targetX) || (speedX < 0 && currentX <= targetX)) {
                 return currentY; // `targetX` reached, return predicted Y.
             }
 
+            const epsilon = 0.2; // Small tolerance for floating-point comparisons.
             // If a wall was hit, reflect the ball's `speedY` and adjust `currentY`.
             if (currentY - ballRadius <= 0 + epsilon && speedY < 0) { // Hit top wall.
                 currentY = ballRadius; // Snap to top edge.
@@ -449,15 +446,6 @@ export class Game {
             } else if (currentY + ballRadius >= canvasHeight - epsilon && speedY > 0) { // Hit bottom wall.
                 currentY = canvasHeight - ballRadius; // Snap to bottom edge.
                 speedY *= -1; // Reverse vertical speed.
-            } else if (currentX - ballRadius <= 0 + epsilon && speedX < 0) { // Hit left wall.
-                // For prediction, if the ball goes past the goal line, we simulate a bounce
-                // off an invisible wall to continue trajectory across the court.
-                 speedX *= -1; // Assume reflection.
-                 currentX = ballRadius; // Snap to edge.
-            } else if (currentX + ballRadius >= canvasWidth - epsilon && speedX > 0) { // Hit right wall.
-                // Similar logic for right wall.
-                 speedX *= -1; // Assume reflection.
-                 currentX = canvasWidth - ballRadius; // Snap to edge.
             }
         }
         
@@ -542,7 +530,7 @@ export class Game {
                     // Predict the ball's Y position when it reaches the paddle's X.
                     predictedTargetY = this.predictBallYAtX(
                         ballX, ballY, ballSpeedX, ballSpeedY,
-                        targetPaddleX, this.canvasElement.width, this.canvasElement.height, this.ball.radius
+                        targetPaddleX, this.canvasElement.height, this.ball.radius
                     );
 
                     // This version clamps the *center* of the paddle's potential target Y.
