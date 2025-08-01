@@ -887,7 +887,7 @@ export class Game {
     }
 
     /**
-     * Resets the game internals, including scores, paddle positions, and ball for a new game or after a score.
+     * Resets the game internals, including scores, paddle positions, and ball for a new game.
      */
     private resetGameInternals(): void {
         this.gameOver = false; // Reset game over flag.
