@@ -184,8 +184,8 @@ export class Game {
         this.lastFourPlayerMatchSettings = null; // Clear 4-player settings.
 
         // Set canvas dimensions.
-        this.canvasElement.width = 800;
-        this.canvasElement.height = 600;
+        this.canvasElement.width = 1000;
+        this.canvasElement.height = 750;
 
         // Initialize 1v1 paddles.
         this.player1Paddle = new Paddle(30, this.canvasElement.height / 2 - this.PADDLE_HEIGHT_NORMAL / 2, this.PADDLE_WIDTH, this.PADDLE_HEIGHT_NORMAL, this.playerAConfig.color, this.PADDLE_SPEED, this.playerAConfig.name);
@@ -234,8 +234,8 @@ export class Game {
         this.lastSingleMatchSettings = null; // Clear 1v1 settings.
 
         // Set canvas dimensions.
-        this.canvasElement.width = 800;
-        this.canvasElement.height = 600;
+        this.canvasElement.width = 1000;
+        this.canvasElement.height = 750;
 
         const paddleHeight = this.PADDLE_HEIGHT_FOUR_PLAYER;
         // Calculate Y positions for top and bottom paddles on each side.
