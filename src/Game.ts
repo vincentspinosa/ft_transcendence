@@ -401,10 +401,7 @@ export class Game {
         let speedX = initialSpeedX;
         let speedY = initialSpeedY;
 
-        let iterations = 0;
-        while (iterations < 100) {
-            iterations++;
-
+        while (1) {
             // Calculate the time it would take to reach `targetX`.
             const timeToTargetX = (targetX - currentX) / speedX;
 
@@ -430,7 +427,7 @@ export class Game {
             }
         }
         
-        return currentY;
+        return 0; // Never reached as we only exit the loop by returning the found value
     }
 
 
