@@ -402,9 +402,9 @@ export class Game {
         let speedY = initialSpeedY;
 
         let iterations = 0;
-        while (iterations < 1000) {
+        while (iterations < 100) {
             iterations++;
-            
+
             // Calculate the time it would take to reach `targetX`.
             const timeToTargetX = (targetX - currentX) / speedX;
 
@@ -420,11 +420,11 @@ export class Game {
             currentY += speedY * timeToNextEvent;
 
             if ((speedX > 0 && currentX >= targetX) || (speedX < 0 && currentX <= targetX)) {
-                break; // `targetX` reached, break and return currentY.
-            } else if (speedY < 0 && currentY - ballRadius <= 0) { // Hit top wall.
+                return currentY; // `targetX` reached, return currentY.
+            } else if (currentY - ballRadius <= 0) { // Hit top wall.
                 currentY = ballRadius; // Snap to top edge.
                 speedY *= -1; // Reverse vertical speed.
-            } else if (speedY > 0 && currentY + ballRadius >= canvasHeight) { // Hit bottom wall.
+            } else if (currentY + ballRadius >= canvasHeight) { // Hit bottom wall.
                 currentY = canvasHeight - ballRadius; // Snap to bottom edge.
                 speedY *= -1; // Reverse vertical speed.
             }
