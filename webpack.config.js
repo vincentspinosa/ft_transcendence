@@ -27,13 +27,5 @@ module.exports = {
     path: path.resolve(__dirname, 'dist'), // Output directory
     publicPath: '/dist/' // Important for dev server to find the bundle
   },
-  devServer: { // Optional: for webpack-dev-server
-    static: {
-      directory: path.join(__dirname, '.'), // Serve files from the root project directory
-    },
-    compress: true,
-    port: 9000,
-    hot: true, // Enable Hot Module Replacement
-  },
-  mode: 'development' // Can be 'production' for minified output
+  mode: 'production' // 'production' for minified output
 };
