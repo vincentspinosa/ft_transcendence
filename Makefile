@@ -1,6 +1,6 @@
-.PHONY: up down re
+.PHONY: up down
 
-up:
+up: down
 	docker build -t transcendence . && docker run -p 8080:8080 transcendence
 
 down:
@@ -10,5 +10,3 @@ down:
 	else \
 		echo "No Docker containers to stop or remove."; \
 	fi
-
-re: down up
