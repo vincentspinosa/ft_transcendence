@@ -1,8 +1,8 @@
 {
-  "name": "pong-typescript",
+  "name": "ft_transcendence",
   "version": "1.0.0",
   "description": "A simple Pong game in TypeScript",
-  "main": "dist/Game.js",
+  "main": "dist/main.js",
   "scripts": {
     "build": "tsc && npx webpack --mode production",
     "watch": "tsc -w & npx webpack --watch --mode development",
@@ -11,10 +11,12 @@
   "keywords": [
     "pong",
     "typescript",
-    "game"
+    "game",
+    "ft_transcendence",
+    "transcendence"
   ],
-  "author": "",
-  "license": "ISC",
+  "author": "Vincent Spinosa",
+  "license": "MIT",
   "devDependencies": {
     "live-server": "^1.2.0",
     "ts-loader": "^9.0.0",

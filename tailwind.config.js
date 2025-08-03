@@ -1,11 +1,16 @@
 /** @type {import('tailwindcss').Config} */
+// Line above -> provides autocompletion and type-checking for the Tailwind CSS configuration object.
+
+// Tailwind Configuration object
 module.exports = {
+  // 'content' -> where Tailwind is used
   content: [
-    "./index.html", // Main HTML file
-    "./src/*.{ts,js}" // Any TypeScript or JavaScript files where Tailwind classes are used
+    "./index.html",
+    "./src/**/*.{ts,js}"
   ],
+  // 'theme' -> Tailwind Customization
   theme: {
-    extend: {},
+    extend: {}, // No custom CSS.
   },
-  plugins: [],
-}
+  plugins: [], // No plugins.
+};

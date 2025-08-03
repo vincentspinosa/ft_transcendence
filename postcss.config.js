@@ -1,6 +1,6 @@
-module.exports = {
+module.exports = { // configuration object for TailwindCss
   plugins: {
     tailwindcss: {},
-    autoprefixer: {},
+    autoprefixer: {}, // add vendor prefix to CSS rules (ex -moz-) for Browser compatibility
   },
 }
