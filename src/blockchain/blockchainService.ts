@@ -14,20 +14,20 @@ export class BlockchainService {
             'ScoreUpdated(address,uint256)': '0x9df7f885bea1d9475c5c33b4f9695e151452bf87c24871d67cbb25a6679f9294',
             'OwnershipTransferred(address,address)': '0x8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e0'
         };
-        
+
         if (knownHashes[eventSignature]) {
             return knownHashes[eventSignature];
         }
-        
+
         console.warn(`Хеш для события ${eventSignature} не найден, используется ScoreUpdated по умолчанию`);
         return knownHashes['ScoreUpdated(address,uint256)'];
     }
 
-        // Проверка доступности Core.app
+    // Проверка доступности Core.app
     private isCoreAppAvailable(): boolean {
-        return typeof window !== 'undefined' && 
-               typeof window.avalanche !== 'undefined' && 
-               window.avalanche !== null;
+        return typeof window !== 'undefined' &&
+            typeof window.avalanche !== 'undefined' &&
+            window.avalanche !== null;
     }
 
     // Подключение к кошельку Core.app
@@ -76,11 +76,23 @@ export class BlockchainService {
         }
 
         try {
+            // Проверяем валидность байткода
+            if (!PongTournamentScoresBytecode || !PongTournamentScoresBytecode.startsWith('0x')) {
+                throw new Error('Некорректный байткод контракта');
+            }
+
+            console.log('Развертывание контракта с параметрами:', {
+                from: this.connectedAddress,
+                dataLength: PongTournamentScoresBytecode.length
+            });
+
             // Развертывание контракта через Core.app
             const params = {
                 from: this.connectedAddress,
                 data: PongTournamentScoresBytecode,
-                gas: '3000000'
+                gas: '0x2DC6C0', // 3000000 в hex
+                gasPrice: '0x174876E800', // 100 gwei в hex
+                value: '0x0' // Нет отправки эфира
             };
 
             const txHash = await window.avalanche.request({
@@ -249,7 +261,9 @@ export class BlockchainService {
                     from: this.connectedAddress,
                     to: this.contractAddress,
                     data,
-                    gas: '200000'
+                    gas: '0x30D40', // 200000 в hex
+                    gasPrice: '0x174876E800', // 100 gwei в hex
+                    value: '0x0'
                 }]
             });
 

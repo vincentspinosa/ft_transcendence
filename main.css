@@ -2,71 +2,69 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Blockchain Scoreboard Styles */
+/* Blockchain Scoreboard - Simplified Styles */
 .blockchain-scoreboard {
-    @apply p-4 text-white;
+    @apply p-3 text-white text-sm;
 }
 
 .blockchain-scoreboard h2 {
-    @apply text-lg font-bold mb-4 text-center text-blue-300;
+    @apply text-base font-semibold mb-3 text-center text-blue-300;
 }
 
-.blockchain-scoreboard .connection-section {
-    @apply mb-4 p-3 bg-gray-800 rounded border border-gray-600;
+.blockchain-scoreboard .wallet-section {
+    @apply mb-3 p-2 bg-gray-800 rounded;
 }
 
 .blockchain-scoreboard .contract-section {
-    @apply mb-4 p-3 bg-gray-800 rounded border border-gray-600;
+    @apply mb-3 space-y-2;
 }
 
-.blockchain-scoreboard .input-group {
-    @apply flex gap-2 mb-2;
+.blockchain-scoreboard .stats-section {
+    @apply mb-2;
 }
 
-.blockchain-scoreboard .form-control {
-    @apply flex-1 px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white text-sm;
-}
-
-.blockchain-scoreboard .btn {
-    @apply px-3 py-2 rounded text-sm font-medium cursor-pointer border-none;
+.blockchain-scoreboard .input {
+    @apply w-full px-2 py-1 bg-gray-700 border border-gray-600 rounded text-white text-xs;
 }
 
 .blockchain-scoreboard .btn-primary {
-    @apply bg-blue-600 hover:bg-blue-700 text-white;
+    @apply px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded text-xs cursor-pointer border-none;
 }
 
 .blockchain-scoreboard .btn-secondary {
-    @apply bg-gray-600 hover:bg-gray-700 text-white;
+    @apply px-3 py-1 bg-gray-600 hover:bg-gray-700 text-white rounded text-xs cursor-pointer border-none;
 }
 
-.blockchain-scoreboard .btn:disabled {
+.blockchain-scoreboard .btn-primary:disabled,
+.blockchain-scoreboard .btn-secondary:disabled {
     @apply opacity-50 cursor-not-allowed;
 }
 
 .blockchain-scoreboard .status {
-    @apply ml-2 text-sm;
+    @apply ml-2 text-xs text-gray-400;
 }
 
 .blockchain-scoreboard .status.connected {
     @apply text-green-400;
 }
 
-.blockchain-scoreboard .player-stats-table {
-    @apply w-full text-sm;
+.blockchain-scoreboard .stats-table {
+    @apply w-full text-xs;
 }
 
-.blockchain-scoreboard .player-stats-table th {
-    @apply bg-gray-700 px-3 py-2 text-left border-b border-gray-600;
+.blockchain-scoreboard .stats-table th {
+    @apply bg-gray-700 px-2 py-1 text-left text-xs;
 }
 
-.blockchain-scoreboard .player-stats-table td {
-    @apply px-3 py-2 border-b border-gray-700;
+.blockchain-scoreboard .stats-table td {
+    @apply px-2 py-1 border-b border-gray-700;
 }
 
 .blockchain-scoreboard .error {
-    @apply text-red-400 text-center p-3;
+    @apply text-red-400 text-center p-2 text-xs;
 }
 
-.blockchain-scoreboard .loading {
-    @apply text-center p-3 text-gray-400;
+.blockchain-scoreboard .loading,
+.blockchain-scoreboard .info-text {
+    @apply text-center p-2 text-gray-400 text-xs;
 }

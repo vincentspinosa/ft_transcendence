@@ -424,8 +424,8 @@ window.addEventListener('DOMContentLoaded', () => {
                 // Ensure correct "Match Over" buttons are displayed for a single match.
                 const singleMB = document.getElementById('singleMatchOverButtons') as HTMLElement;
                 const tourneyMB = document.getElementById('tournamentMatchOverButtons') as HTMLElement;
-                if(singleMB) singleMB.style.display = 'block';
-                if(tourneyMB) tourneyMB.style.display = 'none';
+                if (singleMB) singleMB.style.display = 'block';
+                if (tourneyMB) tourneyMB.style.display = 'none';
 
                 // Pass the enablePowerUp flag here!
                 gameInstance.initializeGame(matchSettings, false, null, enablePowerUp);
@@ -474,8 +474,8 @@ window.addEventListener('DOMContentLoaded', () => {
                 // Ensure correct "Match Over" buttons are displayed for a 4-player match.
                 const singleMB = document.getElementById('singleMatchOverButtons') as HTMLElement;
                 const tourneyMB = document.getElementById('tournamentMatchOverButtons') as HTMLElement;
-                if(singleMB) singleMB.style.display = 'block';
-                if(tourneyMB) tourneyMB.style.display = 'none';
+                if (singleMB) singleMB.style.display = 'block';
+                if (tourneyMB) tourneyMB.style.display = 'none';
 
                 // Pass the enablePowerUp flag here!
                 gameInstance.initializeFourPlayerMatch(fourPlayerSettings, enablePowerUp);
@@ -499,7 +499,7 @@ window.addEventListener('DOMContentLoaded', () => {
             const scoreLimit = parseInt(scoreLimitInput.value, 10);
 
             // Validate player names and uniqueness, and points to win per match.
-            if (![p1,p2,p3,p4].every((p, i) => validatePlayerName(p.name, `Player ${i + 1}`))) return;
+            if (![p1, p2, p3, p4].every((p, i) => validatePlayerName(p.name, `Player ${i + 1}`))) return;
             const names = [p1.name.toLowerCase(), p2.name.toLowerCase(), p3.name.toLowerCase(), p4.name.toLowerCase()];
             const uniqueNames = new Set(names);
             if (names.length !== uniqueNames.size) {
@@ -549,7 +549,7 @@ window.addEventListener('DOMContentLoaded', () => {
         'matchOverMessage', 'playAgainBtn', 'singleMatchOverButtons', 'tournamentMatchOverButtons', 'nextMatchBtn',
         's_enablePowerUp', 'fp_enablePowerUp', 't_enablePowerUp' // NEW: Add power-up checkboxes to critical list
     ];
-    
+
     // Iterate through the critical elements and check if they exist in the DOM.
     let allElementsFound = true;
     criticalElementIds.forEach(id => {
@@ -560,7 +560,7 @@ window.addEventListener('DOMContentLoaded', () => {
     });
 
     // Log the result of the critical element check.
-    if(allElementsFound) console.log("All critical UI elements successfully referenced (initial check).");
+    if (allElementsFound) console.log("All critical UI elements successfully referenced (initial check).");
     else console.log("One or more critical UI elements are missing. Application may not function correctly.");
 
 }); // End of DOMContentLoaded event listener.
