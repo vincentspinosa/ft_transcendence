@@ -324,15 +324,15 @@ export class Tournament {
         try {
             console.log(`🏆 Saving tournament winner to blockchain: ${winner.name}`);
 
-            // Get connected wallet
-            const playerAddress = this.blockchainService.getConnectedAddress();
+            // Use unique blockchain address for this player
+            const playerAddress = winner.blockchainAddress || this.blockchainService.generatePlayerAddress(winner.id);
             if (playerAddress) {
                 // Tournament winner gets a special high score (e.g., 100 points)
                 const tournamentWinnerScore = 100;
                 await this.blockchainService.setPlayerScore(playerAddress, tournamentWinnerScore);
-                console.log(`✅ Tournament winner saved to blockchain: ${winner.name} = ${tournamentWinnerScore} points`);
+                console.log(`✅ Tournament winner saved to blockchain: ${winner.name} (${playerAddress}) = ${tournamentWinnerScore} points`);
             } else {
-                console.log('⚠️ No wallet connected, skipping blockchain save');
+                console.log('⚠️ Could not generate player address, skipping blockchain save');
             }
         } catch (error) {
             console.error('❌ Failed to save tournament winner to blockchain:', error);

@@ -210,7 +210,13 @@ function getPlayerConfig(formPrefix: string, playerId: number, defaultName: stri
     const type = (typeSelect?.value as 'human' | 'ai') || 'human'; // Cast to specific union type.
 
     // Return the player configuration object.
-    return { name, color: COLOR_MAP[colorValue] || COLOR_MAP['white'], type, id: playerId };
+    return {
+        name,
+        color: COLOR_MAP[colorValue] || COLOR_MAP['white'],
+        type,
+        id: playerId,
+        blockchainAddress: `0x${playerId.toString(16).padStart(40, '0')}` // Generate unique blockchain address
+    };
 }
 
 /**
@@ -240,7 +246,13 @@ function getSinglePlayer1v1Config(formPrefix: string, playerId: number, defaultN
     const colorValue = colorSelect?.value || 'white';
 
     // Return the player configuration object.
-    return { name, color: COLOR_MAP[colorValue] || COLOR_MAP['white'], type, id: playerId };
+    return {
+        name,
+        color: COLOR_MAP[colorValue] || COLOR_MAP['white'],
+        type,
+        id: playerId,
+        blockchainAddress: `0x${playerId.toString(16).padStart(40, '0')}` // Generate unique blockchain address
+    };
 }
 
 /**

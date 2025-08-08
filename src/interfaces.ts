@@ -3,6 +3,7 @@ export interface PlayerConfig {
     color: string;
     type: 'human' | 'ai';
     id: number; // Unique ID (1-4 for tournament, or per player in 4-player match)
+    blockchainAddress?: string; // Optional blockchain address for this player
 }
 
 // Settings for a standard 2-player (1v1) game instance

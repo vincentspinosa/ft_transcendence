@@ -66,6 +66,14 @@ export class BlockchainService {
         return this.contractAddress;
     }
 
+    // Генерация детерминированного адреса для игрока на основе его ID
+    public generatePlayerAddress(playerId: number): string {
+        // Создаем фиктивный адрес на основе ID игрока для демонстрации
+        // В реальном приложении каждый игрок должен иметь свой реальный кошелек
+        const baseAddress = '0x' + playerId.toString(16).padStart(40, '0');
+        return baseAddress;
+    }
+
     // Развертывание нового контракта
     public async deployContract(): Promise<string | null> {
         if (!this.connectedAddress) {

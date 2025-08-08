@@ -76,7 +76,6 @@ export class BlockchainScoreBoard {
         if (address) {
           this.updateConnectionStatus(address);
           this.deployContractButton.disabled = false;
-          this.testScoreButton.disabled = false;
 
           // Если уже есть адрес контракта, загружаем данные
           const contractAddress = this.blockchainService.getContractAddress();
@@ -130,41 +129,6 @@ export class BlockchainScoreBoard {
       } finally {
         this.deployContractButton.disabled = false;
         this.deployContractButton.textContent = 'Deploy Contract';
-      }
-    });
-
-    // Обработчик кнопки тестирования
-    this.testScoreButton.addEventListener('click', async () => {
-      try {
-        if (!this.blockchainService.getContractAddress()) {
-          alert('Please set a contract address first');
-          return;
-        }
-
-        const connectedAddress = this.blockchainService.getConnectedAddress();
-        if (!connectedAddress) {
-          alert('Please connect your wallet first');
-          return;
-        }
-
-        this.testScoreButton.disabled = true;
-        this.testScoreButton.textContent = 'Adding...';
-
-        // Добавляем тестовый счет для подключенного адреса
-        await this.blockchainService.setPlayerScore(connectedAddress, Math.floor(Math.random() * 100));
-
-        // Небольшая задержка перед обновлением данных
-        setTimeout(() => {
-          this.loadPlayerStats();
-        }, 2000);
-
-        alert('Test score added successfully!');
-      } catch (error) {
-        console.error('Test score error:', error);
-        alert(`Failed to add test score: ${getErrorMessage(error)}`);
-      } finally {
-        this.testScoreButton.disabled = false;
-        this.testScoreButton.textContent = 'Add Test Score';
       }
     });
   }
