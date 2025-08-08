@@ -6,14 +6,14 @@ export class BlockchainScoreBoard {
   private blockchainService: BlockchainService;
   private refreshInterval: number | null = null;
 
-    // DOM элементы
-    private connectButton!: HTMLButtonElement;
-    private connectionStatus!: HTMLSpanElement;
-    private contractAddressInput!: HTMLInputElement;
-    private applyContractButton!: HTMLButtonElement;
-    private deployContractButton!: HTMLButtonElement;
-    private testScoreButton!: HTMLButtonElement;
-    private playerListContainer!: HTMLElement;  constructor(containerId: string) {
+  // DOM элементы
+  private connectButton!: HTMLButtonElement;
+  private connectionStatus!: HTMLSpanElement;
+  private contractAddressInput!: HTMLInputElement;
+  private applyContractButton!: HTMLButtonElement;
+  private deployContractButton!: HTMLButtonElement;
+  private testScoreButton!: HTMLButtonElement;
+  private playerListContainer!: HTMLElement; constructor(containerId: string) {
     // Получаем контейнер для размещения UI
     const container = document.getElementById(containerId);
     if (!container) {
@@ -63,6 +63,7 @@ export class BlockchainScoreBoard {
     this.connectionStatus = this.container.querySelector('#connection-status') as HTMLSpanElement;
     this.contractAddressInput = this.container.querySelector('#contract-address-input') as HTMLInputElement;
     this.deployContractButton = this.container.querySelector('#deploy-contract-btn') as HTMLButtonElement;
+    this.testScoreButton = this.container.querySelector('#test-score-btn') as HTMLButtonElement;
     this.playerListContainer = this.container.querySelector('#player-list-container') as HTMLElement;
 
     // Убираем отдельный apply button - будем использовать автоматическое применение
@@ -78,6 +79,7 @@ export class BlockchainScoreBoard {
         if (address) {
           this.updateConnectionStatus(address);
           this.deployContractButton.disabled = false;
+          this.testScoreButton.disabled = false;
 
           // Если уже есть адрес контракта, загружаем данные
           const contractAddress = this.blockchainService.getContractAddress();
@@ -131,6 +133,39 @@ export class BlockchainScoreBoard {
       } finally {
         this.deployContractButton.disabled = false;
         this.deployContractButton.textContent = 'Deploy Contract';
+      }
+    });
+
+    // Обработчик кнопки тестирования
+    this.testScoreButton.addEventListener('click', async () => {
+      try {
+        if (!this.blockchainService.getContractAddress()) {
+          alert('Please set a contract address first');
+          return;
+        }
+
+        const connectedAddress = this.blockchainService.getConnectedAddress();
+        if (!connectedAddress) {
+          alert('Please connect your wallet first');
+          return;
+        }
+
+        this.testScoreButton.disabled = true;
+        this.testScoreButton.textContent = 'Adding...';
+
+        // Добавляем тестовый счет для подключенного адреса
+        await this.blockchainService.setPlayerScore(connectedAddress, Math.floor(Math.random() * 100));
+
+        // Обновляем данные
+        this.loadPlayerStats();
+
+        alert('Test score added successfully!');
+      } catch (error) {
+        console.error('Test score error:', error);
+        alert(`Failed to add test score: ${getErrorMessage(error)}`);
+      } finally {
+        this.testScoreButton.disabled = false;
+        this.testScoreButton.textContent = 'Add Test Score';
       }
     });
   }
