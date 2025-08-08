@@ -809,13 +809,13 @@ export class Game {
                 winnerScore = this.player2Paddle.score;
             }
 
-            // Use unique blockchain address for this player
-            const playerAddress = winner.blockchainAddress || this.blockchainService.generatePlayerAddress(winner.id);
+            // Use real wallet address instead of generated address
+            const playerAddress = this.blockchainService.getConnectedAddress();
             if (playerAddress) {
                 await this.blockchainService.setPlayerScore(playerAddress, winner.name, winnerScore);
                 console.log(`✅ Score saved to blockchain: ${winner.name} (${playerAddress}) = ${winnerScore} points`);
             } else {
-                console.log('⚠️ Could not generate player address, skipping blockchain save');
+                console.log('⚠️ Wallet not connected, skipping blockchain save');
             }
         } catch (error) {
             console.warn('⚠️ Blockchain save failed (game continues normally):', error);

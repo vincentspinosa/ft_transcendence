@@ -242,10 +242,10 @@ export class BlockchainService {
 
             // Декодирование строки из hex
             if (result === '0x') return '';
-            
+
             // Пропускаем первые 64 символа (32 байта offset) и следующие 64 символа (32 байта length)
             const hexString = result.slice(130); // 2 (0x) + 64 (offset) + 64 (length)
-            
+
             // Конвертируем hex в строку
             let name = '';
             for (let i = 0; i < hexString.length; i += 2) {
@@ -255,7 +255,7 @@ export class BlockchainService {
                     name += String.fromCharCode(charCode);
                 }
             }
-            
+
             return name.trim();
         } catch (error) {
             console.error('Ошибка получения имени игрока:', error);
@@ -310,8 +310,23 @@ export class BlockchainService {
                         }, 'latest']
                     });
 
-                    // Извлекаем адрес из результата (последние 20 байт)
-                    const playerAddress = '0x' + playerResult.slice(-40);
+                    console.log(`getPlayer(${i}) raw result:`, playerResult);
+
+                    // Извлекаем адрес из результата
+                    // Результат приходит в формате 0x + 64 hex символа (32 байта)
+                    // Адрес занимает последние 20 байт (40 hex символов)
+                    let playerAddress = '';
+                    if (playerResult && playerResult.length >= 42) {
+                        // Убираем 0x и берем последние 40 символов, добавляем 0x обратно
+                        const hexWithoutPrefix = playerResult.slice(2);
+                        const addressHex = hexWithoutPrefix.slice(-40);
+                        playerAddress = '0x' + addressHex;
+                    } else {
+                        console.error('Invalid player result format:', playerResult);
+                        continue;
+                    }
+
+                    console.log(`Player ${i}: ${playerAddress}`);
 
                     // Проверяем, что адрес валидный
                     if (playerAddress === '0x0000000000000000000000000000000000000000') {
@@ -459,6 +474,9 @@ export class BlockchainService {
 
         // Кодируем аргументы
         let encodedParams = '';
+        let stringData = '';
+        let currentOffset = types.length * 32; // Каждый базовый тип занимает 32 байта
+
         for (let i = 0; i < values.length; i++) {
             const value = values[i];
             const type = types[i];
@@ -471,10 +489,28 @@ export class BlockchainService {
                 // Преобразуем число в hex и дополняем до 64 символов
                 const hexValue = parseInt(value).toString(16);
                 encodedParams += hexValue.padStart(64, '0');
+            } else if (type === 'string') {
+                // Для строки добавляем offset (указатель на позицию строки)
+                const offsetHex = currentOffset.toString(16).padStart(64, '0');
+                encodedParams += offsetHex;
+                
+                // Кодируем строку
+                const stringBytes = new TextEncoder().encode(value);
+                const lengthHex = stringBytes.length.toString(16).padStart(64, '0');
+                const hexString = Array.from(stringBytes)
+                    .map(b => b.toString(16).padStart(2, '0'))
+                    .join('');
+                
+                // Дополняем строку до кратного 32 байтам
+                const paddedStringHex = hexString.padEnd(Math.ceil(hexString.length / 64) * 64, '0');
+                
+                stringData += lengthHex + paddedStringHex;
+                currentOffset += 32 + Math.ceil(stringBytes.length / 32) * 32; // length + padded data
             }
         }
 
-        const result = methodId + encodedParams;
+        // Добавляем строковые данные в конец
+        const result = methodId + encodedParams + stringData;
         console.log(`Encoded call: ${result}`);
         return result;
     }
