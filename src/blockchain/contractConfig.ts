@@ -1,5 +1,5 @@
 // Автоматически сгенерировано из contracts/PongTournamentScores.sol
-// Дата генерации: 2025-08-08T16:58:20.941Z
+// Дата генерации: 2025-08-08T17:06:40.139Z
 // Не редактируйте этот файл вручную - используйте npm run compile-contract
 
 export const PongTournamentScoresABI = [

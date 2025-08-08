@@ -23,14 +23,16 @@ export class BlockchainService {
         return knownHashes['ScoreUpdated(address,uint256)'];
     }
 
-    // Проверяет доступность Core.app расширения
-    public isCoreAppAvailable(): boolean {
-        return typeof window !== 'undefined' && window.avalanche !== undefined;
+        // Проверка доступности Core.app
+    private isCoreAppAvailable(): boolean {
+        return typeof window !== 'undefined' && 
+               typeof window.avalanche !== 'undefined' && 
+               window.avalanche !== null;
     }
 
     // Подключение к кошельку Core.app
     public async connectWallet(): Promise<string | null> {
-        if (!this.isCoreAppAvailable()) {
+        if (!this.isCoreAppAvailable() || !window.avalanche) {
             throw new Error('Core.app расширение не установлено или не активировано');
         }
 
@@ -69,7 +71,7 @@ export class BlockchainService {
             throw new Error('Сначала подключите кошелек');
         }
 
-        if (!this.isCoreAppAvailable()) {
+        if (!this.isCoreAppAvailable() || !window.avalanche) {
             throw new Error('Core.app расширение не установлено или не активировано');
         }
 
@@ -101,9 +103,18 @@ export class BlockchainService {
 
     // Ожидание завершения транзакции
     private async waitForTransaction(txHash: string): Promise<any> {
+        if (!window.avalanche) {
+            throw new Error('Core.app не доступен');
+        }
+
         return new Promise((resolve, reject) => {
             const checkReceipt = async () => {
                 try {
+                    if (!window.avalanche) {
+                        reject(new Error('Core.app потерян во время ожидания'));
+                        return;
+                    }
+
                     const receipt = await window.avalanche.request({
                         method: 'eth_getTransactionReceipt',
                         params: [txHash]
@@ -127,6 +138,10 @@ export class BlockchainService {
     public async getPlayerScore(playerAddress: string): Promise<number> {
         if (!this.contractAddress) {
             throw new Error('Адрес контракта не установлен');
+        }
+
+        if (!window.avalanche) {
+            throw new Error('Core.app не доступен');
         }
 
         try {
@@ -154,6 +169,10 @@ export class BlockchainService {
     public async getAllPlayers(): Promise<Array<{ address: string, score: number }>> {
         if (!this.contractAddress) {
             throw new Error('Адрес контракта не установлен');
+        }
+
+        if (!window.avalanche) {
+            throw new Error('Core.app не доступен');
         }
 
         try {
@@ -215,6 +234,10 @@ export class BlockchainService {
             throw new Error('Адрес контракта или подключение кошелька не установлены');
         }
 
+        if (!window.avalanche) {
+            throw new Error('Core.app не доступен');
+        }
+
         try {
             // Кодирование вызова функции
             const data = this.encodeCall('setScore', ['address', 'uint256'], [playerAddress, score.toString()]);
@@ -243,6 +266,10 @@ export class BlockchainService {
             throw new Error('Адрес контракта не установлен');
         }
 
+        if (!window.avalanche) {
+            throw new Error('Core.app не доступен');
+        }
+
         // Создаем фильтр для события ScoreUpdated
         const filter = {
             address: this.contractAddress,
@@ -251,12 +278,17 @@ export class BlockchainService {
 
         const eventListener = async () => {
             try {
+                if (!window.avalanche) {
+                    console.error('Core.app потерян во время прослушивания событий');
+                    return;
+                }
+
                 const logs = await window.avalanche.request({
                     method: 'eth_getFilterLogs',
                     params: [filter]
                 });
 
-                logs.forEach(log => {
+                logs.forEach((log: LogEntry) => {
                     // Декодируем данные события
                     const player = '0x' + log.topics[1].slice(26);
                     const score = parseInt(log.data, 16);

@@ -51,6 +51,7 @@ import '../main.css';
 import { Game } from './Game'; // Imports the core Pong game logic.
 import { Tournament } from './Tournament'; // Imports the tournament management logic.
 import { PlayerConfig, MatchSettings, TournamentSetupInfo, FourPlayerMatchSettings } from './interfaces'; // Imports data structures for player, match, and tournament configurations.
+import { BlockchainScoreBoard } from './components/BlockchainScoreBoard'; // Imports the blockchain scoreboard component.
 
 const MAX_NAME_LENGTH = 20; // Maximum allowed length for player names in Pong and Tic-Tac-Toe game modes.
 
@@ -66,6 +67,7 @@ const COLOR_MAP: { [key: string]: string } = {
 // These variables will hold instances of the Game and Tournament classes.
 let gameInstance: Game | null = null; // Instance of the Pong game. Null initially.
 let tournamentInstance: Tournament | null = null; // Instance of the Tournament manager. Null initially.
+let blockchainScoreBoard: BlockchainScoreBoard | null = null; // Instance of the blockchain scoreboard. Null initially.
 
 // --- UI Element Variables ---
 // These variables will store references to various HTML elements that make up the game's user interface.
@@ -323,6 +325,20 @@ window.addEventListener('DOMContentLoaded', () => {
     );
     // Note: The `playAgainBtn` behavior is handled internally by the `Game` class.
     // If it were to navigate, `MapsTo('gameSetup')` would be called.
+
+    // --- Blockchain Scoreboard Initialization ---
+    // Initialize the blockchain scoreboard component for Web3 integration
+    try {
+        blockchainScoreBoard = new BlockchainScoreBoard('blockchainContainer');
+        console.log('✅ Blockchain scoreboard initialized successfully');
+    } catch (error) {
+        console.warn('⚠️  Failed to initialize blockchain scoreboard:', error);
+        // Hide the blockchain container if initialization fails
+        const blockchainContainer = document.getElementById('blockchainContainer');
+        if (blockchainContainer) {
+            blockchainContainer.style.display = 'none';
+        }
+    }
 
 
     // --- Event Listener Setup for Navigation Buttons ---

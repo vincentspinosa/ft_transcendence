@@ -1,4 +1,5 @@
 import { BlockchainService } from '../blockchain/blockchainService';
+import { getErrorMessage } from '../utils/errorUtils';
 
 export class BlockchainScoreBoard {
     private container: HTMLElement;
@@ -6,12 +7,12 @@ export class BlockchainScoreBoard {
     private refreshInterval: number | null = null;
 
     // DOM элементы
-    private connectButton: HTMLButtonElement;
-    private connectionStatus: HTMLSpanElement;
-    private contractAddressInput: HTMLInputElement;
-    private applyContractButton: HTMLButtonElement;
-    private deployContractButton: HTMLButtonElement;
-    private playerListContainer: HTMLElement;
+    private connectButton!: HTMLButtonElement;
+    private connectionStatus!: HTMLSpanElement;
+    private contractAddressInput!: HTMLInputElement;
+    private applyContractButton!: HTMLButtonElement;
+    private deployContractButton!: HTMLButtonElement;
+    private playerListContainer!: HTMLElement;
 
     constructor(containerId: string) {
         // Получаем контейнер для размещения UI
@@ -91,7 +92,7 @@ export class BlockchainScoreBoard {
                 }
             } catch (error) {
                 console.error('Ошибка при подключении кошелька:', error);
-                alert(`Ошибка при подключении кошелька: ${error.message}`);
+                alert(`Ошибка при подключении кошелька: ${getErrorMessage(error)}`);
             }
         });
 
@@ -112,7 +113,7 @@ export class BlockchainScoreBoard {
                 this.subscribeToScoreUpdates();
             } catch (error) {
                 console.error('Ошибка при применении адреса контракта:', error);
-                alert(`Ошибка: ${error.message}`);
+                alert(`Ошибка: ${getErrorMessage(error)}`);
             }
         });
 
@@ -137,7 +138,7 @@ export class BlockchainScoreBoard {
                 }
             } catch (error) {
                 console.error('Ошибка при развертывании контракта:', error);
-                alert(`Ошибка при развертывании контракта: ${error.message}`);
+                alert(`Ошибка при развертывании контракта: ${getErrorMessage(error)}`);
             } finally {
                 this.deployContractButton.disabled = false;
                 this.deployContractButton.textContent = 'Развернуть новый контракт';
@@ -152,7 +153,7 @@ export class BlockchainScoreBoard {
     }
 
     // Загрузка статистики игроков
-    private async loadPlayerStats(): void {
+    private async loadPlayerStats(): Promise<void> {
         try {
             this.playerListContainer.innerHTML = '<p>Загрузка данных...</p>';
 
@@ -194,7 +195,7 @@ export class BlockchainScoreBoard {
             this.playerListContainer.innerHTML = html;
         } catch (error) {
             console.error('Ошибка при загрузке статистики игроков:', error);
-            this.playerListContainer.innerHTML = `<p class="error">Ошибка при загрузке данных: ${error.message}</p>`;
+            this.playerListContainer.innerHTML = `<p class="error">Ошибка при загрузке данных: ${getErrorMessage(error)}</p>`;
         }
     }
 
