@@ -180,7 +180,83 @@ export class BlockchainService {
     // Получение всех игроков и их счетов
     public async getAllPlayers(): Promise<Array<{ address: string, score: number }>> {
         if (!this.contractAddress) {
-            throw new Error('Contract address not set');
+            console.warn('Contract address not set');
+            return [];
+        }
+
+        if (!window.avalanche) {
+            console.warn('Core.app not available');
+            return [];
+        }
+
+        try {
+            // Сначала попробуем получить количество игроков
+            const countData = this.encodeCall('getPlayersCount', [], []);
+            const countResult = await window.avalanche.request({
+                method: 'eth_call',
+                params: [{
+                    to: this.contractAddress,
+                    data: countData
+                }, 'latest']
+            });
+
+            const playerCount = parseInt(countResult, 16);
+            console.log('Player count:', playerCount);
+
+            // Если нет игроков, возвращаем пустой массив
+            if (playerCount === 0 || isNaN(playerCount)) {
+                return [];
+            }
+
+            const players = [];
+
+            // Получаем каждого игрока по индексу (максимум 10 для безопасности)
+            const maxPlayers = Math.min(playerCount, 10);
+            for (let i = 0; i < maxPlayers; i++) {
+                try {
+                    // Получаем адрес игрока
+                    const playerData = this.encodeCall('getPlayer', ['uint256'], [i.toString()]);
+                    const playerResult = await window.avalanche.request({
+                        method: 'eth_call',
+                        params: [{
+                            to: this.contractAddress,
+                            data: playerData
+                        }, 'latest']
+                    });
+
+                    // Извлекаем адрес из результата (последние 20 байт)
+                    const playerAddress = '0x' + playerResult.slice(-40);
+
+                    // Проверяем, что адрес валидный
+                    if (playerAddress === '0x0000000000000000000000000000000000000000') {
+                        continue;
+                    }
+
+                    // Получаем счет игрока
+                    const score = await this.getPlayerScore(playerAddress);
+
+                    players.push({
+                        address: playerAddress,
+                        score: score
+                    });
+                } catch (playerError) {
+                    console.warn(`Error getting player ${i}:`, playerError);
+                    // Пропускаем этого игрока и продолжаем
+                }
+            }
+
+            return players;
+        } catch (error) {
+            console.warn('Error getting all players, returning empty array:', error);
+            // Возвращаем пустой массив вместо выброса ошибки
+            return [];
+        }
+    }
+
+    // Установка счета игрока (только для владельца контракта)
+    public async setPlayerScore(playerAddress: string, score: number): Promise<void> {
+        if (!this.contractAddress || !this.connectedAddress) {
+            throw new Error('Contract address or wallet connection not set');
         }
 
         if (!window.avalanche) {
@@ -188,69 +264,41 @@ export class BlockchainService {
         }
 
         try {
-            // Используем метод getAllPlayers который возвращает два массива
-            const data = this.encodeCall('getAllPlayers', [], []);
-            const result = await window.avalanche.request({
-                method: 'eth_call',
-                params: [{
-                    to: this.contractAddress,
-                    data
-                }, 'latest']
-            });
+            console.log('Setting score for player:', playerAddress, 'score:', score);
 
-            // Декодируем результат - это два массива: addresses и scores
-            // Результат приходит в виде ABI-encoded данных
-            // Для простоты, если нет игроков, возвращаем пустой массив
-            if (!result || result === '0x') {
-                return [];
-            }
-
-            // Временное решение: возвращаем пустой массив, если декодирование сложное
-            // В реальном проекте нужно правильно декодировать ABI данные
-            console.log('Raw contract result:', result);
-
-            // Попробуем простое декодирование
-            if (result.length <= 66) { // Только заголовки, нет данных
-                return [];
-            }
-
-            return []; // Пока возвращаем пустой массив
-        } catch (error) {
-            console.error('Error getting all players:', error);
-            throw error;
-        }
-    }
-
-    // Установка счета игрока (только для владельца контракта)
-    public async setPlayerScore(playerAddress: string, score: number): Promise<void> {
-        if (!this.contractAddress || !this.connectedAddress) {
-            throw new Error('Адрес контракта или подключение кошелька не установлены');
-        }
-
-        if (!window.avalanche) {
-            throw new Error('Core.app не доступен');
-        }
-
-        try {
             // Кодирование вызова функции
             const data = this.encodeCall('setScore', ['address', 'uint256'], [playerAddress, score.toString()]);
+
+            console.log('Transaction data:', data);
+
+            // Упрощенные параметры транзакции
+            const txParams = {
+                from: this.connectedAddress,
+                to: this.contractAddress,
+                data,
+                gas: '0x30D40' // 200000 в hex
+            };
+
+            console.log('Transaction params:', txParams);
 
             // Отправка транзакции
             const txHash = await window.avalanche.request({
                 method: 'eth_sendTransaction',
-                params: [{
-                    from: this.connectedAddress,
-                    to: this.contractAddress,
-                    data,
-                    gas: '0x30D40', // 200000 в hex
-                    gasPrice: '0x174876E800', // 100 gwei в hex
-                    value: '0x0'
-                }]
+                params: [txParams]
             });
 
+            console.log('Transaction hash:', txHash);
+
+            if (!txHash) {
+                throw new Error('No transaction hash received');
+            }
+
+            // Ждем подтверждение транзакции
             await this.waitForTransaction(txHash);
+
+            console.log('Transaction confirmed');
         } catch (error) {
-            console.error('Ошибка установки счета игрока:', error);
+            console.error('Error setting player score:', error);
             throw error;
         }
     }

@@ -156,8 +156,10 @@ export class BlockchainScoreBoard {
         // Добавляем тестовый счет для подключенного адреса
         await this.blockchainService.setPlayerScore(connectedAddress, Math.floor(Math.random() * 100));
 
-        // Обновляем данные
-        this.loadPlayerStats();
+        // Небольшая задержка перед обновлением данных
+        setTimeout(() => {
+          this.loadPlayerStats();
+        }, 2000);
 
         alert('Test score added successfully!');
       } catch (error) {
