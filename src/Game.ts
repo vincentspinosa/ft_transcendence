@@ -787,6 +787,17 @@ export class Game {
         try {
             console.log(`Saving score to blockchain: ${winner.name} wins!`);
 
+            // Check blockchain state
+            const contractAddress = this.blockchainService.getContractAddress();
+            const connectedAddress = this.blockchainService.getConnectedAddress();
+            console.log(`Blockchain state - Contract: ${contractAddress}, Wallet: ${connectedAddress}`);
+
+            // Check if blockchain is available and ready
+            if (!contractAddress || !connectedAddress) {
+                console.log('⚠️ Blockchain not ready (no contract or wallet), skipping blockchain save');
+                return;
+            }
+
             // Get winner's score
             let winnerScore = 0;
             if (this.player1Paddle && this.playerAConfig?.id === winner.id) {
@@ -804,7 +815,7 @@ export class Game {
                 console.log('⚠️ Could not generate player address, skipping blockchain save');
             }
         } catch (error) {
-            console.error('❌ Failed to save score to blockchain:', error);
+            console.warn('⚠️ Blockchain save failed (game continues normally):', error);
         }
     }
 

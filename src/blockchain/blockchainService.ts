@@ -6,6 +6,12 @@ export class BlockchainService {
     private connectedAddress: string | null = null;
     private eventListeners: (() => void)[] = [];
 
+    constructor() {
+        // Восстанавливаем состояние из localStorage
+        this.contractAddress = localStorage.getItem('blockchainContractAddress');
+        this.connectedAddress = localStorage.getItem('blockchainConnectedAddress');
+    }
+
     // Вычисляет хеш топика для события по его сигнатуре
     private getEventTopicHash(eventSignature: string): string {
         // Простая реализация keccak256 для демонстрации
@@ -42,6 +48,8 @@ export class BlockchainService {
             const accounts = await window.avalanche.request({ method: 'eth_requestAccounts' });
             if (accounts && accounts.length > 0) {
                 this.connectedAddress = accounts[0];
+                // Сохраняем в localStorage для синхронизации между экземплярами
+                localStorage.setItem('blockchainConnectedAddress', accounts[0]);
                 return this.connectedAddress;
             }
             return null;
@@ -53,17 +61,39 @@ export class BlockchainService {
 
     // Получение текущего подключенного адреса
     public getConnectedAddress(): string | null {
-        return this.connectedAddress;
+        // Сначала проверяем локальное состояние
+        if (this.connectedAddress) {
+            return this.connectedAddress;
+        }
+        // Если нет, проверяем localStorage
+        const saved = localStorage.getItem('blockchainConnectedAddress');
+        if (saved) {
+            this.connectedAddress = saved;
+            return saved;
+        }
+        return null;
     }
 
     // Установка адреса контракта
     public setContractAddress(address: string): void {
         this.contractAddress = address;
+        // Сохраняем в localStorage для синхронизации между экземплярами
+        localStorage.setItem('blockchainContractAddress', address);
     }
 
     // Получение адреса контракта
     public getContractAddress(): string | null {
-        return this.contractAddress;
+        // Сначала проверяем локальное состояние
+        if (this.contractAddress) {
+            return this.contractAddress;
+        }
+        // Если нет, проверяем localStorage
+        const saved = localStorage.getItem('blockchainContractAddress');
+        if (saved) {
+            this.contractAddress = saved;
+            return saved;
+        }
+        return null;
     }
 
     // Генерация детерминированного адреса для игрока на основе его ID
@@ -99,8 +129,8 @@ export class BlockchainService {
             const params = {
                 from: this.connectedAddress,
                 data: PongTournamentScoresBytecode,
-                gas: '0x2DC6C0', // 3000000 в hex
-                gasPrice: '0x174876E800', // 100 gwei в hex
+                gas: '0x1E8480', // 2000000 в hex (уменьшили лимит газа)
+                gasPrice: '0x9C4653600', // 42 gwei в hex (уменьшили цену газа для Avalanche)
                 value: '0x0' // Нет отправки эфира
             };
 
