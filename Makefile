@@ -1,4 +1,4 @@
-.PHONY: up down
+.PHONY: up down compile-contract
 
 up: down
 	docker build -t transcendence . && docker run -p 8080:8080 transcendence
@@ -10,3 +10,7 @@ down:
 	else \
 		echo "No Docker containers to stop or remove."; \
 	fi
+
+compile-contract:
+	@echo "🚀 Компиляция смарт-контракта..."
+	@node scripts/compile-contract-simple.js
