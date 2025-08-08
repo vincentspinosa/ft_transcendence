@@ -240,26 +240,47 @@ export class BlockchainService {
                 }, 'latest']
             });
 
+            console.log(`getPlayerName(${playerAddress}) raw result:`, result);
+
             // Декодирование строки из hex
-            if (result === '0x') return '';
-
-            // Пропускаем первые 64 символа (32 байта offset) и следующие 64 символа (32 байта length)
-            const hexString = result.slice(130); // 2 (0x) + 64 (offset) + 64 (length)
-
-            // Конвертируем hex в строку
-            let name = '';
-            for (let i = 0; i < hexString.length; i += 2) {
-                const hex = hexString.substr(i, 2);
-                const charCode = parseInt(hex, 16);
-                if (charCode > 0) {
-                    name += String.fromCharCode(charCode);
-                }
+            if (!result || result === '0x' || result.length < 130) {
+                console.log(`No valid name data for address ${playerAddress}`);
+                return '';
             }
 
-            return name.trim();
+            try {
+                // Пропускаем первые 64 символа (32 байта offset) и следующие 64 символа (32 байта length)
+                if (result.length < 130) {
+                    return '';
+                }
+
+                const lengthHex = result.slice(66, 130); // Длина строки
+                const length = parseInt(lengthHex, 16);
+
+                if (length === 0) {
+                    return '';
+                }
+
+                const hexString = result.slice(130, 130 + length * 2); // Данные строки
+
+                // Конвертируем hex в строку
+                let name = '';
+                for (let i = 0; i < hexString.length; i += 2) {
+                    const hex = hexString.substr(i, 2);
+                    const charCode = parseInt(hex, 16);
+                    if (charCode > 0) {
+                        name += String.fromCharCode(charCode);
+                    }
+                }
+
+                return name.trim();
+            } catch (decodeError) {
+                console.warn('Error decoding player name:', decodeError);
+                return '';
+            }
         } catch (error) {
-            console.error('Ошибка получения имени игрока:', error);
-            return '';
+            console.warn('⚠️ Error getting player name (using fallback):', error);
+            return ''; // Возвращаем пустую строку вместо выброса ошибки
         }
     }
 
@@ -276,6 +297,18 @@ export class BlockchainService {
         }
 
         try {
+            console.log(`🔍 Checking players in contract: ${this.contractAddress}`);
+            
+            // Диагностика: проверим счет для текущего кошелька
+            if (this.connectedAddress) {
+                try {
+                    const myScore = await this.getPlayerScore(this.connectedAddress);
+                    console.log(`🎯 My wallet score: ${this.connectedAddress} = ${myScore}`);
+                } catch (scoreError) {
+                    console.warn('Could not get my wallet score:', scoreError);
+                }
+            }
+
             // Сначала попробуем получить количество игроков
             const countData = this.encodeCall('getPlayersCount', [], []);
             const countResult = await window.avalanche.request({
@@ -287,10 +320,30 @@ export class BlockchainService {
             });
 
             const playerCount = parseInt(countResult, 16);
-            console.log('Player count:', playerCount);
+            console.log(`📊 Player count from contract ${this.contractAddress}: ${playerCount} (raw: ${countResult})`);
 
             // Если нет игроков, возвращаем пустой массив
             if (playerCount === 0 || isNaN(playerCount)) {
+                console.log('⚠️ No players found in contract or invalid count');
+                
+                // Альтернативная проверка: попробуем проверить текущий кошелек напрямую
+                if (this.connectedAddress) {
+                    try {
+                        console.log('🔄 Trying alternative method: checking current wallet directly');
+                        const myScore = await this.getPlayerScore(this.connectedAddress);
+                        if (myScore > 0) {
+                            console.log('✅ Found score for current wallet, returning that data');
+                            return [{
+                                address: this.connectedAddress,
+                                name: 'Current Player',
+                                score: myScore
+                            }];
+                        }
+                    } catch (altError) {
+                        console.warn('Alternative method also failed:', altError);
+                    }
+                }
+                
                 return [];
             }
 
@@ -334,15 +387,18 @@ export class BlockchainService {
                     }
 
                     // Получаем имя и счет игрока
-                    const [playerName, score] = await Promise.all([
+                    const [playerName, score] = await Promise.allSettled([
                         this.getPlayerName(playerAddress),
                         this.getPlayerScore(playerAddress)
+                    ]).then(results => [
+                        results[0].status === 'fulfilled' ? results[0].value : `Player (${playerAddress.substring(0, 6)}...)`,
+                        results[1].status === 'fulfilled' ? results[1].value : 0
                     ]);
 
                     players.push({
                         address: playerAddress,
-                        name: playerName || 'Unknown',
-                        score: score
+                        name: String(playerName || `Player (${playerAddress.substring(0, 6)}...)`),
+                        score: Number(score)
                     });
                 } catch (playerError) {
                     console.warn(`Error getting player ${i}:`, playerError);
@@ -371,44 +427,115 @@ export class BlockchainService {
         try {
             console.log('Setting score for player:', playerAddress, 'name:', playerName, 'score:', score);
 
-            // Кодирование вызова функции с именем
-            const data = this.encodeCall('setScore', ['address', 'string', 'uint256'], [playerAddress, playerName, score.toString()]);
+            // Сначала попробуем новую версию функции с именем
+            await this.setPlayerScoreWithName(playerAddress, playerName, score);
 
-            console.log('Transaction data:', data);
-
-            // Упрощенные параметры транзакции
-            const txParams = {
-                from: this.connectedAddress,
-                to: this.contractAddress,
-                data,
-                gas: '0x30D40' // 200000 в hex
-            };
-
-            console.log('Transaction params:', txParams);
-
-            // Отправка транзакции
-            const txHash = await window.avalanche.request({
-                method: 'eth_sendTransaction',
-                params: [txParams]
-            });
-
-            console.log('Transaction hash:', txHash);
-
-            if (!txHash) {
-                throw new Error('No transaction hash received');
-            }
-
-            // Ждем подтверждение транзакции
-            await this.waitForTransaction(txHash);
-
-            console.log('Transaction confirmed');
-
-            // Уведомляем подписчиков об обновлении счета
-            this.notifyScoreUpdate(playerAddress, score);
         } catch (error) {
-            console.error('Error setting player score:', error);
-            throw error;
+            console.warn('Failed to use new setScore function, trying legacy version:', error);
+
+            try {
+                // Fallback к старой версии функции без имени
+                await this.setPlayerScoreLegacy(playerAddress, score);
+                console.log('✅ Score saved using legacy function');
+            } catch (legacyError) {
+                console.error('Both setScore functions failed:', legacyError);
+                throw legacyError;
+            }
         }
+    }
+
+    // Новая версия функции setScore с именем игрока
+    private async setPlayerScoreWithName(playerAddress: string, playerName: string, score: number): Promise<void> {
+        if (!window.avalanche) {
+            throw new Error('Core.app not available');
+        }
+
+        console.log('Setting score for player:', playerAddress, 'name:', playerName, 'score:', score);
+
+        // Кодирование вызова функции с именем
+        const data = this.encodeCall('setScore', ['address', 'string', 'uint256'], [playerAddress, playerName, score.toString()]);
+
+        console.log('Transaction data:', data);
+
+        // Параметры транзакции с увеличенным gas лимитом для строковых операций
+        const txParams = {
+            from: this.connectedAddress,
+            to: this.contractAddress,
+            data,
+            gas: '0x61A80' // 400000 в hex - увеличенный лимит для строк
+        };
+
+        console.log('Transaction params:', txParams);
+
+        // Отправка транзакции
+        const txHash = await window.avalanche.request({
+            method: 'eth_sendTransaction',
+            params: [txParams]
+        });
+
+        console.log('Transaction hash:', txHash);
+
+        if (!txHash) {
+            throw new Error('No transaction hash received');
+        }
+
+        // Ждем подтверждение транзакции
+        await this.waitForTransaction(txHash);
+
+        console.log('Transaction confirmed');
+
+        // Даем время блокчейну на обновление состояния
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
+        // Уведомляем подписчиков об обновлении счета
+        this.notifyScoreUpdate(playerAddress, score);
+    }
+
+    // Старая версия функции setScore без имени игрока (для совместимости)
+    private async setPlayerScoreLegacy(playerAddress: string, score: number): Promise<void> {
+        if (!window.avalanche) {
+            throw new Error('Core.app not available');
+        }
+
+        console.log('Setting score for player (legacy):', playerAddress, 'score:', score);
+
+        // Кодирование вызова старой функции без имени
+        const data = this.encodeCall('setScore', ['address', 'uint256'], [playerAddress, score.toString()]);
+
+        console.log('Legacy transaction data:', data);
+
+        // Параметры транзакции
+        const txParams = {
+            from: this.connectedAddress,
+            to: this.contractAddress,
+            data,
+            gas: '0x30D40' // 200000 в hex - меньший лимит для простой операции
+        };
+
+        console.log('Legacy transaction params:', txParams);
+
+        // Отправка транзакции
+        const txHash = await window.avalanche.request({
+            method: 'eth_sendTransaction',
+            params: [txParams]
+        });
+
+        console.log('Legacy transaction hash:', txHash);
+
+        if (!txHash) {
+            throw new Error('No transaction hash received');
+        }
+
+        // Ждем подтверждение транзакции
+        await this.waitForTransaction(txHash);
+
+        console.log('Legacy transaction confirmed');
+
+        // Даем время блокчейну на обновление состояния
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
+        // Уведомляем подписчиков об обновлении счета
+        this.notifyScoreUpdate(playerAddress, score);
     }
 
     // Подписка на обновления счетов
@@ -493,17 +620,17 @@ export class BlockchainService {
                 // Для строки добавляем offset (указатель на позицию строки)
                 const offsetHex = currentOffset.toString(16).padStart(64, '0');
                 encodedParams += offsetHex;
-                
+
                 // Кодируем строку
                 const stringBytes = new TextEncoder().encode(value);
                 const lengthHex = stringBytes.length.toString(16).padStart(64, '0');
                 const hexString = Array.from(stringBytes)
                     .map(b => b.toString(16).padStart(2, '0'))
                     .join('');
-                
+
                 // Дополняем строку до кратного 32 байтам
                 const paddedStringHex = hexString.padEnd(Math.ceil(hexString.length / 64) * 64, '0');
-                
+
                 stringData += lengthHex + paddedStringHex;
                 currentOffset += 32 + Math.ceil(stringBytes.length / 32) * 32; // length + padded data
             }
