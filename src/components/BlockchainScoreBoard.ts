@@ -30,9 +30,34 @@ export class BlockchainScoreBoard {
 
     // Проверяем наличие сохраненного адреса контракта
     this.loadSavedContractAddress();
+
+    // Запускаем автоматическое обновление статистики каждые 5 секунд
+    this.startAutoRefresh();
   }
 
-  // Создание UI компонентов
+  // Запуск автоматического обновления статистики
+  private startAutoRefresh(): void {
+    // Очищаем предыдущий интервал если он был
+    if (this.refreshInterval) {
+      clearInterval(this.refreshInterval);
+    }
+
+    // Подписываемся на события обновления счетов
+    this.blockchainService.onScoreUpdate((player: string, score: number) => {
+      console.log(`Score update received: ${player} = ${score}`);
+      // Обновляем статистику сразу после получения события
+      if (this.blockchainService.getContractAddress() && this.blockchainService.getConnectedAddress()) {
+        this.loadPlayerStats();
+      }
+    });
+
+    // Обновляем каждые 10 секунд (увеличили интервал, т.к. есть события)
+    this.refreshInterval = window.setInterval(() => {
+      if (this.blockchainService.getContractAddress() && this.blockchainService.getConnectedAddress()) {
+        this.loadPlayerStats();
+      }
+    }, 10000);
+  }  // Создание UI компонентов
   private createUI(): void {
     this.container.innerHTML = `
       <div class="blockchain-scoreboard">

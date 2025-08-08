@@ -5,6 +5,7 @@ export class BlockchainService {
     private contractAddress: string | null = null;
     private connectedAddress: string | null = null;
     private eventListeners: (() => void)[] = [];
+    private scoreUpdateCallbacks: ((player: string, score: number) => void)[] = [];
 
     constructor() {
         // Восстанавливаем состояние из localStorage
@@ -336,10 +337,29 @@ export class BlockchainService {
             await this.waitForTransaction(txHash);
 
             console.log('Transaction confirmed');
+
+            // Уведомляем подписчиков об обновлении счета
+            this.notifyScoreUpdate(playerAddress, score);
         } catch (error) {
             console.error('Error setting player score:', error);
             throw error;
         }
+    }
+
+    // Подписка на обновления счетов
+    public onScoreUpdate(callback: (player: string, score: number) => void): void {
+        this.scoreUpdateCallbacks.push(callback);
+    }
+
+    // Уведомление подписчиков об обновлении счета
+    private notifyScoreUpdate(player: string, score: number): void {
+        this.scoreUpdateCallbacks.forEach(callback => {
+            try {
+                callback(player, score);
+            } catch (error) {
+                console.error('Error in score update callback:', error);
+            }
+        });
     }
 
     // Подписка на событие обновления счета
