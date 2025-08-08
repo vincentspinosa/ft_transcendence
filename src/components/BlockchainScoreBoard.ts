@@ -116,13 +116,13 @@ export class BlockchainScoreBoard {
       .stats-table td {
         padding: 6px;
         border: 1px solid #ddd;
-        background-color: #f9f9f9;
+        background-color: transparent;
       }
       .stats-table tr:nth-child(even) td {
-        background-color: #f0f0f0;
+        background-color: rgba(255, 255, 255, 0.1);
       }
       .stats-table code {
-        background-color: #e8e8e8;
+        background-color: rgba(255, 255, 255, 0.2);
         padding: 2px 4px;
         border-radius: 3px;
         font-family: monospace;
@@ -209,52 +209,6 @@ export class BlockchainScoreBoard {
     this.connectionStatus.classList.add('connected');
   }
 
-  // Получение имени игрока по блокчейн адресу
-  private getPlayerNameByAddress(address: string): string {
-    // Сначала проверяем сохраненные имена игроков
-    const savedNames = this.getSavedPlayerNames();
-    if (savedNames[address]) {
-      return savedNames[address];
-    }
-
-    // Маппинг блокчейн адресов к именам игроков по умолчанию (на основе player ID)
-    const addressToName: { [key: string]: string } = {
-      '0x0000000000000000000000000000000000000001': 'Player 1',
-      '0x0000000000000000000000000000000000000002': 'Player 2', 
-      '0x0000000000000000000000000000000000000003': 'Player 3',
-      '0x0000000000000000000000000000000000000004': 'Player 4'
-    };
-
-    return addressToName[address] || `Unknown Player (${address.substring(0, 6)}...)`;
-  }
-
-  // Получение сохраненных имен игроков из localStorage
-  private getSavedPlayerNames(): { [address: string]: string } {
-    try {
-      const saved = localStorage.getItem('tournamentPlayerNames');
-      return saved ? JSON.parse(saved) : {};
-    } catch (error) {
-      console.warn('Error loading player names from localStorage:', error);
-      return {};
-    }
-  }
-
-  // Сохранение имен игроков в localStorage
-  public static savePlayerNames(playerConfigs: Array<{name: string, blockchainAddress: string}>): void {
-    try {
-      const nameMapping: { [address: string]: string } = {};
-      playerConfigs.forEach(player => {
-        if (player.blockchainAddress) {
-          nameMapping[player.blockchainAddress] = player.name;
-        }
-      });
-      localStorage.setItem('tournamentPlayerNames', JSON.stringify(nameMapping));
-      console.log('Player names saved:', nameMapping);
-    } catch (error) {
-      console.warn('Error saving player names to localStorage:', error);
-    }
-  }
-
   // Загрузка статистики игроков
   private async loadPlayerStats(): Promise<void> {
     try {
@@ -281,7 +235,8 @@ export class BlockchainScoreBoard {
       `;
 
       players.forEach((player) => {
-        const playerName = this.getPlayerNameByAddress(player.address);
+        // Используем имя из контракта, а если его нет - показываем Unknown Player
+        const playerName = player.name || `Unknown Player (${player.address.substring(0, 6)}...)`;
         html += `
           <tr>
             <td><strong>${playerName}</strong></td>

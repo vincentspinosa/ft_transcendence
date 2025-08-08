@@ -34,6 +34,12 @@
       },
       {
         "indexed": false,
+        "internalType": "string",
+        "name": "playerName",
+        "type": "string"
+      },
+      {
+        "indexed": false,
         "internalType": "uint256",
         "name": "score",
         "type": "uint256"
@@ -50,6 +56,11 @@
         "internalType": "address[]",
         "name": "",
         "type": "address[]"
+      },
+      {
+        "internalType": "string[]",
+        "name": "",
+        "type": "string[]"
       },
       {
         "internalType": "uint256[]",
@@ -74,6 +85,25 @@
         "internalType": "address",
         "name": "",
         "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "player",
+        "type": "address"
+      }
+    ],
+    "name": "getPlayerName",
+    "outputs": [
+      {
+        "internalType": "string",
+        "name": "",
+        "type": "string"
       }
     ],
     "stateMutability": "view",
@@ -146,6 +176,25 @@
   {
     "inputs": [
       {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "name": "playerNames",
+    "outputs": [
+      {
+        "internalType": "string",
+        "name": "",
+        "type": "string"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
         "internalType": "uint256",
         "name": "",
         "type": "uint256"
@@ -187,6 +236,11 @@
         "internalType": "address",
         "name": "player",
         "type": "address"
+      },
+      {
+        "internalType": "string",
+        "name": "playerName",
+        "type": "string"
       },
       {
         "internalType": "uint256",

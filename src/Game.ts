@@ -185,19 +185,7 @@ export class Game {
         this.playerBConfig = { ...settings.playerB };
         this.scoreLimit = settings.scoreLimit;
 
-        // Сохраняем имена игроков для отображения в блокчейн статистике (только для не-турнирных игр)
-        if (!isTournament) {
-            BlockchainScoreBoard.savePlayerNames([
-                {
-                    name: this.playerAConfig.name,
-                    blockchainAddress: this.playerAConfig.blockchainAddress || this.blockchainService.generatePlayerAddress(this.playerAConfig.id)
-                },
-                {
-                    name: this.playerBConfig.name,
-                    blockchainAddress: this.playerBConfig.blockchainAddress || this.blockchainService.generatePlayerAddress(this.playerBConfig.id)
-                }
-            ]);
-        }
+        // Имена игроков теперь автоматически сохраняются в смарт-контракте при записи счета
 
         // Save settings for "Play Again" functionality (only for non-tournament 1v1).
         if (!isTournament) {
@@ -824,7 +812,7 @@ export class Game {
             // Use unique blockchain address for this player
             const playerAddress = winner.blockchainAddress || this.blockchainService.generatePlayerAddress(winner.id);
             if (playerAddress) {
-                await this.blockchainService.setPlayerScore(playerAddress, winnerScore);
+                await this.blockchainService.setPlayerScore(playerAddress, winner.name, winnerScore);
                 console.log(`✅ Score saved to blockchain: ${winner.name} (${playerAddress}) = ${winnerScore} points`);
             } else {
                 console.log('⚠️ Could not generate player address, skipping blockchain save');

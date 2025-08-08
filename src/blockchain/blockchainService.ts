@@ -217,8 +217,54 @@ export class BlockchainService {
         }
     }
 
+    // Получение имени игрока
+    public async getPlayerName(playerAddress: string): Promise<string> {
+        if (!this.contractAddress) {
+            throw new Error('Адрес контракта не установлен');
+        }
+
+        if (!window.avalanche) {
+            throw new Error('Core.app не доступен');
+        }
+
+        try {
+            // Кодирование вызова функции
+            const data = this.encodeCall('getPlayerName', ['address'], [playerAddress]);
+
+            // Вызов контракта
+            const result = await window.avalanche.request({
+                method: 'eth_call',
+                params: [{
+                    to: this.contractAddress,
+                    data
+                }, 'latest']
+            });
+
+            // Декодирование строки из hex
+            if (result === '0x') return '';
+            
+            // Пропускаем первые 64 символа (32 байта offset) и следующие 64 символа (32 байта length)
+            const hexString = result.slice(130); // 2 (0x) + 64 (offset) + 64 (length)
+            
+            // Конвертируем hex в строку
+            let name = '';
+            for (let i = 0; i < hexString.length; i += 2) {
+                const hex = hexString.substr(i, 2);
+                const charCode = parseInt(hex, 16);
+                if (charCode > 0) {
+                    name += String.fromCharCode(charCode);
+                }
+            }
+            
+            return name.trim();
+        } catch (error) {
+            console.error('Ошибка получения имени игрока:', error);
+            return '';
+        }
+    }
+
     // Получение всех игроков и их счетов
-    public async getAllPlayers(): Promise<Array<{ address: string, score: number }>> {
+    public async getAllPlayers(): Promise<Array<{ address: string, name: string, score: number }>> {
         if (!this.contractAddress) {
             console.warn('Contract address not set');
             return [];
@@ -272,11 +318,15 @@ export class BlockchainService {
                         continue;
                     }
 
-                    // Получаем счет игрока
-                    const score = await this.getPlayerScore(playerAddress);
+                    // Получаем имя и счет игрока
+                    const [playerName, score] = await Promise.all([
+                        this.getPlayerName(playerAddress),
+                        this.getPlayerScore(playerAddress)
+                    ]);
 
                     players.push({
                         address: playerAddress,
+                        name: playerName || 'Unknown',
                         score: score
                     });
                 } catch (playerError) {
@@ -294,7 +344,7 @@ export class BlockchainService {
     }
 
     // Установка счета игрока (только для владельца контракта)
-    public async setPlayerScore(playerAddress: string, score: number): Promise<void> {
+    public async setPlayerScore(playerAddress: string, playerName: string, score: number): Promise<void> {
         if (!this.contractAddress || !this.connectedAddress) {
             throw new Error('Contract address or wallet connection not set');
         }
@@ -304,10 +354,10 @@ export class BlockchainService {
         }
 
         try {
-            console.log('Setting score for player:', playerAddress, 'score:', score);
+            console.log('Setting score for player:', playerAddress, 'name:', playerName, 'score:', score);
 
-            // Кодирование вызова функции
-            const data = this.encodeCall('setScore', ['address', 'uint256'], [playerAddress, score.toString()]);
+            // Кодирование вызова функции с именем
+            const data = this.encodeCall('setScore', ['address', 'string', 'uint256'], [playerAddress, playerName, score.toString()]);
 
             console.log('Transaction data:', data);
 

@@ -115,12 +115,7 @@ export class Tournament {
      * Initiates the tournament process. Resets tournament state and sets up the first match.
      */
     public startTournament(): void {
-        // Сохраняем имена игроков для отображения в блокчейн статистике
-        BlockchainScoreBoard.savePlayerNames(this.players.map(player => ({
-            name: player.name,
-            blockchainAddress: player.blockchainAddress || this.blockchainService.generatePlayerAddress(player.id)
-        })));
-
+        // Имена игроков теперь автоматически сохраняются в смарт-контракте при записи счета
         this.currentMatchIndex = 0;
         this.semiFinalWinners = [null, null];
         this.tournamentWinner = null;
@@ -336,7 +331,7 @@ export class Tournament {
             if (playerAddress) {
                 // Tournament winner gets a special high score (e.g., 100 points)
                 const tournamentWinnerScore = 100;
-                await this.blockchainService.setPlayerScore(playerAddress, tournamentWinnerScore);
+                await this.blockchainService.setPlayerScore(playerAddress, winner.name, tournamentWinnerScore);
                 console.log(`✅ Tournament winner saved to blockchain: ${winner.name} (${playerAddress}) = ${tournamentWinnerScore} points`);
             } else {
                 console.log('⚠️ Could not generate player address, skipping blockchain save');
