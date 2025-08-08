@@ -7,9 +7,7 @@
     "build": "tsc && npx webpack --mode production",
     "watch": "tsc -w & npx webpack --watch --mode development",
     "start": "npm run build && live-server --host=0.0.0.0 .",
-    "compile-contract": "node scripts/compile-contract-simple.js",
-    "compile-contract-full": "python3 scripts/compile-contract.py || node scripts/compile-contract.js",
-    "compile-contract-js": "node scripts/compile-contract.js"
+    "compile-contract": "node scripts/compile-contract.js"
   },
   "keywords": [
     "pong",
@@ -21,16 +19,19 @@
   "author": "Vincent Spinosa",
   "license": "MIT",
   "devDependencies": {
+    "autoprefixer": "^10.0.0",
+    "css-loader": "^6.0.0",
     "live-server": "^1.2.0",
+    "postcss": "^8.0.0",
+    "postcss-loader": "^7.0.0",
+    "style-loader": "^3.0.0",
+    "tailwindcss": "^3.0.0",
     "ts-loader": "^9.0.0",
     "typescript": "^5.0.0",
     "webpack": "^5.0.0",
-    "webpack-cli": "^5.0.0",
-    "tailwindcss": "^3.0.0",
-    "postcss": "^8.0.0",
-    "autoprefixer": "^10.0.0",
-    "postcss-loader": "^7.0.0",
-    "css-loader": "^6.0.0",
-    "style-loader": "^3.0.0"
+    "webpack-cli": "^5.0.0"
+  },
+  "dependencies": {
+    "solc": "^0.8.19"
   }
 }

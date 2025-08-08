@@ -13,4 +13,4 @@ down:
 
 compile-contract:
 	@echo "🚀 Компиляция смарт-контракта..."
-	@node scripts/compile-contract-simple.js
+	@node scripts/compile-contract.js

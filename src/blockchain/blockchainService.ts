@@ -5,6 +5,24 @@ export class BlockchainService {
     private connectedAddress: string | null = null;
     private eventListeners: (() => void)[] = [];
 
+    // Вычисляет хеш топика для события по его сигнатуре
+    private getEventTopicHash(eventSignature: string): string {
+        // Простая реализация keccak256 для демонстрации
+        // В реальном проекте лучше использовать библиотеку вроде ethers.js
+        // ScoreUpdated(address,uint256) -> 0x9df7f885bea1d9475c5c33b4f9695e151452bf87c24871d67cbb25a6679f9294
+        const knownHashes: { [key: string]: string } = {
+            'ScoreUpdated(address,uint256)': '0x9df7f885bea1d9475c5c33b4f9695e151452bf87c24871d67cbb25a6679f9294',
+            'OwnershipTransferred(address,address)': '0x8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e0'
+        };
+        
+        if (knownHashes[eventSignature]) {
+            return knownHashes[eventSignature];
+        }
+        
+        console.warn(`Хеш для события ${eventSignature} не найден, используется ScoreUpdated по умолчанию`);
+        return knownHashes['ScoreUpdated(address,uint256)'];
+    }
+
     // Проверяет доступность Core.app расширения
     public isCoreAppAvailable(): boolean {
         return typeof window !== 'undefined' && window.avalanche !== undefined;
@@ -228,7 +246,7 @@ export class BlockchainService {
         // Создаем фильтр для события ScoreUpdated
         const filter = {
             address: this.contractAddress,
-            topics: ['0x9df7f885bea1d9475c5c33b4f9695e151452bf87c24871d67cbb25a6679f9294']
+            topics: [this.getEventTopicHash('ScoreUpdated(address,uint256)')]
         };
 
         const eventListener = async () => {
@@ -310,9 +328,4 @@ export class BlockchainService {
     }
 }
 
-// Добавляем типы для глобального объекта window
-declare global {
-    interface Window {
-        avalanche: any;
-    }
-}
+

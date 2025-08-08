@@ -1,62 +1,50 @@
-# Генерация ABI и байткода для смарт-контрактов
+# Компиляция смарт-контрактов
 
 ## Обзор
 
-В проекте реализована автоматическая генерация ABI и байткода для смарт-контрактов из Solidity файлов. Это устраняет необходимость хардкодить эти значения и обеспечивает их актуальность.
+В проекте реализована автоматическая компиляция Solidity контрактов и генерация TypeScript конфигурации. Это обеспечивает актуальность ABI и байткода без необходимости ручного копирования.
 
 ## Файлы
 
 - `contracts/PongTournamentScores.sol` - исходный Solidity контракт
-- `scripts/compile-contract.py` - Python скрипт для компиляции (рекомендуется)
-- `scripts/compile-contract.js` - Node.js скрипт для компиляции (альтернативный)
+- `scripts/compile-contract.js` - единый скрипт компиляции с автоматической установкой зависимостей
 - `src/blockchain/contractConfig.ts` - автоматически генерируемый файл с ABI и байткодом
 
 ## Использование
 
-### Вариант 1: Python скрипт (рекомендуется)
 ```bash
-# Через npm
+# Через npm (рекомендуется)
 npm run compile-contract
 
 # Через make
 make compile-contract
 
 # Напрямую
-python3 scripts/compile-contract.py
-```
-
-### Вариант 2: Node.js скрипт
-```bash
-# Через npm
-npm run compile-contract-js
-
-# Напрямую
 node scripts/compile-contract.js
 ```
 
+## Как это работает
+
+1. **Автоматическая установка**: Скрипт проверяет наличие Solidity компилятора и устанавливает его локально при необходимости
+2. **Многоуровневая компиляция**: 
+   - Сначала пробует системный `solc`
+   - Затем локальный `solc` из `node_modules`
+   - В крайнем случае использует Node.js API `solc` пакета
+3. **Генерация файлов**: Создает промежуточные файлы в `build/` и финальную TypeScript конфигурацию
+
 ## Зависимости
 
-### Для Python скрипта:
-- Python 3.6+
-- pip (для установки py-solc-x)
+Скрипт автоматически установит необходимые зависимости:
+- `solc@0.8.19` - Solidity compiler для Node.js
 
-Скрипт автоматически установит `py-solc-x` и Solidity compiler при первом запуске.
+## Результат компиляции
 
-### Для Node.js скрипта:
-- Node.js
-- solc (Solidity compiler)
-
-Установка solc:
-```bash
-npm install -g solc
-```
-
-## Автоматическая генерация
-
-После запуска любого из скриптов:
+После запуска скрипта:
 
 1. Компилируется контракт `contracts/PongTournamentScores.sol`
-2. Извлекаются ABI и байткод
+2. Создаются промежуточные файлы в `build/`:
+   - `PongTournamentScores.abi`
+   - `PongTournamentScores.bin`
 3. Генерируется файл `src/blockchain/contractConfig.ts` с экспортированными константами:
    - `PongTournamentScoresABI`
    - `PongTournamentScoresBytecode`
@@ -64,17 +52,15 @@ npm install -g solc
 ## Важные замечания
 
 - ⚠️ **НЕ редактируйте** файл `src/blockchain/contractConfig.ts` вручную
-- Всегда используйте скрипты компиляции после изменения контракта
-- Файл `contractConfig.ts` содержит комментарий о том, что он автоматически сгенерирован
-- Папка `build/` создается автоматически для промежуточных файлов компиляции
+- Всегда используйте скрипт компиляции после изменения контракта
+- Файл `contractConfig.ts` содержит метку времени генерации
+- Папка `build/` создается автоматически для промежуточных файлов
 
 ## Интеграция в CI/CD
 
-Добавьте в ваш CI/CD pipeline:
-
 ```bash
 # Компиляция контрактов перед сборкой
-make compile-contract
+npm run compile-contract
 npm run build
 ```
 
@@ -85,8 +71,7 @@ ft_transcendence/
 ├── contracts/
 │   └── PongTournamentScores.sol     # Исходный контракт
 ├── scripts/
-│   ├── compile-contract.py          # Python скрипт компиляции
-│   └── compile-contract.js          # Node.js скрипт компиляции
+│   └── compile-contract.js          # Единый скрипт компиляции
 ├── src/blockchain/
 │   └── contractConfig.ts            # Автогенерированная конфигурация
 └── build/                           # Промежуточные файлы компиляции
