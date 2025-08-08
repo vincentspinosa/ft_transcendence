@@ -1,4 +1,4 @@
-// Утилиты для работы с ошибками
+// Error handling utilities
 
 export interface ErrorWithMessage {
     message: string;
@@ -19,7 +19,7 @@ export function toErrorWithMessage(maybeError: unknown): ErrorWithMessage {
     try {
         return new Error(JSON.stringify(maybeError));
     } catch {
-        // Fallback в случае, если объект не может быть сериализован
+        // Fallback if object cannot be serialized
         return new Error(String(maybeError));
     }
 }

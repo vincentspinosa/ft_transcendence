@@ -6,58 +6,62 @@ export class BlockchainScoreBoard {
   private blockchainService: BlockchainService;
   private refreshInterval: number | null = null;
 
-  // DOM элементы
+  // DOM elements
   private connectButton!: HTMLButtonElement;
   private connectionStatus!: HTMLSpanElement;
   private contractAddressInput!: HTMLInputElement;
   private applyContractButton!: HTMLButtonElement;
   private deployContractButton!: HTMLButtonElement;
-  private playerListContainer!: HTMLElement; constructor(containerId: string) {
-    // Получаем контейнер для размещения UI
+  private playerListContainer!: HTMLElement;
+
+  constructor(containerId: string) {
+    // Get container for UI placement
     const container = document.getElementById(containerId);
     if (!container) {
-      throw new Error(`Контейнер с ID ${containerId} не найден`);
+      throw new Error(`Container with ID ${containerId} not found`);
     }
 
     this.container = container;
     this.blockchainService = new BlockchainService();
 
-    // Создаем UI элементы
+    // Create UI elements
     this.createUI();
 
-    // Инициализируем обработчики событий
+    // Initialize event handlers
     this.initEventListeners();
 
-    // Проверяем наличие сохраненного адреса контракта
+    // Check for saved contract address
     this.loadSavedContractAddress();
 
-    // Запускаем автоматическое обновление статистики каждые 5 секунд
+    // Start automatic statistics refresh every 5 seconds
     this.startAutoRefresh();
   }
 
-  // Запуск автоматического обновления статистики
+  // Start automatic statistics refresh
   private startAutoRefresh(): void {
-    // Очищаем предыдущий интервал если он был
+    // Clear previous interval if exists
     if (this.refreshInterval) {
       clearInterval(this.refreshInterval);
     }
 
-    // Подписываемся на события обновления счетов
+    // Subscribe to score update events
     this.blockchainService.onScoreUpdate((player: string, score: number) => {
       console.log(`Score update received: ${player} = ${score}`);
-      // Обновляем статистику сразу после получения события
+      // Update statistics immediately after receiving event
       if (this.blockchainService.getContractAddress() && this.blockchainService.getConnectedAddress()) {
         this.loadPlayerStats();
       }
     });
 
-    // Обновляем каждые 10 секунд (увеличили интервал, т.к. есть события)
+    // Update every 10 seconds (increased interval since we have events)
     this.refreshInterval = window.setInterval(() => {
       if (this.blockchainService.getContractAddress() && this.blockchainService.getConnectedAddress()) {
         this.loadPlayerStats();
       }
     }, 10000);
-  }  // Создание UI компонентов
+  }
+
+  // Create UI components
   private createUI(): void {
     this.container.innerHTML = `
       <div class="blockchain-scoreboard">
@@ -81,21 +85,20 @@ export class BlockchainScoreBoard {
       </div>
     `;
 
-    // Получаем ссылки на созданные элементы
+    // Get references to created elements
     this.connectButton = this.container.querySelector('#connect-wallet-btn') as HTMLButtonElement;
     this.connectionStatus = this.container.querySelector('#connection-status') as HTMLSpanElement;
     this.contractAddressInput = this.container.querySelector('#contract-address-input') as HTMLInputElement;
     this.deployContractButton = this.container.querySelector('#deploy-contract-btn') as HTMLButtonElement;
     this.playerListContainer = this.container.querySelector('#player-list-container') as HTMLElement;
 
-    // Убираем отдельный apply button - будем использовать автоматическое применение
-    this.applyContractButton = this.deployContractButton; // Для совместимости
+    this.applyContractButton = this.deployContractButton; // For compatibility
 
-    // Добавляем улучшенные стили для таблицы
+    // Add enhanced styles for table
     this.addTableStyles();
   }
 
-  // Добавление стилей для улучшенного отображения таблицы
+  // Add styles for improved table display
   private addTableStyles(): void {
     const style = document.createElement('style');
     style.textContent = `
@@ -103,43 +106,69 @@ export class BlockchainScoreBoard {
         width: 100%;
         border-collapse: collapse;
         margin-top: 10px;
-        font-size: 11px;
+        font-size: 10px;
       }
       .stats-table th {
         background-color: #2a2a2a;
         color: #fff;
-        padding: 6px;
+        padding: 4px;
         text-align: left;
         border: 1px solid #444;
-        font-size: 10px;
+        font-size: 9px;
+        font-weight: bold;
       }
       .stats-table td {
-        padding: 6px;
+        padding: 4px;
         border: 1px solid #ddd;
         background-color: transparent;
+        font-size: 9px;
       }
       .stats-table tr:nth-child(even) td {
         background-color: rgba(255, 255, 255, 0.1);
       }
       .stats-table code {
         background-color: rgba(255, 255, 255, 0.2);
-        padding: 2px 4px;
-        border-radius: 3px;
+        padding: 1px 2px;
+        border-radius: 2px;
         font-family: monospace;
-        font-size: 10px;
+        font-size: 8px;
       }
       .stats-table .score {
         font-weight: bold;
         color: #007acc;
+        font-size: 10px;
+      }
+      .stats-summary {
+        margin-top: 8px;
+        text-align: center;
+        opacity: 0.7;
+      }
+      .stats-summary small {
+        font-size: 8px;
+      }
+      .debug-info {
+        opacity: 0.7;
+        font-style: italic;
+      }
+      .no-data-message {
+        text-align: center;
+        padding: 15px;
+        background-color: rgba(255, 255, 255, 0.05);
+        border-radius: 5px;
+        margin: 10px 0;
+      }
+      .no-data-message .info-text {
+        margin-bottom: 10px;
         font-size: 12px;
+        color: #ccc;
       }
     `;
     this.container.appendChild(style);
   }
 
-  // Инициализация обработчиков событий
+  // Initialize event handlers
   private initEventListeners(): void {
-    // Обработчик кнопки подключения кошелька
+    // Wallet connection button handler
     this.connectButton.addEventListener('click', async () => {
       try {
         const address = await this.blockchainService.connectWallet();
@@ -147,7 +176,7 @@ export class BlockchainScoreBoard {
           this.updateConnectionStatus(address);
           this.deployContractButton.disabled = false;
 
-          // Если уже есть адрес контракта, загружаем данные
+          // If contract address already exists, load data
           const contractAddress = this.blockchainService.getContractAddress();
           if (contractAddress) {
             this.loadPlayerStats();
@@ -159,7 +188,7 @@ export class BlockchainScoreBoard {
       }
     });
 
-    // Автоматическое применение адреса контракта при вводе
+    // Automatic contract address application on input
     this.contractAddressInput.addEventListener('blur', () => {
       const address = this.contractAddressInput.value.trim();
       if (address && address.startsWith('0x')) {
@@ -174,7 +203,7 @@ export class BlockchainScoreBoard {
       }
     });
 
-    // Обработчик кнопки развертывания контракта
+    // Contract deployment button handler
     this.deployContractButton.addEventListener('click', async () => {
       try {
         this.deployContractButton.disabled = true;
@@ -185,10 +214,10 @@ export class BlockchainScoreBoard {
           this.contractAddressInput.value = contractAddress;
           this.saveContractAddress(contractAddress);
 
-          // Загружаем данные из нового контракта
+          // Load data from new contract
           this.loadPlayerStats();
 
-          // Подписываемся на события обновления счета
+          // Subscribe to score update events
           this.subscribeToScoreUpdates();
 
           alert(`Contract deployed at: ${contractAddress}`);
@@ -203,45 +232,91 @@ export class BlockchainScoreBoard {
     });
   }
 
-  // Обновление статуса подключения
+  // Update connection status
   private updateConnectionStatus(address: string): void {
     this.connectionStatus.textContent = `Connected: ${address.substring(0, 6)}...${address.substring(address.length - 4)}`;
     this.connectionStatus.classList.add('connected');
   }
 
-  // Загрузка статистики игроков
+  // Load player statistics
   private async loadPlayerStats(): Promise<void> {
     try {
       this.playerListContainer.innerHTML = '<p class="loading">Loading scores...</p>';
 
-      const players = await this.blockchainService.getAllPlayers();
+      // Check blockchain state
+      const contractAddress = this.blockchainService.getContractAddress();
+      const connectedAddress = this.blockchainService.getConnectedAddress();
 
-      if (players.length === 0) {
-        this.playerListContainer.innerHTML = '<p class="info-text">No player scores yet.</p>';
+      console.log('📊 Loading player stats...');
+      console.log(`Contract: ${contractAddress}`);
+      console.log(`Wallet: ${connectedAddress}`);
+
+      if (!contractAddress) {
+        this.playerListContainer.innerHTML = '<p class="info-text">Please set contract address first.</p>';
         return;
       }
 
-      // Создаем расширенную таблицу с данными игроков
+      if (!connectedAddress) {
+        this.playerListContainer.innerHTML = '<p class="info-text">Please connect wallet first.</p>';
+        return;
+      }
+
+      // Use new function to get full statistics
+      // console.log('🔄 Fetching players from blockchain...');
+      const players = await this.blockchainService.getAllUniquePlayersWithStats();
+
+      console.log(`📈 Received ${players.length} players from blockchain`);
+      if (players.length > 0) {
+        console.log('📋 Player details:', players.map(p => `${p.name}: ${p.totalScore} pts, ${p.gamesWon}/${p.gamesPlayed} wins`));
+      }
+
+      if (players.length === 0) {
+        this.playerListContainer.innerHTML = `
+          <div class="no-data-message">
+            <p class="info-text">No player scores yet.</p>
+            <p class="debug-info">
+              <small>Contract: ${contractAddress?.substring(0, 10)}...</small><br>
+              <small>Wallet: ${connectedAddress?.substring(0, 10)}...</small><br>
+              <small>🎮 Play a game to save scores to blockchain!</small><br>
+              <small>📊 Scores will appear here automatically after matches.</small>
+            </p>
+          </div>
+        `;
+        return;
+      }
+
+      // Sort players by total score (descending)
+      players.sort((a, b) => b.totalScore - a.totalScore);
+
+      // Create enhanced table with full statistics
       let html = `
         <table class="stats-table">
           <thead>
             <tr>
+              <th>Rank</th>
               <th>Player Name</th>
-              <th>Address</th>
-              <th>Score</th>
+              <th>Total Score</th>
+              <th>Games</th>
+              <th>Wins</th>
+              <th>Win Rate</th>
             </tr>
           </thead>
           <tbody>
       `;
 
-      players.forEach((player) => {
-        // Используем имя из контракта, а если его нет - показываем Unknown Player
+      players.forEach((player, index) => {
+        const rank = index + 1;
         const playerName = player.name || `Unknown Player (${player.address.substring(0, 6)}...)`;
+        const rankIcon = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : `${rank}.`;
+
         html += `
           <tr>
+            <td><strong>${rankIcon}</strong></td>
             <td><strong>${playerName}</strong></td>
-            <td><code>${player.address.substring(0, 6)}...${player.address.substring(player.address.length - 4)}</code></td>
-            <td><span class="score">${player.score}</span></td>
+            <td><span class="score">${player.totalScore}</span></td>
+            <td>${player.gamesPlayed}</td>
+            <td>${player.gamesWon}</td>
+            <td>${player.winRate}%</td>
           </tr>
         `;
       });
@@ -249,6 +324,9 @@ export class BlockchainScoreBoard {
       html += `
           </tbody>
         </table>
+        <div class="stats-summary">
+          <p><small>Total players: ${players.length} | Last updated: ${new Date().toLocaleTimeString()}</small></p>
+        </div>
       `;
 
       this.playerListContainer.innerHTML = html;
@@ -258,40 +336,40 @@ export class BlockchainScoreBoard {
     }
   }
 
-  // Подписка на события обновления счета
+  // Subscribe to score update events
   private subscribeToScoreUpdates(): void {
-    // Сначала отписываемся от предыдущих подписок
+    // First unsubscribe from previous subscriptions
     this.blockchainService.unsubscribeFromEvents();
 
-    // Подписываемся на обновления счета
+    // Subscribe to score updates
     this.blockchainService.subscribeToScoreUpdates((player, score) => {
       console.log(`Player ${player} score updated: ${score}`);
       this.loadPlayerStats();
     });
 
-    // Настраиваем периодическое обновление данных
+    // Periodic data updates
     if (this.refreshInterval) {
       clearInterval(this.refreshInterval);
     }
 
     this.refreshInterval = window.setInterval(() => {
       this.loadPlayerStats();
-    }, 30000); // Обновляем каждые 30 секунд
+    }, 30000);
   }
 
-  // Сохранение адреса контракта в localStorage
+  // Save contract address to localStorage
   private saveContractAddress(address: string): void {
     localStorage.setItem('pongContractAddress', address);
   }
 
-  // Загрузка адреса контракта из localStorage
+  // Load contract address from localStorage
   private loadSavedContractAddress(): void {
     const savedAddress = localStorage.getItem('pongContractAddress');
     if (savedAddress) {
       this.contractAddressInput.value = savedAddress;
       this.blockchainService.setContractAddress(savedAddress);
 
-      // Если есть подключение к кошельку, загружаем данные
+      // If wallet is connected, load data
       if (this.blockchainService.getConnectedAddress()) {
         this.loadPlayerStats();
         this.subscribeToScoreUpdates();
@@ -299,7 +377,7 @@ export class BlockchainScoreBoard {
     }
   }
 
-  // Добавление стилей
+  // Add styles
   private addStyles(): void {
     const styleElement = document.createElement('style');
     styleElement.textContent = `
@@ -410,7 +488,7 @@ export class BlockchainScoreBoard {
     document.head.appendChild(styleElement);
   }
 
-  // Метод для очистки ресурсов при удалении компонента
+  // Method for cleaning up resources when removing component
   public destroy(): void {
     if (this.refreshInterval) {
       clearInterval(this.refreshInterval);

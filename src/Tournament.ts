@@ -115,7 +115,6 @@ export class Tournament {
      * Initiates the tournament process. Resets tournament state and sets up the first match.
      */
     public startTournament(): void {
-        // Имена игроков теперь автоматически сохраняются в смарт-контракте при записи счета
         this.currentMatchIndex = 0;
         this.semiFinalWinners = [null, null];
         this.tournamentWinner = null;
@@ -319,25 +318,56 @@ export class Tournament {
     }
 
     /**
-     * Saves the tournament winner to blockchain with a special tournament victory score
+     * Saves the tournament results to blockchain with proper stats for all participants
      * @param winner The player who won the tournament
      */
     private async saveTournamentWinnerToBlockchain(winner: PlayerConfig): Promise<void> {
         try {
-            console.log(`🏆 Saving tournament winner to blockchain: ${winner.name}`);
+            console.log(`🏆 Saving tournament results to blockchain. Winner: ${winner.name}`);
 
-            // Use real wallet address instead of generated address
-            const playerAddress = this.blockchainService.getConnectedAddress();
-            if (playerAddress) {
-                // Tournament winner gets a special high score (e.g., 100 points)
-                const tournamentWinnerScore = 100;
-                await this.blockchainService.setPlayerScore(playerAddress, winner.name, tournamentWinnerScore);
-                console.log(`✅ Tournament winner saved to blockchain: ${winner.name} (${playerAddress}) = ${tournamentWinnerScore} points`);
-            } else {
-                console.log('⚠️ Wallet not connected, skipping blockchain save');
+            // Check blockchain state
+            const contractAddress = this.blockchainService.getContractAddress();
+            const connectedAddress = this.blockchainService.getConnectedAddress();
+
+            if (!contractAddress || !connectedAddress) {
+                console.log('⚠️ Blockchain not ready, skipping tournament save');
+                return;
             }
+
+            // Save all tournament participants with their results
+            const participantsToSave = [
+                { player: this.players[0], isWinner: this.players[0].id === winner.id },
+                { player: this.players[1], isWinner: this.players[1].id === winner.id },
+                { player: this.players[2], isWinner: this.players[2].id === winner.id },
+                { player: this.players[3], isWinner: this.players[3].id === winner.id }
+            ];
+
+            console.log(`📝 Saving ${participantsToSave.length} tournament participants to blockchain`);
+
+            for (const participant of participantsToSave) {
+                try {
+                    // Tournament winner gets 100 points, others get 25 points for participation
+                    const tournamentScore = participant.isWinner ? 100 : 25;
+
+                    await this.blockchainService.addPlayerScore(
+                        participant.player.name,
+                        connectedAddress,
+                        tournamentScore,
+                        participant.isWinner
+                    );
+
+                    // console.log(`✅ Tournament result saved for ${participant.player.name}: ${tournamentScore} points, won: ${participant.isWinner}`);
+
+                    // Small delay to avoid overwhelming blockchain
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                } catch (playerError) {
+                    console.warn(`⚠️ Failed to save tournament result for ${participant.player.name}:`, playerError);
+                }
+            }
+
+            console.log(`🎉 Tournament results saved to blockchain successfully`);
         } catch (error) {
-            console.error('❌ Failed to save tournament winner to blockchain:', error);
+            console.error('❌ Failed to save tournament results to blockchain:', error);
         }
     }
 }

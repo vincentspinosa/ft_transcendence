@@ -185,8 +185,6 @@ export class Game {
         this.playerBConfig = { ...settings.playerB };
         this.scoreLimit = settings.scoreLimit;
 
-        // Имена игроков теперь автоматически сохраняются в смарт-контракте при записи счета
-
         // Save settings for "Play Again" functionality (only for non-tournament 1v1).
         if (!isTournament) {
             this.lastSingleMatchSettings = { ...settings };
@@ -783,12 +781,15 @@ export class Game {
     }
 
     /**
-     * Saves the winner's score to blockchain
+     * Saves all players' scores to blockchain
      * @param winner The player who won the match
      */
     private async saveScoreToBlockchain(winner: PlayerConfig): Promise<void> {
         try {
-            console.log(`Saving score to blockchain: ${winner.name} wins!`);
+            console.log(`Saving match results to blockchain. Winner: ${winner.name}`);
+
+            // Force refresh contract address from localStorage to ensure we're using the latest
+            this.blockchainService.refreshContractAddress();
 
             // Check blockchain state
             const contractAddress = this.blockchainService.getContractAddress();
@@ -801,22 +802,75 @@ export class Game {
                 return;
             }
 
-            // Get winner's score
-            let winnerScore = 0;
-            if (this.player1Paddle && this.playerAConfig?.id === winner.id) {
-                winnerScore = this.player1Paddle.score;
-            } else if (this.player2Paddle && this.playerBConfig?.id === winner.id) {
-                winnerScore = this.player2Paddle.score;
+            // Collect all players and their scores
+            const playersToSave: Array<{ config: PlayerConfig, score: number, won: boolean }> = [];
+
+            // Player 1
+            if (this.player1Paddle && this.playerAConfig) {
+                playersToSave.push({
+                    config: this.playerAConfig,
+                    score: this.player1Paddle.score,
+                    won: this.playerAConfig.id === winner.id
+                });
             }
 
-            // Use real wallet address instead of generated address
-            const playerAddress = this.blockchainService.getConnectedAddress();
-            if (playerAddress) {
-                await this.blockchainService.setPlayerScore(playerAddress, winner.name, winnerScore);
-                console.log(`✅ Score saved to blockchain: ${winner.name} (${playerAddress}) = ${winnerScore} points`);
-            } else {
-                console.log('⚠️ Wallet not connected, skipping blockchain save');
+            // Player 2
+            if (this.player2Paddle && this.playerBConfig) {
+                playersToSave.push({
+                    config: this.playerBConfig,
+                    score: this.player2Paddle.score,
+                    won: this.playerBConfig.id === winner.id
+                });
             }
+
+            // For 4-player mode, add team players
+            if (this.gameMode === '4player') {
+                if (this.team1PlayerBConfig) {
+                    playersToSave.push({
+                        config: this.team1PlayerBConfig,
+                        score: this.team1Score,
+                        won: this.team1Score > this.team2Score
+                    });
+                }
+                if (this.team2PlayerAConfig) {
+                    playersToSave.push({
+                        config: this.team2PlayerAConfig,
+                        score: this.team2Score,
+                        won: this.team2Score > this.team1Score
+                    });
+                }
+            }
+
+            // Save all players to blockchain
+            console.log(`📝 Saving ${playersToSave.length} players to blockchain. Winner: ${winner.name}`);
+
+            // Log all players before saving
+            playersToSave.forEach((playerData, index) => {
+                // console.log(`Player ${index + 1}: ${playerData.config.name} - Score: ${playerData.score}, Won: ${playerData.won ? '🏆' : '❌'}`);
+            });
+
+            for (const playerData of playersToSave) {
+                try {
+                    // console.log(`💾 Saving to blockchain: ${playerData.config.name} (score: ${playerData.score}, won: ${playerData.won})`);
+
+                    // Use connected wallet address for all players (they're all playing from same device)
+                    await this.blockchainService.addPlayerScore(
+                        playerData.config.name,
+                        connectedAddress,
+                        playerData.score,
+                        playerData.won
+                    );
+
+                    console.log(`✅ Successfully saved ${playerData.config.name}: ${playerData.score} points, won: ${playerData.won ? '🏆' : '❌'}`);
+
+                    // Small delay between saves to avoid overwhelming the blockchain
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                } catch (playerSaveError) {
+                    console.warn(`⚠️ Failed to save ${playerData.config.name}:`, playerSaveError);
+                }
+            }
+
+            console.log(`🎉 All players saved to blockchain successfully`);
         } catch (error) {
             console.warn('⚠️ Blockchain save failed (game continues normally):', error);
         }

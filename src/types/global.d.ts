@@ -1,5 +1,3 @@
-// Глобальные типы для blockchain интеграции
-
 interface Window {
     avalanche?: {
         request: (params: {
@@ -11,7 +9,7 @@ interface Window {
     };
 }
 
-// Типы для событий блокчейна
+// Types for blockchain events
 interface LogEntry {
     topics: string[];
     data: string;
@@ -20,7 +18,7 @@ interface LogEntry {
     transactionHash: string;
 }
 
-// Типы для фильтров событий
+// Types for event filters
 interface EventFilter {
     fromBlock: string;
     toBlock: string;
@@ -28,7 +26,7 @@ interface EventFilter {
     topics: string[];
 }
 
-// Типы для результатов RPC вызовов
+// Types for RPC call results
 interface TransactionReceipt {
     blockHash: string;
     blockNumber: string;
@@ -41,12 +39,12 @@ interface TransactionReceipt {
     transactionIndex: string;
 }
 
-// Типы для ошибок
+// Error types
 interface ErrorWithMessage {
     message: string;
 }
 
-// Type guard для проверки ошибок
+// Type guard for error checking
 function isErrorWithMessage(error: unknown): error is ErrorWithMessage {
     return (
         typeof error === 'object' &&
