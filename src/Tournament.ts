@@ -2,6 +2,7 @@
 import { PlayerConfig, TournamentSetupInfo, MatchSettings } from './interfaces';
 import { Game } from './Game';
 import { BlockchainService } from './blockchain';
+import { BlockchainScoreBoard } from './components/BlockchainScoreBoard';
 
 /**
  * Manages the flow of a Pong tournament, including setting up matches,
@@ -114,6 +115,12 @@ export class Tournament {
      * Initiates the tournament process. Resets tournament state and sets up the first match.
      */
     public startTournament(): void {
+        // Сохраняем имена игроков для отображения в блокчейн статистике
+        BlockchainScoreBoard.savePlayerNames(this.players.map(player => ({
+            name: player.name,
+            blockchainAddress: player.blockchainAddress || this.blockchainService.generatePlayerAddress(player.id)
+        })));
+
         this.currentMatchIndex = 0;
         this.semiFinalWinners = [null, null];
         this.tournamentWinner = null;

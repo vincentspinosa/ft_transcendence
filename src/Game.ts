@@ -4,6 +4,7 @@ import { Ball } from './Ball';
 import { PowerUp } from './PowerUp'; // Import the new PowerUp class
 import { PlayerConfig, MatchSettings, FourPlayerMatchSettings } from './interfaces';
 import { BlockchainService } from './blockchain';
+import { BlockchainScoreBoard } from './components/BlockchainScoreBoard';
 
 /**
  * The main Game class responsible for managing the Pong game logic,
@@ -183,6 +184,20 @@ export class Game {
         this.playerAConfig = { ...settings.playerA };
         this.playerBConfig = { ...settings.playerB };
         this.scoreLimit = settings.scoreLimit;
+
+        // Сохраняем имена игроков для отображения в блокчейн статистике (только для не-турнирных игр)
+        if (!isTournament) {
+            BlockchainScoreBoard.savePlayerNames([
+                {
+                    name: this.playerAConfig.name,
+                    blockchainAddress: this.playerAConfig.blockchainAddress || this.blockchainService.generatePlayerAddress(this.playerAConfig.id)
+                },
+                {
+                    name: this.playerBConfig.name,
+                    blockchainAddress: this.playerBConfig.blockchainAddress || this.blockchainService.generatePlayerAddress(this.playerBConfig.id)
+                }
+            ]);
+        }
 
         // Save settings for "Play Again" functionality (only for non-tournament 1v1).
         if (!isTournament) {

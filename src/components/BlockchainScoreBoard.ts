@@ -90,6 +90,51 @@ export class BlockchainScoreBoard {
 
     // Убираем отдельный apply button - будем использовать автоматическое применение
     this.applyContractButton = this.deployContractButton; // Для совместимости
+
+    // Добавляем улучшенные стили для таблицы
+    this.addTableStyles();
+  }
+
+  // Добавление стилей для улучшенного отображения таблицы
+  private addTableStyles(): void {
+    const style = document.createElement('style');
+    style.textContent = `
+      .stats-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 10px;
+        font-size: 11px;
+      }
+      .stats-table th {
+        background-color: #2a2a2a;
+        color: #fff;
+        padding: 6px;
+        text-align: left;
+        border: 1px solid #444;
+        font-size: 10px;
+      }
+      .stats-table td {
+        padding: 6px;
+        border: 1px solid #ddd;
+        background-color: #f9f9f9;
+      }
+      .stats-table tr:nth-child(even) td {
+        background-color: #f0f0f0;
+      }
+      .stats-table code {
+        background-color: #e8e8e8;
+        padding: 2px 4px;
+        border-radius: 3px;
+        font-family: monospace;
+        font-size: 10px;
+      }
+      .stats-table .score {
+        font-weight: bold;
+        color: #007acc;
+        font-size: 12px;
+      }
+    `;
+    this.container.appendChild(style);
   }
 
   // Инициализация обработчиков событий
@@ -164,6 +209,52 @@ export class BlockchainScoreBoard {
     this.connectionStatus.classList.add('connected');
   }
 
+  // Получение имени игрока по блокчейн адресу
+  private getPlayerNameByAddress(address: string): string {
+    // Сначала проверяем сохраненные имена игроков
+    const savedNames = this.getSavedPlayerNames();
+    if (savedNames[address]) {
+      return savedNames[address];
+    }
+
+    // Маппинг блокчейн адресов к именам игроков по умолчанию (на основе player ID)
+    const addressToName: { [key: string]: string } = {
+      '0x0000000000000000000000000000000000000001': 'Player 1',
+      '0x0000000000000000000000000000000000000002': 'Player 2', 
+      '0x0000000000000000000000000000000000000003': 'Player 3',
+      '0x0000000000000000000000000000000000000004': 'Player 4'
+    };
+
+    return addressToName[address] || `Unknown Player (${address.substring(0, 6)}...)`;
+  }
+
+  // Получение сохраненных имен игроков из localStorage
+  private getSavedPlayerNames(): { [address: string]: string } {
+    try {
+      const saved = localStorage.getItem('tournamentPlayerNames');
+      return saved ? JSON.parse(saved) : {};
+    } catch (error) {
+      console.warn('Error loading player names from localStorage:', error);
+      return {};
+    }
+  }
+
+  // Сохранение имен игроков в localStorage
+  public static savePlayerNames(playerConfigs: Array<{name: string, blockchainAddress: string}>): void {
+    try {
+      const nameMapping: { [address: string]: string } = {};
+      playerConfigs.forEach(player => {
+        if (player.blockchainAddress) {
+          nameMapping[player.blockchainAddress] = player.name;
+        }
+      });
+      localStorage.setItem('tournamentPlayerNames', JSON.stringify(nameMapping));
+      console.log('Player names saved:', nameMapping);
+    } catch (error) {
+      console.warn('Error saving player names to localStorage:', error);
+    }
+  }
+
   // Загрузка статистики игроков
   private async loadPlayerStats(): Promise<void> {
     try {
@@ -176,12 +267,13 @@ export class BlockchainScoreBoard {
         return;
       }
 
-      // Создаем простую таблицу с данными игроков
+      // Создаем расширенную таблицу с данными игроков
       let html = `
         <table class="stats-table">
           <thead>
             <tr>
-              <th>Player</th>
+              <th>Player Name</th>
+              <th>Address</th>
               <th>Score</th>
             </tr>
           </thead>
@@ -189,10 +281,12 @@ export class BlockchainScoreBoard {
       `;
 
       players.forEach((player) => {
+        const playerName = this.getPlayerNameByAddress(player.address);
         html += `
           <tr>
-            <td>${player.address.substring(0, 6)}...${player.address.substring(player.address.length - 4)}</td>
-            <td>${player.score}</td>
+            <td><strong>${playerName}</strong></td>
+            <td><code>${player.address.substring(0, 6)}...${player.address.substring(player.address.length - 4)}</code></td>
+            <td><span class="score">${player.score}</span></td>
           </tr>
         `;
       });
