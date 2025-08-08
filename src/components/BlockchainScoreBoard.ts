@@ -6,15 +6,14 @@ export class BlockchainScoreBoard {
   private blockchainService: BlockchainService;
   private refreshInterval: number | null = null;
 
-  // DOM элементы
-  private connectButton!: HTMLButtonElement;
-  private connectionStatus!: HTMLSpanElement;
-  private contractAddressInput!: HTMLInputElement;
-  private applyContractButton!: HTMLButtonElement;
-  private deployContractButton!: HTMLButtonElement;
-  private playerListContainer!: HTMLElement;
-
-  constructor(containerId: string) {
+    // DOM элементы
+    private connectButton!: HTMLButtonElement;
+    private connectionStatus!: HTMLSpanElement;
+    private contractAddressInput!: HTMLInputElement;
+    private applyContractButton!: HTMLButtonElement;
+    private deployContractButton!: HTMLButtonElement;
+    private testScoreButton!: HTMLButtonElement;
+    private playerListContainer!: HTMLElement;  constructor(containerId: string) {
     // Получаем контейнер для размещения UI
     const container = document.getElementById(containerId);
     if (!container) {
@@ -48,6 +47,7 @@ export class BlockchainScoreBoard {
         <div class="contract-section">
           <input type="text" id="contract-address-input" class="input" placeholder="Contract address (optional)">
           <button id="deploy-contract-btn" class="btn-secondary" disabled>Deploy Contract</button>
+          <button id="test-score-btn" class="btn-secondary" disabled>Add Test Score</button>
         </div>
         
         <div class="stats-section">
