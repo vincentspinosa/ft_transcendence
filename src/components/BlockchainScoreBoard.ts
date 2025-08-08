@@ -12,7 +12,6 @@ export class BlockchainScoreBoard {
   private contractAddressInput!: HTMLInputElement;
   private applyContractButton!: HTMLButtonElement;
   private deployContractButton!: HTMLButtonElement;
-  private testScoreButton!: HTMLButtonElement;
   private playerListContainer!: HTMLElement; constructor(containerId: string) {
     // Получаем контейнер для размещения UI
     const container = document.getElementById(containerId);
@@ -47,7 +46,6 @@ export class BlockchainScoreBoard {
         <div class="contract-section">
           <input type="text" id="contract-address-input" class="input" placeholder="Contract address (optional)">
           <button id="deploy-contract-btn" class="btn-secondary" disabled>Deploy Contract</button>
-          <button id="test-score-btn" class="btn-secondary" disabled>Add Test Score</button>
         </div>
         
         <div class="stats-section">
@@ -63,7 +61,6 @@ export class BlockchainScoreBoard {
     this.connectionStatus = this.container.querySelector('#connection-status') as HTMLSpanElement;
     this.contractAddressInput = this.container.querySelector('#contract-address-input') as HTMLInputElement;
     this.deployContractButton = this.container.querySelector('#deploy-contract-btn') as HTMLButtonElement;
-    this.testScoreButton = this.container.querySelector('#test-score-btn') as HTMLButtonElement;
     this.playerListContainer = this.container.querySelector('#player-list-container') as HTMLElement;
 
     // Убираем отдельный apply button - будем использовать автоматическое применение
