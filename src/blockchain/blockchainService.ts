@@ -1,4 +1,5 @@
 import { PongTournamentScoresABI, PongTournamentScoresBytecode } from './contractConfig';
+import { keccak256 } from 'js-sha3';
 
 export class BlockchainService {
     private contractAddress: string | null = null;
@@ -341,18 +342,12 @@ export class BlockchainService {
 
     // Вспомогательный метод для кодирования вызова функции
     private encodeCall(functionName: string, types: string[], values: string[]): string {
-        // Находим функцию в ABI
-        const functionABI = PongTournamentScoresABI.find(
-            item => item.type === 'function' && item.name === functionName
-        );
-
-        if (!functionABI) {
-            throw new Error(`Функция ${functionName} не найдена в ABI`);
-        }
-
-        // Создаем сигнатуру функции
+        // Создаем сигнатуру функции и вычисляем её Keccak-256 хеш
         const signature = `${functionName}(${types.join(',')})`;
-        const signatureHash = this.sha3(signature).slice(0, 10);
+        const hash = keccak256(signature);
+        const methodId = '0x' + hash.slice(0, 8); // Первые 4 байта (8 hex символов)
+
+        console.log(`Function: ${signature} -> Method ID: ${methodId}`);
 
         // Кодируем аргументы
         let encodedParams = '';
@@ -363,7 +358,7 @@ export class BlockchainService {
             if (type === 'address') {
                 // Удаляем префикс 0x и дополняем до 64 символов
                 const paddedValue = value.startsWith('0x') ? value.slice(2) : value;
-                encodedParams += paddedValue.padStart(64, '0');
+                encodedParams += paddedValue.toLowerCase().padStart(64, '0');
             } else if (type === 'uint256') {
                 // Преобразуем число в hex и дополняем до 64 символов
                 const hexValue = parseInt(value).toString(16);
@@ -371,16 +366,9 @@ export class BlockchainService {
             }
         }
 
-        return signatureHash + encodedParams;
-    }
-
-    // Реализация sha3 (Keccak-256)
-    private sha3(input: string): string {
-        // Упрощенная версия для примера, в реальном коде нужно использовать библиотеку
-        // Например keccak256 из ethers.js или web3.js
-        // Возвращаем заглушку для упрощения примера
-        const mockHash = '0x' + Array(64).fill('0').join('');
-        return mockHash;
+        const result = methodId + encodedParams;
+        console.log(`Encoded call: ${result}`);
+        return result;
     }
 }
 
