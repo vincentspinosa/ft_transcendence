@@ -298,7 +298,7 @@ export class BlockchainService {
 
         try {
             console.log(`🔍 Checking players in contract: ${this.contractAddress}`);
-            
+
             // Диагностика: проверим счет для текущего кошелька
             if (this.connectedAddress) {
                 try {
@@ -325,7 +325,7 @@ export class BlockchainService {
             // Если нет игроков, возвращаем пустой массив
             if (playerCount === 0 || isNaN(playerCount)) {
                 console.log('⚠️ No players found in contract or invalid count');
-                
+
                 // Альтернативная проверка: попробуем проверить текущий кошелек напрямую
                 if (this.connectedAddress) {
                     try {
@@ -343,7 +343,7 @@ export class BlockchainService {
                         console.warn('Alternative method also failed:', altError);
                     }
                 }
-                
+
                 return [];
             }
 
