@@ -103,35 +103,61 @@ export class BlockchainScoreBoard {
         width: 100%;
         border-collapse: collapse;
         margin-top: 10px;
-        font-size: 11px;
+        font-size: 10px;
       }
       .stats-table th {
         background-color: #2a2a2a;
         color: #fff;
-        padding: 6px;
+        padding: 4px;
         text-align: left;
         border: 1px solid #444;
-        font-size: 10px;
+        font-size: 9px;
+        font-weight: bold;
       }
       .stats-table td {
-        padding: 6px;
+        padding: 4px;
         border: 1px solid #ddd;
         background-color: transparent;
+        font-size: 9px;
       }
       .stats-table tr:nth-child(even) td {
         background-color: rgba(255, 255, 255, 0.1);
       }
       .stats-table code {
         background-color: rgba(255, 255, 255, 0.2);
-        padding: 2px 4px;
-        border-radius: 3px;
+        padding: 1px 2px;
+        border-radius: 2px;
         font-family: monospace;
-        font-size: 10px;
+        font-size: 8px;
       }
       .stats-table .score {
         font-weight: bold;
         color: #007acc;
+        font-size: 10px;
+      }
+      .stats-summary {
+        margin-top: 8px;
+        text-align: center;
+        opacity: 0.7;
+      }
+      .stats-summary small {
+        font-size: 8px;
+      }
+      .debug-info {
+        opacity: 0.7;
+        font-style: italic;
+      }
+      .no-data-message {
+        text-align: center;
+        padding: 15px;
+        background-color: rgba(255, 255, 255, 0.05);
+        border-radius: 5px;
+        margin: 10px 0;
+      }
+      .no-data-message .info-text {
+        margin-bottom: 10px;
         font-size: 12px;
+        color: #ccc;
       }
     `;
     this.container.appendChild(style);
@@ -214,34 +240,80 @@ export class BlockchainScoreBoard {
     try {
       this.playerListContainer.innerHTML = '<p class="loading">Loading scores...</p>';
 
-      const players = await this.blockchainService.getAllPlayers();
+      // Проверяем состояние блокчейна
+      const contractAddress = this.blockchainService.getContractAddress();
+      const connectedAddress = this.blockchainService.getConnectedAddress();
 
-      if (players.length === 0) {
-        this.playerListContainer.innerHTML = '<p class="info-text">No player scores yet.</p>';
+      console.log('📊 Loading player stats...');
+      console.log(`Contract: ${contractAddress}`);
+      console.log(`Wallet: ${connectedAddress}`);
+
+      if (!contractAddress) {
+        this.playerListContainer.innerHTML = '<p class="info-text">Please set contract address first.</p>';
         return;
       }
 
-      // Создаем расширенную таблицу с данными игроков
+      if (!connectedAddress) {
+        this.playerListContainer.innerHTML = '<p class="info-text">Please connect wallet first.</p>';
+        return;
+      }
+
+      // Используем новую функцию для получения полной статистики
+      console.log('🔄 Fetching players from blockchain...');
+      const players = await this.blockchainService.getAllUniquePlayersWithStats();
+
+      console.log(`📈 Received ${players.length} players from blockchain`);
+      if (players.length > 0) {
+        console.log('📋 Player details:', players.map(p => `${p.name}: ${p.totalScore} pts, ${p.gamesWon}/${p.gamesPlayed} wins`));
+      }
+
+      if (players.length === 0) {
+        this.playerListContainer.innerHTML = `
+          <div class="no-data-message">
+            <p class="info-text">No player scores yet.</p>
+            <p class="debug-info">
+              <small>Contract: ${contractAddress?.substring(0, 10)}...</small><br>
+              <small>Wallet: ${connectedAddress?.substring(0, 10)}...</small><br>
+              <small>🎮 Play a game to save scores to blockchain!</small><br>
+              <small>📊 Scores will appear here automatically after matches.</small>
+            </p>
+          </div>
+        `;
+        return;
+      }
+
+      // Сортируем игроков по общему счету (убывание)
+      players.sort((a, b) => b.totalScore - a.totalScore);
+
+      // Создаем расширенную таблицу с полной статистикой
       let html = `
         <table class="stats-table">
           <thead>
             <tr>
+              <th>Rank</th>
               <th>Player Name</th>
-              <th>Address</th>
-              <th>Score</th>
+              <th>Total Score</th>
+              <th>Games</th>
+              <th>Wins</th>
+              <th>Win Rate</th>
             </tr>
           </thead>
           <tbody>
       `;
 
-      players.forEach((player) => {
-        // Используем имя из контракта, а если его нет - показываем Unknown Player
+      players.forEach((player, index) => {
+        const rank = index + 1;
         const playerName = player.name || `Unknown Player (${player.address.substring(0, 6)}...)`;
+        const rankIcon = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : `${rank}.`;
+
         html += `
           <tr>
+            <td><strong>${rankIcon}</strong></td>
             <td><strong>${playerName}</strong></td>
-            <td><code>${player.address.substring(0, 6)}...${player.address.substring(player.address.length - 4)}</code></td>
-            <td><span class="score">${player.score}</span></td>
+            <td><span class="score">${player.totalScore}</span></td>
+            <td>${player.gamesPlayed}</td>
+            <td>${player.gamesWon}</td>
+            <td>${player.winRate}%</td>
           </tr>
         `;
       });
@@ -249,6 +321,9 @@ export class BlockchainScoreBoard {
       html += `
           </tbody>
         </table>
+        <div class="stats-summary">
+          <p><small>Total players: ${players.length} | Last updated: ${new Date().toLocaleTimeString()}</small></p>
+        </div>
       `;
 
       this.playerListContainer.innerHTML = html;

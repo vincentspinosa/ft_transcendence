@@ -214,8 +214,7 @@ function getPlayerConfig(formPrefix: string, playerId: number, defaultName: stri
         name,
         color: COLOR_MAP[colorValue] || COLOR_MAP['white'],
         type,
-        id: playerId,
-        blockchainAddress: `0x${playerId.toString(16).padStart(40, '0')}` // Generate unique blockchain address
+        id: playerId
     };
 }
 
@@ -250,8 +249,7 @@ function getSinglePlayer1v1Config(formPrefix: string, playerId: number, defaultN
         name,
         color: COLOR_MAP[colorValue] || COLOR_MAP['white'],
         type,
-        id: playerId,
-        blockchainAddress: `0x${playerId.toString(16).padStart(40, '0')}` // Generate unique blockchain address
+        id: playerId
     };
 }
 

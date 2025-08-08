@@ -1,0 +1,571 @@
+import { PongTournamentScoresABI, PongTournamentScoresBytecode } from './contractConfig';
+import { keccak256 } from 'js-sha3';
+
+export class BlockchainService {
+    private contractAddress: string | null = null;
+    private connectedAddress: string | null = null;
+    private scoreUpdateCallbacks: ((player: string, score: number) => void)[] = [];
+    private updateInterval: NodeJS.Timeout | null = null;
+
+    constructor() {
+        // Восстанавливаем состояние из localStorage
+        this.contractAddress = localStorage.getItem('blockchainContractAddress');
+        this.connectedAddress = localStorage.getItem('blockchainConnectedAddress');
+    }
+
+    // Проверка доступности Core.app
+    private isCoreAppAvailable(): boolean {
+        return typeof window !== 'undefined' &&
+            typeof window.avalanche !== 'undefined' &&
+            window.avalanche !== null;
+    }
+
+    // Подключение к кошельку Core.app
+    public async connectWallet(): Promise<string | null> {
+        if (!this.isCoreAppAvailable() || !window.avalanche) {
+            throw new Error('Core.app расширение не установлено или не активировано');
+        }
+
+        try {
+            // Запрос на подключение к кошельку
+            const accounts = await window.avalanche.request({ method: 'eth_requestAccounts' });
+            if (accounts && accounts.length > 0) {
+                this.connectedAddress = accounts[0];
+                // Сохраняем в localStorage для синхронизации между экземплярами
+                localStorage.setItem('blockchainConnectedAddress', accounts[0]);
+                return this.connectedAddress;
+            }
+            return null;
+        } catch (error) {
+            console.error('Ошибка подключения к кошельку:', error);
+            throw error;
+        }
+    }
+
+    // Получение текущего подключенного адреса
+    public getConnectedAddress(): string | null {
+        // Сначала проверяем локальное состояние
+        if (this.connectedAddress) {
+            return this.connectedAddress;
+        }
+        // Если нет, проверяем localStorage
+        const saved = localStorage.getItem('blockchainConnectedAddress');
+        if (saved) {
+            this.connectedAddress = saved;
+            return saved;
+        }
+        return null;
+    }
+
+    // Установка адреса контракта
+    public setContractAddress(address: string): void {
+        this.contractAddress = address;
+        // Сохраняем в localStorage для синхронизации между экземплярами
+        localStorage.setItem('blockchainContractAddress', address);
+    }
+
+    // Получение адреса контракта
+    public getContractAddress(): string | null {
+        // Сначала проверяем локальное состояние
+        if (this.contractAddress) {
+            return this.contractAddress;
+        }
+        // Если нет, проверяем localStorage
+        const saved = localStorage.getItem('blockchainContractAddress');
+        if (saved) {
+            this.contractAddress = saved;
+            return saved;
+        }
+        return null;
+    }
+
+    // Развертывание нового контракта
+    public async deployContract(): Promise<string | null> {
+        if (!this.connectedAddress) {
+            throw new Error('Сначала подключите кошелек');
+        }
+
+        if (!this.isCoreAppAvailable() || !window.avalanche) {
+            throw new Error('Core.app расширение не установлено или не активировано');
+        }
+
+        try {
+            // Проверяем валидность байткода
+            if (!PongTournamentScoresBytecode || !PongTournamentScoresBytecode.startsWith('0x')) {
+                throw new Error('Некорректный байткод контракта');
+            }
+
+            console.log('Развертывание контракта с параметрами:', {
+                from: this.connectedAddress,
+                dataLength: PongTournamentScoresBytecode.length
+            });
+
+            // Сначала проверим баланс
+            const balance = await window.avalanche.request({
+                method: 'eth_getBalance',
+                params: [this.connectedAddress, 'latest']
+            });
+
+            console.log('Текущий баланс:', balance);
+
+            // Проверяем, достаточно ли средств для развертывания
+            const balanceWei = parseInt(balance, 16);
+            const gasLimit = parseInt('0x3D0900', 16); // 4000000 - увеличили лимит для больших контрактов
+            const gasPrice = parseInt('0x3B9ACA00', 16); // 1 gwei - уменьшили цену газа
+            const requiredWei = gasLimit * gasPrice;
+
+            console.log('Необходимо Wei:', requiredWei, 'Доступно Wei:', balanceWei);
+
+            if (balanceWei < requiredWei) {
+                throw new Error(`Недостаточно средств. Необходимо: ${requiredWei / 1e18} AVAX, доступно: ${balanceWei / 1e18} AVAX`);
+            }
+
+            // Пробуем несколько вариантов развертывания
+            let txHash;
+
+            try {
+                // Вариант 1: EIP-1559 параметры для Avalanche
+                console.log('Попытка 1: EIP-1559 параметры');
+                const minimalParams = {
+                    from: this.connectedAddress,
+                    data: PongTournamentScoresBytecode,
+                    maxFeePerGas: '0x77359400', // 2 gwei в hex
+                    maxPriorityFeePerGas: '0x77359400', // 2 gwei в hex
+                    value: '0x0'
+                };
+
+                console.log('EIP-1559 параметры:', minimalParams);
+
+                txHash = await window.avalanche.request({
+                    method: 'eth_sendTransaction',
+                    params: [minimalParams]
+                });
+            } catch (minimalError) {
+                console.log('EIP-1559 не сработал, пробуем с лимитом газа:', minimalError);
+
+                try {
+                    // Вариант 2: С лимитом газа и EIP-1559
+                    console.log('Попытка 2: С лимитом газа и EIP-1559');
+                    const gasParams = {
+                        from: this.connectedAddress,
+                        data: PongTournamentScoresBytecode,
+                        gas: '0x7A120', // 500000 в hex
+                        maxFeePerGas: '0x77359400', // 2 gwei в hex
+                        maxPriorityFeePerGas: '0x77359400', // 2 gwei в hex
+                        value: '0x0'
+                    };
+
+                    console.log('Параметры с лимитом газа и EIP-1559:', gasParams);
+
+                    txHash = await window.avalanche.request({
+                        method: 'eth_sendTransaction',
+                        params: [gasParams]
+                    });
+                } catch (gasError) {
+                    console.log('Лимит газа не сработал, пробуем высокий лимит:', gasError);
+
+                    // Вариант 3: Legacy gasPrice как последняя попытка
+                    console.log('Попытка 3: Legacy gasPrice');
+                    const highGasParams = {
+                        from: this.connectedAddress,
+                        data: PongTournamentScoresBytecode,
+                        gas: '0x989680', // 10000000 в hex - очень высокий лимит
+                        gasPrice: '0x77359400', // 2 gwei в hex - legacy gas price
+                        value: '0x0'
+                    };
+
+                    console.log('Параметры с legacy gasPrice:', highGasParams);
+
+                    txHash = await window.avalanche.request({
+                        method: 'eth_sendTransaction',
+                        params: [highGasParams]
+                    });
+                }
+            }
+
+            console.log('Получен хеш транзакции:', txHash);
+
+            // Ожидание завершения транзакции и получение адреса контракта
+            const receipt = await this.waitForTransaction(txHash);
+            if (receipt && receipt.contractAddress) {
+                this.setContractAddress(receipt.contractAddress); // Используем setContractAddress для сохранения в localStorage
+                return this.contractAddress;
+            }
+            return null;
+        } catch (error: any) {
+            console.error('Ошибка развертывания контракта:', error);
+
+            // Детальная обработка различных типов ошибок
+            if (error?.code === -32603) {
+                throw new Error('Ошибка RPC: Возможно недостаточно средств или неправильные параметры газа');
+            } else if (error?.code === 4001) {
+                throw new Error('Пользователь отклонил транзакцию');
+            } else if (error?.message?.includes('insufficient funds')) {
+                throw new Error('Недостаточно средств на счету для развертывания контракта');
+            } else if (error?.message?.includes('gas')) {
+                throw new Error('Ошибка с газом: попробуйте увеличить лимит газа');
+            } else {
+                throw new Error(`Ошибка развертывания: ${error?.message || 'Неизвестная ошибка'}`);
+            }
+        }
+    }
+
+    // Ожидание завершения транзакции
+    private async waitForTransaction(txHash: string): Promise<any> {
+        if (!window.avalanche) {
+            throw new Error('Core.app не доступен');
+        }
+
+        return new Promise((resolve, reject) => {
+            const checkReceipt = async () => {
+                try {
+                    if (!window.avalanche) {
+                        reject(new Error('Core.app потерян во время ожидания'));
+                        return;
+                    }
+
+                    const receipt = await window.avalanche.request({
+                        method: 'eth_getTransactionReceipt',
+                        params: [txHash]
+                    });
+
+                    if (receipt) {
+                        resolve(receipt);
+                    } else {
+                        setTimeout(checkReceipt, 2000);
+                    }
+                } catch (error) {
+                    reject(error);
+                }
+            };
+
+            checkReceipt();
+        });
+    }
+
+    // Получение счета игрока
+    public async getPlayerScore(playerAddress: string): Promise<number> {
+        if (!this.contractAddress) {
+            throw new Error('Адрес контракта не установлен');
+        }
+
+        if (!window.avalanche) {
+            throw new Error('Core.app не доступен');
+        }
+
+        try {
+            // Кодирование вызова функции
+            const data = this.encodeCall('getScore', ['address'], [playerAddress]);
+
+            // Вызов контракта
+            const result = await window.avalanche.request({
+                method: 'eth_call',
+                params: [{
+                    to: this.contractAddress,
+                    data
+                }, 'latest']
+            });
+
+            // Декодирование результата
+            return parseInt(result, 16);
+        } catch (error) {
+            console.error('Ошибка получения счета игрока:', error);
+            throw error;
+        }
+    }
+
+    // Получение имени игрока
+    public async getPlayerName(playerAddress: string): Promise<string> {
+        if (!this.contractAddress) {
+            throw new Error('Адрес контракта не установлен');
+        }
+
+        if (!window.avalanche) {
+            throw new Error('Core.app не доступен');
+        }
+
+        try {
+            // Кодирование вызова функции
+            const data = this.encodeCall('getPlayerName', ['address'], [playerAddress]);
+
+            // Вызов контракта
+            const result = await window.avalanche.request({
+                method: 'eth_call',
+                params: [{
+                    to: this.contractAddress,
+                    data
+                }, 'latest']
+            });
+
+            console.log(`getPlayerName(${playerAddress}) raw result:`, result);
+
+            // Декодирование строки из hex
+            if (!result || result === '0x' || result.length < 130) {
+                console.log(`No valid name data for address ${playerAddress}`);
+                return '';
+            }
+
+            try {
+                // Пропускаем первые 64 символа (32 байта offset) и следующие 64 символа (32 байта length)
+                if (result.length < 130) {
+                    return '';
+                }
+
+                const lengthHex = result.slice(66, 130); // Длина строки
+                const length = parseInt(lengthHex, 16);
+
+                if (length === 0) {
+                    return '';
+                }
+
+                const hexString = result.slice(130, 130 + length * 2); // Данные строки
+
+                // Конвертируем hex в строку
+                let name = '';
+                for (let i = 0; i < hexString.length; i += 2) {
+                    const hex = hexString.substr(i, 2);
+                    const charCode = parseInt(hex, 16);
+                    if (charCode > 0) {
+                        name += String.fromCharCode(charCode);
+                    }
+                }
+
+                return name.trim();
+            } catch (decodeError) {
+                console.warn('Error decoding player name:', decodeError);
+                return '';
+            }
+        } catch (error) {
+            console.warn('⚠️ Error getting player name (using fallback):', error);
+            return ''; // Возвращаем пустую строку вместо выброса ошибки
+        }
+    }
+
+    // Получение всех игроков и их счетов (совместимость с новым контрактом)
+    public async getAllPlayers(): Promise<Array<{ address: string, name: string, score: number }>> {
+        if (!this.contractAddress) {
+            console.warn('Contract address not set');
+            return [];
+        }
+
+        if (!window.avalanche) {
+            console.warn('Core.app not available');
+            return [];
+        }
+
+        try {
+            console.log(`🔍 Checking players in new contract: ${this.contractAddress}`);
+
+            // Проверим количество игроков
+            const countData = this.encodeCall('getPlayersCount', [], []);
+            const countResult = await window.avalanche.request({
+                method: 'eth_call',
+                params: [{
+                    to: this.contractAddress,
+                    data: countData
+                }, 'latest']
+            });
+
+            const playerCount = parseInt(countResult, 16);
+            console.log(`📊 Player count from new contract: ${playerCount}`);
+
+            if (playerCount > 0) {
+                // Получаем данные по одному игроку
+                const players = [];
+                for (let i = 0; i < Math.min(playerCount, 10); i++) { // Ограничиваем 10 игроками
+                    try {
+                        // Получаем адрес игрока
+                        const playerData = this.encodeCall('getPlayer', ['uint256'], [i.toString()]);
+                        const playerResult = await window.avalanche.request({
+                            method: 'eth_call',
+                            params: [{
+                                to: this.contractAddress,
+                                data: playerData
+                            }, 'latest']
+                        });
+
+                        if (playerResult && playerResult !== '0x') {
+                            const playerAddress = '0x' + playerResult.slice(-40);
+                            console.log(`Player ${i}: ${playerAddress}`);
+
+                            // Получаем имя и счет игрока
+                            const name = await this.getPlayerName(playerAddress);
+                            const score = await this.getPlayerScore(playerAddress);
+
+                            players.push({
+                                address: playerAddress,
+                                name: name || `Player ${i + 1}`,
+                                score: score
+                            });
+                        }
+                    } catch (playerError) {
+                        console.warn(`Error getting player ${i}:`, playerError);
+                    }
+                }
+
+                console.log(`✅ Found ${players.length} players in new contract`);
+                return players;
+            }
+
+            // Fallback: проверим текущий кошелек
+            if (this.connectedAddress) {
+                try {
+                    console.log('🔄 Checking current wallet directly');
+                    const myScore = await this.getPlayerScore(this.connectedAddress);
+                    const myName = await this.getPlayerName(this.connectedAddress);
+                    
+                    if (myScore > 0) {
+                        console.log('✅ Found score for current wallet');
+                        return [{
+                            address: this.connectedAddress,
+                            name: myName || 'Current Player',
+                            score: myScore
+                        }];
+                    }
+                } catch (altError) {
+                    console.warn('Current wallet check failed:', altError);
+                }
+            }
+
+            console.log('No players found');
+            return [];
+        } catch (error) {
+            console.error('Error getting all players:', error);
+            return [];
+        }
+    }
+    }
+
+    // Установка счета игрока (только для владельца контракта)
+    public async setPlayerScore(playerAddress: string, playerName: string, score: number): Promise<void> {
+        if (!window.avalanche) {
+            throw new Error('Core.app не доступен');
+        }
+
+        console.log('Adding score for player:', playerAddress, 'name:', playerName, 'score:', score);
+
+        // Контракт теперь сам накапливает очки (scores[player] += score)
+        await this.setPlayerScoreWithName(playerAddress, playerName, score);
+        console.log('✅ Score added to blockchain:', playerName, `(${playerAddress}) += ${score} points`);
+    }
+
+    // Новая версия функции для записи игры
+    private async setPlayerScoreWithName(playerAddress: string, playerName: string, score: number): Promise<void> {
+        if (!window.avalanche) {
+            throw new Error('Core.app not available');
+        }
+
+        console.log('Recording game for player:', playerAddress, 'name:', playerName, 'score:', score);
+
+        // Кодирование вызова новой функции recordGame
+        const data = this.encodeCall('recordGame', ['address', 'string', 'uint256'], [playerAddress, playerName, score.toString()]);
+
+        console.log('Transaction data:', data);
+
+        // Параметры транзакции - используем только EIP-1559 параметры
+        const txParams = {
+            from: this.connectedAddress,
+            to: this.contractAddress,
+            data,
+            gas: '0x61A80', // 400000 в hex - увеличенный лимит для строк
+            maxFeePerGas: '0x77359400', // 2 gwei в hex - увеличили fee
+            maxPriorityFeePerGas: '0x77359400', // 2 gwei в hex - увеличили priority fee
+            value: '0x0'
+        };
+
+        console.log('Transaction params:', txParams);
+
+        // Отправка транзакции
+        const txHash = await window.avalanche.request({
+            method: 'eth_sendTransaction',
+            params: [txParams]
+        });
+
+        console.log('Transaction hash:', txHash);
+
+        if (!txHash) {
+            throw new Error('No transaction hash received');
+        }
+
+        // Ждем подтверждение транзакции
+        await this.waitForTransaction(txHash);
+
+        console.log('Transaction confirmed');
+
+        // Даем время блокчейну на обновление состояния
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
+        // Уведомляем подписчиков об обновлении счета
+        this.notifyScoreUpdate(playerAddress, score);
+    }
+
+    // Подписка на обновления счетов
+    public onScoreUpdate(callback: (player: string, score: number) => void): void {
+        this.scoreUpdateCallbacks.push(callback);
+    }
+
+    // Уведомление подписчиков об обновлении счета
+    private notifyScoreUpdate(player: string, score: number): void {
+        this.scoreUpdateCallbacks.forEach(callback => {
+            try {
+                callback(player, score);
+            } catch (error) {
+                console.error('Error in score update callback:', error);
+            }
+        });
+    }
+
+    // Вспомогательный метод для кодирования вызова функции
+    private encodeCall(functionName: string, types: string[], values: string[]): string {
+        // Создаем сигнатуру функции и вычисляем её Keccak-256 хеш
+        const signature = `${functionName}(${types.join(',')})`;
+        const hash = keccak256(signature);
+        const methodId = '0x' + hash.slice(0, 8); // Первые 4 байта (8 hex символов)
+
+        console.log(`Function: ${signature} -> Method ID: ${methodId}`);
+
+        // Кодируем аргументы
+        let encodedParams = '';
+        let stringData = '';
+        let currentOffset = types.length * 32; // Каждый базовый тип занимает 32 байта
+
+        for (let i = 0; i < values.length; i++) {
+            const value = values[i];
+            const type = types[i];
+
+            if (type === 'address') {
+                // Удаляем префикс 0x и дополняем до 64 символов
+                const paddedValue = value.startsWith('0x') ? value.slice(2) : value;
+                encodedParams += paddedValue.toLowerCase().padStart(64, '0');
+            } else if (type === 'uint256') {
+                // Преобразуем число в hex и дополняем до 64 символов
+                const hexValue = parseInt(value).toString(16);
+                encodedParams += hexValue.padStart(64, '0');
+            } else if (type === 'string') {
+                // Для строки добавляем offset (указатель на позицию строки)
+                const offsetHex = currentOffset.toString(16).padStart(64, '0');
+                encodedParams += offsetHex;
+
+                // Кодируем строку
+                const stringBytes = new TextEncoder().encode(value);
+                const lengthHex = stringBytes.length.toString(16).padStart(64, '0');
+                const hexString = Array.from(stringBytes)
+                    .map(b => b.toString(16).padStart(2, '0'))
+                    .join('');
+
+                // Дополняем строку до кратного 32 байтам
+                const paddedStringHex = hexString.padEnd(Math.ceil(hexString.length / 64) * 64, '0');
+
+                stringData += lengthHex + paddedStringHex;
+                currentOffset += 32 + Math.ceil(stringBytes.length / 32) * 32; // length + padded data
+            }
+        }
+
+        // Добавляем строковые данные в конец
+        const result = methodId + encodedParams + stringData;
+        console.log(`Encoded call: ${result}`);
+        return result;
+    }
+}
+
+
