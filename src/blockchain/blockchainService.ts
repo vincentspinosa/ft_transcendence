@@ -77,9 +77,11 @@ export class BlockchainService {
 
     // Установка адреса контракта
     public setContractAddress(address: string): void {
+        console.log(`🔧 Setting contract address: ${this.contractAddress} -> ${address}`);
         this.contractAddress = address;
         // Сохраняем в localStorage для синхронизации между экземплярами
         localStorage.setItem('blockchainContractAddress', address);
+        console.log(`💾 Contract address saved to localStorage: ${address}`);
     }
 
     // Получение адреса контракта
@@ -717,33 +719,62 @@ export class BlockchainService {
 
                 if (i === 0) {
                     // Первый массив - массив строк (имена игроков)
+                    console.log(`🔤 Decoding ${length} strings from array ${i}`);
+
+                    // Читаем offsets для каждой строки
+                    const stringOffsets = [];
                     for (let j = 0; j < length; j++) {
                         const stringOffsetHex = data.slice(offset + 64 + (j * 64), offset + 64 + ((j + 1) * 64));
-                        const stringOffsetRelative = parseInt(stringOffsetHex, 16) * 2;
-                        const stringAbsoluteOffset = offset + stringOffsetRelative;
+                        const relativeOffset = parseInt(stringOffsetHex, 16) * 2;
+                        stringOffsets.push(relativeOffset);
+                        console.log(`String ${j} relative offset: ${relativeOffset}`);
+                    }
+
+                    for (let j = 0; j < length; j++) {
+                        const stringAbsoluteOffset = offset + stringOffsets[j];
+                        console.log(`🔍 Processing string ${j} at absolute offset ${stringAbsoluteOffset}`);
 
                         if (stringAbsoluteOffset >= data.length) {
+                            console.warn(`String offset ${stringAbsoluteOffset} out of bounds`);
                             arrayData.push(`Player ${j + 1}`);
                             continue;
                         }
 
                         const stringLengthHex = data.slice(stringAbsoluteOffset, stringAbsoluteOffset + 64);
                         const stringLength = parseInt(stringLengthHex, 16);
+                        console.log(`String ${j} length: ${stringLength}`);
 
-                        if (stringLength === 0) {
+                        if (stringLength === 0 || stringLength > 100) { // Reduced max length to 100
+                            console.warn(`Invalid string length: ${stringLength} for string ${j}`);
                             arrayData.push(`Player ${j + 1}`);
                             continue;
                         }
 
-                        const stringDataHex = data.slice(stringAbsoluteOffset + 64, stringAbsoluteOffset + 64 + (stringLength * 2));
+                        // Получаем hex данные строки
+                        const stringDataStartOffset = stringAbsoluteOffset + 64;
+                        const stringDataHex = data.slice(stringDataStartOffset, stringDataStartOffset + (stringLength * 2));
+                        console.log(`String ${j} hex data (${stringLength} chars): ${stringDataHex}`);
 
+                        // Декодируем hex в UTF-8 строку
                         let stringValue = '';
-                        for (let k = 0; k < stringDataHex.length; k += 2) {
-                            const charCode = parseInt(stringDataHex.substr(k, 2), 16);
-                            if (charCode > 0) {
-                                stringValue += String.fromCharCode(charCode);
+                        try {
+                            for (let k = 0; k < stringLength * 2; k += 2) {
+                                const hexByte = stringDataHex.substr(k, 2);
+                                if (hexByte && hexByte !== '00') {
+                                    const charCode = parseInt(hexByte, 16);
+                                    if (charCode >= 32 && charCode <= 126) { // Printable ASCII
+                                        stringValue += String.fromCharCode(charCode);
+                                    }
+                                }
                             }
+                        } catch (stringError) {
+                            console.warn(`Error decoding string ${j}:`, stringError);
+                            stringValue = `Player ${j + 1}`;
                         }
+
+                        // Очищаем строку от мусора
+                        stringValue = stringValue.replace(/[^\x20-\x7E]/g, '').trim();
+                        console.log(`✅ Decoded string ${j}: "${stringValue}"`);
                         arrayData.push(stringValue || `Player ${j + 1}`);
                     }
                 } else {
