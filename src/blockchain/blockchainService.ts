@@ -142,7 +142,7 @@ export class BlockchainService {
             // Ожидание завершения транзакции и получение адреса контракта
             const receipt = await this.waitForTransaction(txHash);
             if (receipt && receipt.contractAddress) {
-                this.contractAddress = receipt.contractAddress;
+                this.setContractAddress(receipt.contractAddress); // Используем setContractAddress для сохранения в localStorage
                 return this.contractAddress;
             }
             return null;
