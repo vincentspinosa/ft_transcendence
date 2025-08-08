@@ -790,6 +790,9 @@ export class Game {
         try {
             console.log(`Saving match results to blockchain. Winner: ${winner.name}`);
 
+            // Force refresh contract address from localStorage to ensure we're using the latest
+            this.blockchainService.refreshContractAddress();
+
             // Check blockchain state
             const contractAddress = this.blockchainService.getContractAddress();
             const connectedAddress = this.blockchainService.getConnectedAddress();

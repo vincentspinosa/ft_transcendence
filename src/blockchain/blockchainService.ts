@@ -84,17 +84,23 @@ export class BlockchainService {
 
     // Получение адреса контракта
     public getContractAddress(): string | null {
-        // Сначала проверяем локальное состояние
-        if (this.contractAddress) {
-            return this.contractAddress;
+        // Всегда проверяем localStorage для получения актуального адреса
+        const saved = localStorage.getItem('blockchainContractAddress');
+        if (saved && saved !== this.contractAddress) {
+            console.log(`🔄 Contract address updated from localStorage: ${this.contractAddress} -> ${saved}`);
+            this.contractAddress = saved;
         }
-        // Если нет, проверяем localStorage
+        return this.contractAddress;
+    }
+
+    // Принудительное обновление адреса контракта из localStorage
+    public refreshContractAddress(): string | null {
         const saved = localStorage.getItem('blockchainContractAddress');
         if (saved) {
             this.contractAddress = saved;
-            return saved;
+            console.log(`♻️ Refreshed contract address: ${saved}`);
         }
-        return null;
+        return this.contractAddress;
     }
 
     // Развертывание нового контракта
