@@ -6,33 +6,118 @@ export class BlockchainService {
     private connectedAddress: string | null = null;
     private eventListeners: (() => void)[] = [];
     private scoreUpdateCallbacks: ((player: string, score: number) => void)[] = [];
+    private networkChangeCallbacks: ((chainId: string, networkName: string) => void)[] = [];
+    private accountChangeCallbacks: ((accounts: string[]) => void)[] = [];
 
     constructor() {
         // Restore state from localStorage
         this.contractAddress = localStorage.getItem('blockchainContractAddress');
         this.connectedAddress = localStorage.getItem('blockchainConnectedAddress');
+        
+        // Setup event listeners for MetaMask changes
+        this.setupMetaMaskEventListeners();
     }
 
-    // Check Core.app availability
-    private isCoreAppAvailable(): boolean {
+    // Setup MetaMask event listeners for network and account changes
+    private setupMetaMaskEventListeners(): void {
+        if (!window.ethereum || !window.ethereum.on) return;
+
+        // Listen for network changes
+        const handleChainChanged = (chainId: string) => {
+            console.log('Network changed to:', chainId);
+            const networkNames = {
+                '0xa86a': 'Avalanche C-Chain (Mainnet)',
+                '0xa869': 'Avalanche Fuji Testnet',
+            };
+            
+            const networkName = networkNames[chainId as keyof typeof networkNames] || `Unknown Network (${chainId})`;
+            console.log(`Current network: ${networkName}`);
+            
+            // Notify all subscribers about network change
+            this.networkChangeCallbacks.forEach(callback => {
+                try {
+                    callback(chainId, networkName);
+                } catch (error) {
+                    console.error('Error in network change callback:', error);
+                }
+            });
+        };
+
+        // Listen for account changes
+        const handleAccountsChanged = (accounts: string[]) => {
+            console.log('Accounts changed:', accounts);
+            
+            if (accounts.length === 0) {
+                // User disconnected
+                console.log('User disconnected wallet');
+                this.connectedAddress = null;
+                localStorage.removeItem('blockchainConnectedAddress');
+            } else if (accounts[0] !== this.connectedAddress) {
+                // User switched account
+                console.log('User switched account from', this.connectedAddress, 'to', accounts[0]);
+                this.connectedAddress = accounts[0];
+                localStorage.setItem('blockchainConnectedAddress', accounts[0]);
+            }
+            
+            // Notify all subscribers about account change
+            this.accountChangeCallbacks.forEach(callback => {
+                try {
+                    callback(accounts);
+                } catch (error) {
+                    console.error('Error in account change callback:', error);
+                }
+            });
+        };
+
+        // Register event listeners
+        window.ethereum.on('chainChanged', handleChainChanged);
+        window.ethereum.on('accountsChanged', handleAccountsChanged);
+
+        // Store cleanup functions
+        this.eventListeners.push(() => {
+            if (window.ethereum && window.ethereum.removeListener) {
+                window.ethereum.removeListener('chainChanged', handleChainChanged);
+                window.ethereum.removeListener('accountsChanged', handleAccountsChanged);
+            }
+        });
+    }
+
+    // Check MetaMask availability
+    private isMetaMaskAvailable(): boolean {
         return typeof window !== 'undefined' &&
-            typeof window.avalanche !== 'undefined' &&
-            window.avalanche !== null;
+            typeof window.ethereum !== 'undefined' &&
+            window.ethereum !== null &&
+            window.ethereum.isMetaMask === true;
     }
 
-    // Connect to Core.app wallet
+    // Connect to MetaMask wallet
     public async connectWallet(): Promise<string | null> {
-        if (!this.isCoreAppAvailable() || !window.avalanche) {
-            throw new Error('Core.app extension not installed or activated');
+        if (!this.isMetaMaskAvailable() || !window.ethereum) {
+            throw new Error('MetaMask extension not installed or activated');
         }
 
         try {
             // Request wallet connection
-            const accounts = await window.avalanche.request({ method: 'eth_requestAccounts' });
+            const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
             if (accounts && accounts.length > 0) {
                 this.connectedAddress = accounts[0];
                 // Save to localStorage for cross-instance sync
                 localStorage.setItem('blockchainConnectedAddress', accounts[0]);
+                
+                // Check if we're already on a supported Avalanche network
+                const currentChainId = await window.ethereum.request({
+                    method: 'eth_chainId'
+                });
+                
+                const supportedNetworks = ['0xa86a', '0xa869']; // Mainnet and Fuji Testnet
+                
+                if (!supportedNetworks.includes(currentChainId)) {
+                    console.log(`Not on Avalanche network (${currentChainId}), switching...`);
+                    await this.switchToAvalancheNetwork();
+                } else {
+                    console.log(`Already on supported Avalanche network: ${currentChainId}`);
+                }
+                
                 return this.connectedAddress;
             }
             return null;
@@ -40,6 +125,185 @@ export class BlockchainService {
             console.error('Wallet connection error:', error);
             throw error;
         }
+    }
+
+    // Switch to Avalanche C-Chain (with Fuji Testnet support)
+    private async switchToAvalancheNetwork(): Promise<void> {
+        if (!window.ethereum) return;
+
+        try {
+            // First, check current network
+            const currentChainId = await window.ethereum.request({
+                method: 'eth_chainId'
+            });
+            
+            console.log('Current chain ID:', currentChainId);
+            
+            // If already on Avalanche Mainnet or Fuji Testnet, don't switch
+            if (currentChainId === '0xa86a' || currentChainId === '0xa869') {
+                console.log('Already on supported Avalanche network');
+                return;
+            }
+
+            // Try to switch to Avalanche C-Chain Mainnet by default
+            await window.ethereum.request({
+                method: 'wallet_switchEthereumChain',
+                params: [{ chainId: '0xa86a' }], // Avalanche C-Chain Mainnet
+            });
+            
+            console.log('Successfully switched to Avalanche C-Chain');
+        } catch (switchError: any) {
+            console.log('Switch error:', switchError);
+            
+            // This error code indicates that the chain has not been added to MetaMask
+            if (switchError.code === 4902) {
+                try {
+                    console.log('Adding Avalanche networks to MetaMask...');
+                    
+                    // Add Avalanche C-Chain Mainnet
+                    await window.ethereum.request({
+                        method: 'wallet_addEthereumChain',
+                        params: [{
+                            chainId: '0xa86a',
+                            chainName: 'Avalanche C-Chain',
+                            nativeCurrency: {
+                                name: 'AVAX',
+                                symbol: 'AVAX',
+                                decimals: 18,
+                            },
+                            rpcUrls: [
+                                'https://api.avax.network/ext/bc/C/rpc',
+                                'https://rpc.ankr.com/avalanche',
+                                'https://avalanche-c-chain.publicnode.com'
+                            ],
+                            blockExplorerUrls: ['https://snowtrace.io/'],
+                        }],
+                    });
+                    
+                    console.log('Successfully added Avalanche C-Chain to MetaMask');
+                } catch (addError) {
+                    console.error('Failed to add Avalanche network:', addError);
+                    throw new Error('Failed to add Avalanche network to MetaMask. Please add it manually.');
+                }
+            } else {
+                console.error('Failed to switch to Avalanche network:', switchError);
+                throw new Error('Failed to switch to Avalanche network. Please switch manually in MetaMask.');
+            }
+        }
+    }
+
+    // Add method to switch to Fuji Testnet (for development)
+    private async switchToFujiTestnet(): Promise<void> {
+        if (!window.ethereum) return;
+
+        try {
+            await window.ethereum.request({
+                method: 'wallet_switchEthereumChain',
+                params: [{ chainId: '0xa869' }], // Fuji Testnet
+            });
+        } catch (switchError: any) {
+            if (switchError.code === 4902) {
+                await window.ethereum.request({
+                    method: 'wallet_addEthereumChain',
+                    params: [{
+                        chainId: '0xa869',
+                        chainName: 'Avalanche Fuji Testnet',
+                        nativeCurrency: {
+                            name: 'AVAX',
+                            symbol: 'AVAX',
+                            decimals: 18,
+                        },
+                        rpcUrls: [
+                            'https://api.avax-test.network/ext/bc/C/rpc'
+                        ],
+                        blockExplorerUrls: ['https://testnet.snowtrace.io/'],
+                    }],
+                });
+            }
+        }
+    }
+
+    // Check if we're on a supported Avalanche network
+    private async ensureCorrectNetwork(): Promise<void> {
+        if (!window.ethereum) {
+            throw new Error('MetaMask not available');
+        }
+
+        try {
+            const currentChainId = await window.ethereum.request({
+                method: 'eth_chainId'
+            });
+            
+            // Support both Avalanche Mainnet and Fuji Testnet
+            const supportedNetworks = {
+                '0xa86a': 'Avalanche C-Chain (Mainnet)',
+                '0xa869': 'Avalanche Fuji Testnet'
+            };
+            
+            console.log(`Current network: ${currentChainId}`);
+            
+            if (supportedNetworks[currentChainId as keyof typeof supportedNetworks]) {
+                console.log(`Connected to ${supportedNetworks[currentChainId as keyof typeof supportedNetworks]}`);
+                return; // Already on a supported network
+            }
+            
+            console.warn(`Unsupported network detected: ${currentChainId}`);
+            console.log('Supported networks:', Object.entries(supportedNetworks).map(([id, name]) => `${id} (${name})`).join(', '));
+            
+            // Ask user which network they prefer or default to mainnet
+            console.log('Switching to Avalanche Mainnet by default...');
+            await this.switchToAvalancheNetwork();
+            
+            // Verify the switch was successful
+            const newChainId = await window.ethereum.request({
+                method: 'eth_chainId'
+            });
+            
+            if (!supportedNetworks[newChainId as keyof typeof supportedNetworks]) {
+                throw new Error(`Failed to switch to supported Avalanche network. Current: ${newChainId}`);
+            }
+            
+            console.log(`Successfully switched to ${supportedNetworks[newChainId as keyof typeof supportedNetworks]}`);
+        } catch (error) {
+            console.error('Network check failed:', error);
+            throw error;
+        }
+    }
+
+    // Public method to switch to Fuji Testnet for development
+    public async switchToTestnet(): Promise<void> {
+        await this.switchToFujiTestnet();
+    }
+
+    // Public method to check current network
+    public async getCurrentNetwork(): Promise<{chainId: string, name: string}> {
+        if (!window.ethereum) {
+            throw new Error('MetaMask not available');
+        }
+
+        const currentChainId = await window.ethereum.request({
+            method: 'eth_chainId'
+        });
+
+        const networkNames = {
+            '0xa86a': 'Avalanche C-Chain (Mainnet)',
+            '0xa869': 'Avalanche Fuji Testnet',
+        };
+
+        return {
+            chainId: currentChainId,
+            name: networkNames[currentChainId as keyof typeof networkNames] || `Unknown Network (${currentChainId})`
+        };
+    }
+
+    // Subscribe to network changes
+    public onNetworkChange(callback: (chainId: string, networkName: string) => void): void {
+        this.networkChangeCallbacks.push(callback);
+    }
+
+    // Subscribe to account changes
+    public onAccountChange(callback: (accounts: string[]) => void): void {
+        this.accountChangeCallbacks.push(callback);
     }
 
     // Get current connected wallet address
@@ -93,8 +357,8 @@ export class BlockchainService {
             throw new Error('Please connect wallet first');
         }
 
-        if (!this.isCoreAppAvailable() || !window.avalanche) {
-            throw new Error('Core.app extension not available');
+        if (!this.isMetaMaskAvailable() || !window.ethereum) {
+            throw new Error('MetaMask extension not available');
         }
 
         try {
@@ -105,7 +369,7 @@ export class BlockchainService {
 
             console.log('Deploying contract...');
 
-            // Deploy contract via Core.app
+            // Deploy contract via MetaMask on Avalanche
             const params = {
                 from: this.connectedAddress,
                 data: PongTournamentScoresBytecode,
@@ -114,7 +378,7 @@ export class BlockchainService {
                 value: '0x0' // No ETH transfer
             };
 
-            const txHash = await window.avalanche.request({
+            const txHash = await window.ethereum.request({
                 method: 'eth_sendTransaction',
                 params: [params]
             });
@@ -134,19 +398,19 @@ export class BlockchainService {
 
     // Wait for transaction confirmation
     private async waitForTransaction(txHash: string): Promise<any> {
-        if (!window.avalanche) {
-            throw new Error('Core.app not available');
+        if (!window.ethereum) {
+            throw new Error('MetaMask not available');
         }
 
         return new Promise((resolve, reject) => {
             const checkReceipt = async () => {
                 try {
-                    if (!window.avalanche) {
-                        reject(new Error('Core.app connection lost'));
+                    if (!window.ethereum) {
+                        reject(new Error('MetaMask connection lost'));
                         return;
                     }
 
-                    const receipt = await window.avalanche.request({
+                    const receipt = await window.ethereum.request({
                         method: 'eth_getTransactionReceipt',
                         params: [txHash]
                     });
@@ -171,8 +435,11 @@ export class BlockchainService {
             throw new Error('Contract address not set');
         }
 
-        if (!window.avalanche) {
-            throw new Error('Core.app not available');
+        // Ensure we're on the correct network
+        await this.ensureCorrectNetwork();
+
+        if (!window.ethereum) {
+            throw new Error('MetaMask not available');
         }
 
         try {
@@ -180,7 +447,7 @@ export class BlockchainService {
             const data = this.encodeCall('getScore', ['address'], [playerAddress]);
 
             // Call contract
-            const result = await window.avalanche.request({
+            const result = await window.ethereum.request({
                 method: 'eth_call',
                 params: [{
                     to: this.contractAddress,
@@ -202,8 +469,8 @@ export class BlockchainService {
             throw new Error('Contract address not set');
         }
 
-        if (!window.avalanche) {
-            throw new Error('Core.app not available');
+        if (!window.ethereum) {
+            throw new Error('MetaMask not available');
         }
 
         try {
@@ -211,7 +478,7 @@ export class BlockchainService {
             const data = this.encodeCall('getPlayerName', ['address'], [playerAddress]);
 
             // Call contract
-            const result = await window.avalanche.request({
+            const result = await window.ethereum.request({
                 method: 'eth_call',
                 params: [{
                     to: this.contractAddress,
@@ -277,8 +544,16 @@ export class BlockchainService {
             return [];
         }
 
-        if (!window.avalanche) {
-            console.warn('Core.app not available');
+        // Ensure we're on the correct network
+        try {
+            await this.ensureCorrectNetwork();
+        } catch (networkError) {
+            console.error('Network check failed:', networkError);
+            return [];
+        }
+
+        if (!window.ethereum) {
+            console.warn('MetaMask not available');
             return [];
         }
 
@@ -286,7 +561,7 @@ export class BlockchainService {
             // Try to get unique players count first
             try {
                 const countData = this.encodeCall('getUniquePlayersCount', [], []);
-                const countResult = await window.avalanche.request({
+                const countResult = await window.ethereum.request({
                     method: 'eth_call',
                     params: [{
                         to: this.contractAddress,
@@ -301,7 +576,11 @@ export class BlockchainService {
 
             // Call new function to get full statistics
             const data = this.encodeCall('getAllUniquePlayersWithStats', [], []);
-            const result = await window.avalanche.request({
+            
+            console.log('🔍 Making contract call to:', this.contractAddress);
+            console.log('🔍 Call data:', data);
+            
+            const result = await window.ethereum.request({
                 method: 'eth_call',
                 params: [{
                     to: this.contractAddress,
@@ -315,6 +594,20 @@ export class BlockchainService {
             if (!result || result === '0x' || result.length < 130) {
                 console.log('⚠️ No valid data returned from contract, trying legacy method');
                 console.log('Result details:', { result, length: result?.length });
+                
+                // Try to check if contract exists at this address
+                const code = await window.ethereum.request({
+                    method: 'eth_getCode',
+                    params: [this.contractAddress, 'latest']
+                });
+                
+                console.log('Contract code check:', { address: this.contractAddress, codeLength: code?.length });
+                
+                if (!code || code === '0x') {
+                    console.error('No contract found at address:', this.contractAddress);
+                    return [];
+                }
+                
                 // Fallback to legacy function if new one doesn't work
                 return await this.getAllPlayersLegacy();
             }
@@ -390,8 +683,8 @@ export class BlockchainService {
             return [];
         }
 
-        if (!window.avalanche) {
-            console.warn('Core.app not available');
+        if (!window.ethereum) {
+            console.warn('MetaMask not available');
             return [];
         }
 
@@ -400,7 +693,7 @@ export class BlockchainService {
 
             // First try to get player count
             const countData = this.encodeCall('getPlayersCount', [], []);
-            const countResult = await window.avalanche.request({
+            const countResult = await window.ethereum.request({
                 method: 'eth_call',
                 params: [{
                     to: this.contractAddress,
@@ -425,7 +718,7 @@ export class BlockchainService {
                 try {
                     // Get player address
                     const playerData = this.encodeCall('getPlayer', ['uint256'], [i.toString()]);
-                    const playerResult = await window.avalanche.request({
+                    const playerResult = await window.ethereum.request({
                         method: 'eth_call',
                         params: [{
                             to: this.contractAddress,
@@ -490,8 +783,11 @@ export class BlockchainService {
             throw new Error('Contract address or wallet connection not set');
         }
 
-        if (!window.avalanche) {
-            throw new Error('Core.app not available');
+        // Ensure we're on the correct network
+        await this.ensureCorrectNetwork();
+
+        if (!window.ethereum) {
+            throw new Error('MetaMask not available');
         }
 
         try {
@@ -503,20 +799,20 @@ export class BlockchainService {
 
             // console.log('Transaction data:', data);
 
-            // Transaction parameters with gas settings
+            // Transaction parameters with gas settings for Avalanche
             const txParams = {
                 from: this.connectedAddress,
                 to: this.contractAddress,
                 data,
                 gas: '0x7A120', // 500k gas limit for complex operations
-                gasPrice: '0x2540BE400' // 10 Gwei for Avalanche network
+                gasPrice: '0x9C4653600' // 42 gwei for Avalanche network
             };
 
             // console.log('Transaction params:', txParams);
             // console.log(`📍 Using contract address for WRITE: ${this.contractAddress}`);
 
             // Send transaction
-            const txHash = await window.avalanche.request({
+            const txHash = await window.ethereum.request({
                 method: 'eth_sendTransaction',
                 params: [txParams]
             });
