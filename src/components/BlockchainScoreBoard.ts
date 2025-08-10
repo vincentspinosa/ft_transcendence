@@ -65,7 +65,7 @@ export class BlockchainScoreBoard {
   private createUI(): void {
     this.container.innerHTML = `
       <div class="blockchain-scoreboard">
-        <h2>Blockchain Scores</h2>
+        <h2>Blockchain Scores with Avalanche</h2>
         
         <div class="wallet-section">
           <button id="connect-wallet-btn" class="btn-primary">Connect Wallet</button>
@@ -74,7 +74,7 @@ export class BlockchainScoreBoard {
         
         <div class="contract-section">
           <input type="text" id="contract-address-input" class="input" placeholder="Contract address (optional)">
-          <button id="deploy-contract-btn" class="btn-secondary" disabled>Deploy Contract</button>
+          <button id="deploy-contract-btn" class="btn-secondary" disabled>Deploy new contract</button>
         </div>
         
         <div class="stats-section">
@@ -234,7 +234,7 @@ export class BlockchainScoreBoard {
 
   // Update connection status
   private updateConnectionStatus(address: string): void {
-    this.connectionStatus.textContent = `Connected: ${address.substring(0, 6)}...${address.substring(address.length - 4)}`;
+    this.connectionStatus.textContent = `${address.substring(0, 6)}...${address.substring(address.length - 3)}`;
     this.connectionStatus.classList.add('connected');
   }
 
@@ -293,12 +293,10 @@ export class BlockchainScoreBoard {
         <table class="stats-table">
           <thead>
             <tr>
-              <th>Rank</th>
-              <th>Player Name</th>
-              <th>Total Score</th>
+              <th>Login</th>
+              <th>Score</th>
               <th>Games</th>
               <th>Wins</th>
-              <th>Win Rate</th>
             </tr>
           </thead>
           <tbody>
@@ -311,23 +309,13 @@ export class BlockchainScoreBoard {
 
         html += `
           <tr>
-            <td><strong>${rankIcon}</strong></td>
-            <td><strong>${playerName}</strong></td>
+            <td><strong>${rankIcon} ${playerName}</strong></td>
             <td><span class="score">${player.totalScore}</span></td>
             <td>${player.gamesPlayed}</td>
             <td>${player.gamesWon}</td>
-            <td>${player.winRate}%</td>
           </tr>
         `;
       });
-
-      html += `
-          </tbody>
-        </table>
-        <div class="stats-summary">
-          <p><small>Total players: ${players.length} | Last updated: ${new Date().toLocaleTimeString()}</small></p>
-        </div>
-      `;
 
       this.playerListContainer.innerHTML = html;
     } catch (error) {
