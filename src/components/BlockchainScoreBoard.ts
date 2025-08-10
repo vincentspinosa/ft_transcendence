@@ -33,8 +33,41 @@ export class BlockchainScoreBoard {
     // Check for saved contract address
     this.loadSavedContractAddress();
 
+    // Setup network and account change listeners
+    this.setupBlockchainEventListeners();
+
     // Start automatic statistics refresh every 5 seconds
     this.startAutoRefresh();
+  }
+
+  // Setup blockchain event listeners
+  private setupBlockchainEventListeners(): void {
+    // Listen for network changes
+    this.blockchainService.onNetworkChange((chainId: string, networkName: string) => {
+      console.log(`🔄 Network changed: ${networkName} (${chainId})`);
+      this.updateConnectionStatus();
+      this.loadPlayerStats(); // Reload data for new network
+    });
+
+    // Listen for account changes
+    this.blockchainService.onAccountChange((accounts: string[]) => {
+      console.log('👤 Account changed:', accounts);
+      this.updateConnectionStatus();
+      if (accounts.length === 0) {
+        // User disconnected
+        this.showDisconnectedState();
+      } else {
+        // User switched account or reconnected
+        this.loadPlayerStats();
+      }
+    });
+  }
+
+  // Show disconnected state
+  private showDisconnectedState(): void {
+    this.playerListContainer.innerHTML = `
+      <p class="info-text">Wallet disconnected. Please connect to view blockchain scores.</p>
+    `;
   }
 
   // Start automatic statistics refresh
@@ -65,7 +98,7 @@ export class BlockchainScoreBoard {
   private createUI(): void {
     this.container.innerHTML = `
       <div class="blockchain-scoreboard">
-        <h2>Blockchain Scores with Avalanche</h2>
+        <h2>Blockchain Scores with MetaMask (Avalanche Network)</h2>
         
         <div class="wallet-section">
           <button id="connect-wallet-btn" class="btn-primary">Connect Wallet</button>
@@ -174,7 +207,7 @@ export class BlockchainScoreBoard {
       try {
         const address = await this.blockchainService.connectWallet();
         if (address) {
-          this.updateConnectionStatus(address);
+          this.updateConnectionStatusWithAddress(address);
           this.deployContractButton.disabled = false;
 
           // If contract address already exists, load data
@@ -234,7 +267,28 @@ export class BlockchainScoreBoard {
   }
 
   // Update connection status
-  private updateConnectionStatus(address: string): void {
+  // Update connection status dynamically
+  private async updateConnectionStatus(): Promise<void> {
+    try {
+      const connectedAddress = this.blockchainService.getConnectedAddress();
+      const currentNetwork = await this.blockchainService.getCurrentNetwork();
+      
+      if (connectedAddress) {
+        this.connectionStatus.textContent = `${connectedAddress.substring(0, 6)}...${connectedAddress.substring(connectedAddress.length - 3)} (${currentNetwork.name})`;
+        this.connectionStatus.classList.add('connected');
+      } else {
+        this.connectionStatus.textContent = 'Disconnected';
+        this.connectionStatus.classList.remove('connected');
+      }
+    } catch (error) {
+      console.error('Failed to update connection status:', error);
+      this.connectionStatus.textContent = 'Connection Error';
+      this.connectionStatus.classList.remove('connected');
+    }
+  }
+
+  // Update connection status with specific address (original method)
+  private updateConnectionStatusWithAddress(address: string): void {
     this.connectionStatus.textContent = `${address.substring(0, 6)}...${address.substring(address.length - 3)}`;
     this.connectionStatus.classList.add('connected');
   }
@@ -346,14 +400,15 @@ export class BlockchainScoreBoard {
   }
 
   // Load contract address from localStorage
-  private loadSavedContractAddress(): void {
-    const savedAddress = localStorage.getItem('pongContractAddress');
+  private async loadSavedContractAddress(): Promise<void> {
+    const savedAddress = this.blockchainService.getContractAddress();
     if (savedAddress) {
       this.contractAddressInput.value = savedAddress;
-      this.blockchainService.setContractAddress(savedAddress);
-
-      // If wallet is connected, load data
+      console.log(`♻️ Restored contract address: ${savedAddress}`);
+      
+      // If wallet is connected, load data and update status
       if (this.blockchainService.getConnectedAddress()) {
+        await this.updateConnectionStatus(); // Update status with current network
         this.loadPlayerStats();
         this.subscribeToScoreUpdates();
       }
