@@ -4,7 +4,7 @@
 
 /* Blockchain Scoreboard - Simplified Styles */
 .blockchain-scoreboard {
-    @apply p-3 text-white text-sm;
+    @apply text-white text-sm w-72;
 }
 
 .blockchain-scoreboard h2 {

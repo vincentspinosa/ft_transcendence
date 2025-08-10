@@ -73,6 +73,7 @@ export class BlockchainScoreBoard {
         </div>
         
         <div class="contract-section">
+          <p class="info-text">Use a previously created contract or&nbsp;create a&nbsp;new one for saving a score</p>
           <input type="text" id="contract-address-input" class="input" placeholder="Contract address (optional)">
           <button id="deploy-contract-btn" class="btn-secondary" disabled>Deploy new contract</button>
         </div>
@@ -241,13 +242,11 @@ export class BlockchainScoreBoard {
   // Load player statistics
   private async loadPlayerStats(): Promise<void> {
     try {
-      this.playerListContainer.innerHTML = '<p class="loading">Loading scores...</p>';
-
       // Check blockchain state
       const contractAddress = this.blockchainService.getContractAddress();
       const connectedAddress = this.blockchainService.getConnectedAddress();
 
-      console.log('📊 Loading player stats...');
+      console.log('Loading player stats...');
       console.log(`Contract: ${contractAddress}`);
       console.log(`Wallet: ${connectedAddress}`);
 
@@ -277,8 +276,6 @@ export class BlockchainScoreBoard {
             <p class="debug-info">
               <small>Contract: ${contractAddress?.substring(0, 10)}...</small><br>
               <small>Wallet: ${connectedAddress?.substring(0, 10)}...</small><br>
-              <small>🎮 Play a game to save scores to blockchain!</small><br>
-              <small>📊 Scores will appear here automatically after matches.</small>
             </p>
           </div>
         `;
@@ -303,13 +300,11 @@ export class BlockchainScoreBoard {
       `;
 
       players.forEach((player, index) => {
-        const rank = index + 1;
-        const playerName = player.name || `Unknown Player (${player.address.substring(0, 6)}...)`;
-        const rankIcon = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : `${rank}.`;
+        const playerName = player.name || `(${player.address.substring(0, 6)}...)`;
 
         html += `
           <tr>
-            <td><strong>${rankIcon} ${playerName}</strong></td>
+            <td><strong>${playerName}</strong></td>
             <td><span class="score">${player.totalScore}</span></td>
             <td>${player.gamesPlayed}</td>
             <td>${player.gamesWon}</td>
