@@ -3,6 +3,8 @@ import fastifyStatic from '@fastify/static';
 import cors from '@fastify/cors';
 import * as fs from 'fs';
 import * as path from 'path';
+import { errorHandler } from './errorHandler';
+import { gameRoutes } from './routes/gameRoutes';
 
 interface ServerConfig {
   port: number;
@@ -41,6 +43,9 @@ class HTTPServer {
       origin: true,
       credentials: true
     });
+
+    // Register game routes
+    await this.fastify.register(gameRoutes, { prefix: '/api' });
 
     // Serve static files from the frontend directory
     await this.fastify.register(fastifyStatic, {
@@ -84,6 +89,9 @@ class HTTPServer {
       await this.setupPlugins();
       this.setupRoutes();
       
+      // Set error handler
+      this.fastify.setErrorHandler(errorHandler);
+      
       await this.fastify.listen({
         port: this.config.port,
         host: this.config.host
@@ -92,6 +100,7 @@ class HTTPServer {
       console.log(`🚀 Server running on https://${this.config.host}:${this.config.port}`);
       console.log(`📁 Serving frontend from: ${path.join(__dirname, '../../frontend')}`);
       console.log(`🔒 HTTPS enabled with SSL certificates`);
+      console.log(`🎮 Game API endpoints available at /api/game/*`);
     } catch (err) {
       this.fastify.log.error(err);
       process.exit(1);
