@@ -115,8 +115,6 @@ transcendence/
 ├── start-backend.sh    # Quick start script
 ├── start-full-stack.sh # Full stack startup script
 ├── docker-compose.yml  # Docker orchestration
-├── .gitignore         # Git ignore rules
-└── .dockerignore      # Docker ignore rules
 ```
 
 
@@ -126,20 +124,6 @@ transcendence/
 ### SSL Certificates
 
 The backend requires SSL certificates. For development, self-signed certificates are automatically generated. For production, replace them with proper certificates.
-
-## 🚀 Production Deployment
-
-1. Replace self-signed certificates with proper SSL certificates
-2. Set appropriate environment variables
-3. Use a reverse proxy (nginx, Apache) if needed
-4. Consider using Let's Encrypt for free SSL certificates
-
-## 📝 Version Control
-
-The project includes comprehensive ignore files:
-
-- **`.gitignore`**: Excludes build outputs, dependencies, SSL certificates, logs, and other development files
-- **`.dockerignore`**: Optimizes Docker builds by excluding unnecessary files
 
 **Important**: SSL certificates in `backend/certs/` are excluded from version control for security. They will be generated automatically when running the startup scripts.
 
@@ -157,15 +141,3 @@ The project includes comprehensive ignore files:
 - `cd backend && make setup` - Complete setup
 - `cd backend && make start` - Start production server
 - `cd backend && make dev` - Start development server
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Test thoroughly
-5. Submit a pull request
-
-## 📄 License
-
-MIT License - see LICENSE file for details
