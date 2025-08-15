@@ -51,6 +51,7 @@ import '../main.css';
 import { Game } from './Game'; // Imports the core Pong game logic.
 import { Tournament } from './Tournament'; // Imports the tournament management logic.
 import { PlayerConfig, MatchSettings, TournamentSetupInfo, FourPlayerMatchSettings } from './interfaces'; // Imports data structures for player, match, and tournament configurations.
+import { FormValidationManager } from './formValidation'; // Imports the form validation manager.
 
 const MAX_NAME_LENGTH = 20; // Maximum allowed length for player names in Pong and Tic-Tac-Toe game modes.
 
@@ -202,8 +203,8 @@ function getPlayerConfig(formPrefix: string, playerId: number, defaultName: stri
     const colorSelect = document.getElementById(`${formPrefix}_p${playerId}Color`) as HTMLSelectElement;
     const typeSelect = document.getElementById(`${formPrefix}_p${playerId}Type`) as HTMLSelectElement;
 
-    // Retrieve values, providing defaults if elements are not found or values are empty.
-    const name = nameInput?.value.trim() || defaultName;
+    // Retrieve values, providing defaults only if elements are not found (not for empty values).
+    const name = nameInput?.value.trim() || (nameInput ? '' : defaultName);
     const colorValue = colorSelect?.value || 'white';
     const type = (typeSelect?.value as 'human' | 'ai') || 'human'; // Cast to specific union type.
 
@@ -233,8 +234,8 @@ function getSinglePlayer1v1Config(formPrefix: string, playerId: number, defaultN
         type = 'human'; // Player 1 is always human in 1v1 setup.
     }
 
-    // Retrieve values.
-    const name = nameInput?.value.trim() || defaultName;
+    // Retrieve values, providing defaults only if elements are not found (not for empty values).
+    const name = nameInput?.value.trim() || (nameInput ? '' : defaultName);
     const colorValue = colorSelect?.value || 'white';
 
     // Return the player configuration object.
@@ -324,6 +325,11 @@ window.addEventListener('DOMContentLoaded', () => {
     // Note: The `playAgainBtn` behavior is handled internally by the `Game` class.
     // If it were to navigate, `MapsTo('gameSetup')` would be called.
 
+    // --- Form Validation Initialization ---
+    // Initialize the form validation manager to handle form submissions and validation
+    // using the backend API routes for real-time validation and form processing.
+    const formValidationManager = new FormValidationManager();
+
 
 
 
@@ -382,7 +388,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
     // 1v1 Pong Game Settings Form Submission
     if (s_settingsForm) {
-        s_settingsForm.addEventListener('submit', (e) => {
+        s_settingsForm.addEventListener('submit', async (e) => {
             e.preventDefault(); // Prevent default form submission to handle it with JavaScript.
 
             // Get player configurations and score limit from the form.
@@ -391,39 +397,72 @@ window.addEventListener('DOMContentLoaded', () => {
             const scoreLimitInput = document.getElementById('s_scoreLimit') as HTMLInputElement;
             const scoreLimit = parseInt(scoreLimitInput.value, 10);
 
-            // Validate player names and score limit.
-            if (!validatePlayerName(p1.name, "Player 1") || !validatePlayerName(p2.name, "Player 2")) return;
-            if (p1.name.toLowerCase() === p2.name.toLowerCase()) {
-                alert("Player names must be unique for a single match."); return;
-            }
-            if (isNaN(scoreLimit) || scoreLimit < 1 || scoreLimit > 21) {
-                alert("Score limit must be between 1 and 21."); return;
-            }
-
-            // Create the MatchSettings object.
-            const matchSettings: MatchSettings = { playerA: p1, playerB: p2, scoreLimit };
-
             // Get the power-up checkbox state for single match
             const enablePowerUp = s_enablePowerUpCheckbox.checked;
 
-            if (gameInstance) {
-                // Ensure correct "Match Over" buttons are displayed for a single match.
-                const singleMB = document.getElementById('singleMatchOverButtons') as HTMLElement;
-                const tourneyMB = document.getElementById('tournamentMatchOverButtons') as HTMLElement;
-                if(singleMB) singleMB.style.display = 'block';
-                if(tourneyMB) tourneyMB.style.display = 'none';
+            // Create the game settings object for backend validation
+            // Get the original color values from the HTML, not the converted hex codes
+            const player1ColorSelect = document.getElementById('s_player1Color') as HTMLSelectElement;
+            const player2ColorSelect = document.getElementById('s_player2Color') as HTMLSelectElement;
+            
+            const gameSettings = {
+                player1: {
+                    name: p1.name,
+                    color: player1ColorSelect.value, // Use original HTML value
+                    type: p1.type
+                },
+                player2: {
+                    name: p2.name,
+                    color: player2ColorSelect.value, // Use original HTML value
+                    type: p2.type
+                },
+                scoreLimit: scoreLimit,
+                enablePowerUps: enablePowerUp
+            };
 
-                // Pass the enablePowerUp flag here!
-                gameInstance.initializeGame(matchSettings, false, null, enablePowerUp);
-                showScreen(pongCanvas); // Show the Pong game canvas.
-                gameInstance.start(); // Start the game loop.
+            try {
+                // Validate with backend first
+                const response = await fetch('/api/game/1v1', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(gameSettings)
+                });
+
+                const result = await response.json();
+                
+                if (!result.success) {
+                    alert(`Backend validation failed: ${result.message || 'Unknown error'}`);
+                    return;
+                }
+
+                // Backend validation passed, proceed with game initialization
+                // Create the MatchSettings object for the game instance
+                const matchSettings: MatchSettings = { playerA: p1, playerB: p2, scoreLimit };
+
+                if (gameInstance) {
+                    // Ensure correct "Match Over" buttons are displayed for a single match.
+                    const singleMB = document.getElementById('singleMatchOverButtons') as HTMLElement;
+                    const tourneyMB = document.getElementById('tournamentMatchOverButtons') as HTMLElement;
+                    if(singleMB) singleMB.style.display = 'block';
+                    if(tourneyMB) tourneyMB.style.display = 'none';
+
+                    // Pass the enablePowerUp flag here!
+                    gameInstance.initializeGame(matchSettings, false, null, enablePowerUp);
+                    showScreen(pongCanvas); // Show the Pong game canvas.
+                    gameInstance.start(); // Start the game loop.
+                }
+            } catch (error) {
+                console.error('Backend validation error:', error);
+                alert('Failed to validate game settings with backend. Please try again.');
             }
         });
     }
 
     // 4-Player Pong Match Settings Form Submission
     if (fp_settingsForm) {
-        fp_settingsForm.addEventListener('submit', (e) => {
+        fp_settingsForm.addEventListener('submit', async (e) => {
             e.preventDefault();
 
             // Get player configurations for all four players (two teams).
@@ -434,46 +473,88 @@ window.addEventListener('DOMContentLoaded', () => {
             const scoreLimitInput = document.getElementById('fp_scoreLimit') as HTMLInputElement;
             const scoreLimit = parseInt(scoreLimitInput.value, 10);
 
-            // Validate player names and uniqueness, and score limit.
-            const players = [p1_t1, p2_t1, p1_t2, p2_t2];
-            if (!players.every((p, i) => validatePlayerName(p.name, `Player ${i + 1}`))) return;
-            const names = players.map(p => p.name.toLowerCase());
-            const uniqueNames = new Set(names);
-            if (names.length !== uniqueNames.size) {
-                alert("All player names must be unique for a 4-player match."); return;
-            }
-            if (isNaN(scoreLimit) || scoreLimit < 1 || scoreLimit > 21) {
-                alert("Score limit must be between 1 and 21."); return;
-            }
-
-            // Create the FourPlayerMatchSettings object.
-            const fourPlayerSettings: FourPlayerMatchSettings = {
-                team1PlayerA: p1_t1, team1PlayerB: p2_t1,
-                team2PlayerA: p1_t2, team2PlayerB: p2_t2,
-                scoreLimit
-            };
-
             // Get the power-up checkbox state for four-player match
             const enablePowerUp = fp_enablePowerUpCheckbox.checked;
 
-            if (gameInstance) {
-                // Ensure correct "Match Over" buttons are displayed for a 4-player match.
-                const singleMB = document.getElementById('singleMatchOverButtons') as HTMLElement;
-                const tourneyMB = document.getElementById('tournamentMatchOverButtons') as HTMLElement;
-                if(singleMB) singleMB.style.display = 'block';
-                if(tourneyMB) tourneyMB.style.display = 'none';
+            // Create the game settings object for backend validation
+            // Get the original color values from the HTML, not the converted hex codes
+            const p1ColorSelect = document.getElementById('fp_p1Color') as HTMLSelectElement;
+            const p2ColorSelect = document.getElementById('fp_p2Color') as HTMLSelectElement;
+            const p3ColorSelect = document.getElementById('fp_p3Color') as HTMLSelectElement;
+            const p4ColorSelect = document.getElementById('fp_p4Color') as HTMLSelectElement;
+            
+            const gameSettings = {
+                player1: {
+                    name: p1_t1.name,
+                    color: p1ColorSelect.value, // Use original HTML value
+                    type: p1_t1.type
+                },
+                player2: {
+                    name: p2_t1.name,
+                    color: p2ColorSelect.value, // Use original HTML value
+                    type: p2_t1.type
+                },
+                player3: {
+                    name: p1_t2.name,
+                    color: p3ColorSelect.value, // Use original HTML value
+                    type: p1_t2.type
+                },
+                player4: {
+                    name: p2_t2.name,
+                    color: p4ColorSelect.value, // Use original HTML value
+                    type: p2_t2.type
+                },
+                scoreLimit: scoreLimit,
+                enablePowerUps: enablePowerUp
+            };
 
-                // Pass the enablePowerUp flag here!
-                gameInstance.initializeFourPlayerMatch(fourPlayerSettings, enablePowerUp);
-                showScreen(pongCanvas); // Show the Pong canvas.
-                gameInstance.start(); // Start the game loop.
+            try {
+                // Validate with backend first
+                const response = await fetch('/api/game/2v2', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(gameSettings)
+                });
+
+                const result = await response.json();
+                
+                if (!result.success) {
+                    alert(`Backend validation failed: ${result.message || 'Unknown error'}`);
+                    return;
+                }
+
+                // Backend validation passed, proceed with game initialization
+                // Create the FourPlayerMatchSettings object for the game instance
+                const fourPlayerSettings: FourPlayerMatchSettings = {
+                    team1PlayerA: p1_t1, team1PlayerB: p2_t1,
+                    team2PlayerA: p1_t2, team2PlayerB: p2_t2,
+                    scoreLimit
+                };
+
+                if (gameInstance) {
+                    // Ensure correct "Match Over" buttons are displayed for a 4-player match.
+                    const singleMB = document.getElementById('singleMatchOverButtons') as HTMLElement;
+                    const tourneyMB = document.getElementById('tournamentMatchOverButtons') as HTMLElement;
+                    if(singleMB) singleMB.style.display = 'block';
+                    if(tourneyMB) tourneyMB.style.display = 'none';
+
+                    // Pass the enablePowerUp flag here!
+                    gameInstance.initializeFourPlayerMatch(fourPlayerSettings, enablePowerUp);
+                    showScreen(pongCanvas); // Show the Pong canvas.
+                    gameInstance.start(); // Start the game loop.
+                }
+            } catch (error) {
+                console.error('Backend validation error:', error);
+                alert('Failed to validate game settings with backend. Please try again.');
             }
         });
     }
 
     // Tournament Settings Form Submission
     if (t_settingsForm) {
-        t_settingsForm.addEventListener('submit', (e) => {
+        t_settingsForm.addEventListener('submit', async (e) => {
             e.preventDefault();
 
             // Get player configurations for all four tournament participants.
@@ -484,41 +565,84 @@ window.addEventListener('DOMContentLoaded', () => {
             const scoreLimitInput = document.getElementById('t_scoreLimit') as HTMLInputElement;
             const scoreLimit = parseInt(scoreLimitInput.value, 10);
 
-            // Validate player names and uniqueness, and points to win per match.
-            if (![p1,p2,p3,p4].every((p, i) => validatePlayerName(p.name, `Player ${i + 1}`))) return;
-            const names = [p1.name.toLowerCase(), p2.name.toLowerCase(), p3.name.toLowerCase(), p4.name.toLowerCase()];
-            const uniqueNames = new Set(names);
-            if (names.length !== uniqueNames.size) {
-                alert("Player names in a tournament must be unique."); return;
-            }
-            if (isNaN(scoreLimit) || scoreLimit < 1 || scoreLimit > 21) {
-                alert("Points to win (per match) must be between 1 and 21."); return;
-            }
-
-            // Create the TournamentSetupInfo object.
-            const tournamentSetupData: TournamentSetupInfo = { player1: p1, player2: p2, player3: p3, player4: p4, scoreLimit };
-
             // Get the power-up checkbox state for tournament
             const enablePowerUp = t_enablePowerUpCheckbox.checked;
 
-            if (gameInstance) {
-                // Create a new Tournament instance, passing setup data, the Pong game instance, and UI element references.
-                tournamentInstance = new Tournament(tournamentSetupData, gameInstance, {
-                    pongCanvasElement: pongCanvas,
-                    matchOverScreenDiv: matchOverScreen,
-                    matchOverMessageElement: document.getElementById('matchOverMessage') as HTMLElement,
-                    tournamentMatchOverButtonsDiv: document.getElementById('tournamentMatchOverButtons') as HTMLElement,
-                    nextMatchButton: document.getElementById('nextMatchBtn') as HTMLButtonElement,
-                    tournamentWinnerScreenDiv: tournamentWinnerScreen,
-                    tournamentWinnerMessageElement: document.getElementById('tournamentWinnerMessage') as HTMLElement,
-                    matchAnnouncementScreenDiv: matchAnnouncementScreen,
-                    announceMatchTitleElement: document.getElementById('announceMatchTitleText') as HTMLElement,
-                    announceMatchVersusElement: document.getElementById('announceMatchVersusText') as HTMLElement,
-                    announceMatchGoButton: document.getElementById('announceMatchGoBtn') as HTMLButtonElement
-                }, enablePowerUp); // <--- Pass enablePowerUp to Tournament
+            // Create the game settings object for backend validation
+            // Get the original color values from the HTML, not the converted hex codes
+            const t1ColorSelect = document.getElementById('t_p1Color') as HTMLSelectElement;
+            const t2ColorSelect = document.getElementById('t_p2Color') as HTMLSelectElement;
+            const t3ColorSelect = document.getElementById('t_p3Color') as HTMLSelectElement;
+            const t4ColorSelect = document.getElementById('t_p4Color') as HTMLSelectElement;
+            
+            const gameSettings = {
+                player1: {
+                    name: p1.name,
+                    color: t1ColorSelect.value, // Use original HTML value
+                    type: p1.type
+                },
+                player2: {
+                    name: p2.name,
+                    color: t2ColorSelect.value, // Use original HTML value
+                    type: p2.type
+                },
+                player3: {
+                    name: p3.name,
+                    color: t3ColorSelect.value, // Use original HTML value
+                    type: p3.type
+                },
+                player4: {
+                    name: p4.name,
+                    color: t4ColorSelect.value, // Use original HTML value
+                    type: p4.type
+                },
+                scoreLimit: scoreLimit,
+                enablePowerUps: enablePowerUp
+            };
 
-                showScreen(null); // Hide the current setup screen before tournament starts.
-                tournamentInstance.startTournament(); // Begin the tournament flow.
+            try {
+                // Validate with backend first
+                const response = await fetch('/api/game/tournament', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(gameSettings)
+                });
+
+                const result = await response.json();
+                
+                if (!result.success) {
+                    alert(`Backend validation failed: ${result.message || 'Unknown error'}`);
+                    return;
+                }
+
+                // Backend validation passed, proceed with tournament initialization
+                // Create the TournamentSetupInfo object for the tournament instance
+                const tournamentSetupData: TournamentSetupInfo = { player1: p1, player2: p2, player3: p3, player4: p4, scoreLimit };
+
+                if (gameInstance) {
+                    // Create a new Tournament instance, passing setup data, the Pong game instance, and UI element references.
+                    tournamentInstance = new Tournament(tournamentSetupData, gameInstance, {
+                        pongCanvasElement: pongCanvas,
+                        matchOverScreenDiv: matchOverScreen,
+                        matchOverMessageElement: document.getElementById('matchOverMessage') as HTMLElement,
+                        tournamentMatchOverButtonsDiv: document.getElementById('tournamentMatchOverButtons') as HTMLElement,
+                        nextMatchButton: document.getElementById('nextMatchBtn') as HTMLButtonElement,
+                        tournamentWinnerScreenDiv: tournamentWinnerScreen,
+                        tournamentWinnerMessageElement: document.getElementById('tournamentWinnerMessage') as HTMLElement,
+                        matchAnnouncementScreenDiv: matchAnnouncementScreen,
+                        announceMatchTitleElement: document.getElementById('announceMatchTitleText') as HTMLElement,
+                        announceMatchVersusElement: document.getElementById('announceMatchVersusText') as HTMLElement,
+                        announceMatchGoButton: document.getElementById('announceMatchGoBtn') as HTMLButtonElement
+                    }, enablePowerUp); // <--- Pass enablePowerUp to Tournament
+
+                    showScreen(null); // Hide the current setup screen before tournament starts.
+                    tournamentInstance.startTournament(); // Begin the tournament flow.
+                }
+            } catch (error) {
+                console.error('Backend validation error:', error);
+                alert('Failed to validate tournament settings with backend. Please try again.');
             }
         });
     }

@@ -67,7 +67,7 @@ export async function gameRoutes(fastify: FastifyInstance) {
    * 
    * Response: Success confirmation with validated game settings
    */
-  fastify.post('/api/game/1v1', {
+  fastify.post('/game/1v1', {
     schema: gameSettingsSchema,  // Use JSON schema for automatic request validation
     handler: async (request: FastifyRequest, reply: FastifyReply) => {
       try {
@@ -126,7 +126,7 @@ export async function gameRoutes(fastify: FastifyInstance) {
    * 
    * Response: Success confirmation with validated game settings organized by teams
    */
-  fastify.post('/api/game/2v2', {
+  fastify.post('/game/2v2', {
     schema: fourPlayerGameSettingsSchema,  // Use JSON schema for automatic request validation
     handler: async (request: FastifyRequest, reply: FastifyReply) => {
       try {
@@ -198,7 +198,7 @@ export async function gameRoutes(fastify: FastifyInstance) {
    * 
    * Response: Success confirmation with validated tournament settings and bracket structure
    */
-  fastify.post('/api/game/tournament', {
+  fastify.post('/game/tournament', {
     schema: tournamentSettingsSchema,  // Use JSON schema for automatic request validation
     handler: async (request: FastifyRequest, reply: FastifyReply) => {
       try {
@@ -268,7 +268,7 @@ export async function gameRoutes(fastify: FastifyInstance) {
    * 
    * Response: List of valid player colors
    */
-  fastify.get('/api/game/colors', async (request: FastifyRequest, reply: FastifyReply) => {
+  fastify.get('/game/colors', async (request: FastifyRequest, reply: FastifyReply) => {
     return reply.status(200).send({
       success: true,
       data: {
@@ -287,7 +287,7 @@ export async function gameRoutes(fastify: FastifyInstance) {
    * 
    * Response: List of valid player types
    */
-  fastify.get('/api/game/player-types', async (request: FastifyRequest, reply: FastifyReply) => {
+  fastify.get('/game/player-types', async (request: FastifyRequest, reply: FastifyReply) => {
     return reply.status(200).send({
       success: true,
       data: {
@@ -306,7 +306,7 @@ export async function gameRoutes(fastify: FastifyInstance) {
    * 
    * Response: Score limit constraints (min and max values)
    */
-  fastify.get('/api/game/score-limits', async (request: FastifyRequest, reply: FastifyReply) => {
+  fastify.get('/game/score-limits', async (request: FastifyRequest, reply: FastifyReply) => {
     return reply.status(200).send({
       success: true,
       data: {
@@ -331,7 +331,7 @@ export async function gameRoutes(fastify: FastifyInstance) {
    * 
    * Response: Validation result with success/error status and details
    */
-  fastify.post('/api/game/validate-name', async (request: FastifyRequest, reply: FastifyReply) => {
+  fastify.post('/game/validate-name', async (request: FastifyRequest, reply: FastifyReply) => {
     try {
       // Extract name and player label from request body
       const { name, playerLabel } = request.body as { name: string; playerLabel: string };

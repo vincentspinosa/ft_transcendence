@@ -130,9 +130,14 @@ class HTTPServer {
     });
 
     // SPA (Single Page Application) fallback handler
-    // This ensures that any route that doesn't match a static file
+    // This ensures that any route that doesn't match a static file or API route
     // will serve the index.html file, enabling client-side routing
     this.fastify.setNotFoundHandler(async (request, reply) => {
+      // Skip SPA fallback for API routes
+      if (request.url.startsWith('/api/')) {
+        return reply.code(404).send({ error: 'API endpoint not found' });
+      }
+      
       // Try multiple possible paths for index.html in Docker container
       const possiblePaths = [
         path.join(__dirname, '../frontend/index.html'),             // Docker volume mount path
@@ -142,8 +147,9 @@ class HTTPServer {
       for (const indexPath of possiblePaths) {
         if (fs.existsSync(indexPath)) {
           console.log(`Found index.html at: ${indexPath}`);
-          // Use reply.sendFile from @fastify/static plugin
-          return reply.sendFile('index.html', path.dirname(indexPath));
+          // Read and send the file content directly since sendFile is not working
+          const fileContent = fs.readFileSync(indexPath, 'utf8');
+          return reply.type('text/html').send(fileContent);
         }
       }
       
