@@ -1,34 +1,32 @@
 #!/bin/bash
 
-/**
- * Transcendence Backend SSL Certificate Generation Script
- * 
- * This script generates self-signed SSL certificates for development purposes.
- * It creates the necessary cryptographic files needed to enable HTTPS on the
- * local development server.
- * 
- * WARNING: These are self-signed certificates intended ONLY for development.
- * They will trigger browser security warnings and should NEVER be used in
- * production environments.
- * 
- * Features:
- * - Automatic creation of certificates directory
- * - Generation of 2048-bit RSA private key
- * - Creation of certificate signing request (CSR)
- * - Generation of self-signed certificate valid for 365 days
- * - Proper file permissions for security
- * - Clear output messages and instructions
- * 
- * Security Notes:
- * - Private key is set to 600 permissions (owner read/write only)
- * - Certificate is set to 644 permissions (owner read/write, others read)
- * - 2048-bit RSA provides adequate security for development
- * - 365-day validity prevents frequent regeneration needs
- * 
- * @author Vincent Spinosa
- * @version 1.0.0
- * @usage ./generate-certs.sh
- */
+# Transcendence Backend SSL Certificate Generation Script
+# 
+# This script generates self-signed SSL certificates for development purposes.
+# It creates the necessary cryptographic files needed to enable HTTPS on the
+# local development server.
+# 
+# WARNING: These are self-signed certificates intended ONLY for development.
+# They will trigger browser security warnings and should NEVER be used in
+# production environments.
+# 
+# Features:
+# - Automatic creation of certificates directory
+# - Generation of 2048-bit RSA private key
+# - Creation of certificate signing request (CSR)
+# - Generation of self-signed certificate valid for 365 days
+# - Proper file permissions for security
+# - Clear output messages and instructions
+# 
+# Security Notes:
+# - Private key is set to 600 permissions (owner read/write only)
+# - Certificate is set to 644 permissions (owner read/write, others read)
+# - 2048-bit RSA provides adequate security for development
+# - 365-day validity prevents frequent regeneration needs
+# 
+# @author Vincent Spinosa
+# @version 1.0.0
+# @usage ./generate-certs.sh
 
 # Display informative header message
 echo "🔐 Generating self-signed SSL certificates for development..."

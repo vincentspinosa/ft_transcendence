@@ -6,8 +6,8 @@ WORKDIR /app
 # Copy package files
 COPY package*.json ./
 
-# Install dependencies
-RUN npm ci --only=production
+# Install all dependencies (including dev dependencies) for building
+RUN npm ci
 
 # Copy source code
 COPY . .
@@ -15,12 +15,19 @@ COPY . .
 # Build the application
 RUN npm run build
 
+# Remove dev dependencies to reduce image size
+RUN npm prune --production
+
 # Create non-root user
 RUN addgroup -g 1001 -S nodejs
 RUN adduser -S nodejs -u 1001
 
-# Change ownership of the app directory
+# Change ownership of the app directory (including certificates)
 RUN chown -R nodejs:nodejs /app
+
+# Ensure certificates are readable by the nodejs user
+RUN chmod 644 /app/certs/cert.pem && chmod 600 /app/certs/key.pem
+
 USER nodejs
 
 # Expose port

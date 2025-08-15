@@ -51,7 +51,7 @@ import '../main.css';
 import { Game } from './Game'; // Imports the core Pong game logic.
 import { Tournament } from './Tournament'; // Imports the tournament management logic.
 import { PlayerConfig, MatchSettings, TournamentSetupInfo, FourPlayerMatchSettings } from './interfaces'; // Imports data structures for player, match, and tournament configurations.
-import { FormValidationManager } from './formValidation'; // Imports the form validation manager.
+// FormValidationManager import removed - not implemented yet
 
 const MAX_NAME_LENGTH = 20; // Maximum allowed length for player names in Pong and Tic-Tac-Toe game modes.
 
@@ -326,9 +326,7 @@ window.addEventListener('DOMContentLoaded', () => {
     // If it were to navigate, `MapsTo('gameSetup')` would be called.
 
     // --- Form Validation Initialization ---
-    // Initialize the form validation manager to handle form submissions and validation
-    // using the backend API routes for real-time validation and form processing.
-    const formValidationManager = new FormValidationManager();
+    // Form validation manager initialization removed - not implemented yet
 
 
 
