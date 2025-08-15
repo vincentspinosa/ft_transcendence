@@ -127,4 +127,4 @@ process.on('SIGTERM', async () => {
 
 // Start the server
 const server = new HTTPServer();
-server.start().catch(console.error);
+server.start().catch(console.log);
