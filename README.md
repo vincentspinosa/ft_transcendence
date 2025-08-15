@@ -119,12 +119,9 @@ transcendence/
 └── .dockerignore      # Docker ignore rules
 ```
 
+
+
 ## 🔧 Configuration
-
-### Environment Variables
-
-- `PORT`: Server port (default: 3000)
-- `HOST`: Server host (default: 0.0.0.0)
 
 ### SSL Certificates
 

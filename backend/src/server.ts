@@ -77,6 +77,8 @@ class HTTPServer {
     });
   }
 
+
+
   private setupRoutes(): void {
     // Health check endpoint
     this.fastify.get('/health', async (request, reply) => {

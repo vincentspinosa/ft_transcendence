@@ -325,6 +325,8 @@ window.addEventListener('DOMContentLoaded', () => {
     // If it were to navigate, `MapsTo('gameSetup')` would be called.
 
 
+
+
     // --- Event Listener Setup for Navigation Buttons ---
     // Attach click event listeners to buttons to trigger screen navigation.
     if (singleMatchModeBtn) singleMatchModeBtn.onclick = () => navigateTo('gameSetup');
