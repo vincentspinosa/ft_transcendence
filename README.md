@@ -21,19 +21,19 @@ A Fastify-based HTTPS server that serves the frontend with:
 
 ## 🚀 Quick Start
 
-### Option 1: Using the startup script (Recommended)
+### Option 1: Using Docker Compose (Recommended)
 
 ```bash
-./start-backend.sh
+make all
 ```
 
-This script will:
-1. Generate SSL certificates if needed
-2. Install backend dependencies
-3. Build the backend
-4. Start the HTTPS server
+This command will:
+1. Check prerequisites (Docker, Docker Compose)
+2. Generate SSL certificates if needed
+3. Build the Docker containers
+4. Start the application
 
-### Option 2: Manual setup
+### Option 2: Manual Docker setup
 
 1. **Generate SSL certificates:**
    ```bash
@@ -87,7 +87,28 @@ npm run watch    # File watching
 
 ## 🐳 Docker
 
-Run with Docker Compose:
+### Quick Commands
+
+```bash
+make help          # Show all available commands
+make all           # Quick start (check, ssl, build, start)
+make start         # Start the application
+make stop          # Stop the application
+make logs          # View application logs
+make status        # Show container status
+make clean         # Clean up Docker resources
+make rebuild       # Rebuild everything from scratch
+```
+
+### Development vs Production
+
+```bash
+make dev           # Start in development mode
+make prod          # Start in production mode
+```
+
+### Manual Docker Compose
+
 ```bash
 docker-compose up --build
 ```
@@ -112,8 +133,7 @@ transcendence/
 │   ├── package.json    # Backend dependencies
 │   ├── tsconfig.json   # Backend TypeScript configuration
 │   └── Makefile        # Backend build commands
-├── start-backend.sh    # Quick start script
-├── start-full-stack.sh # Full stack startup script
+├── Makefile            # Project management commands
 ├── docker-compose.yml  # Docker orchestration
 ```
 
@@ -129,14 +149,29 @@ The backend requires SSL certificates. For development, self-signed certificates
 
 ## 📚 Available Commands
 
-### Frontend
+### Project Management (Root Level)
+- `make help` - Show all available commands
+- `make all` - Quick start (check, ssl, build, start)
+- `make start` - Start the application
+- `make stop` - Stop the application
+- `make logs` - View application logs
+- `make status` - Show container status
+- `make clean` - Clean up Docker resources
+- `make rebuild` - Rebuild everything from scratch
+
+### Development Modes
+- `make dev` - Start in development mode
+- `make prod` - Start in production mode
+- `make local-dev` - Start local development without Docker
+
+### Frontend (Individual Directory)
 - `cd frontend && make help` - Show all available commands
 - `cd frontend && make setup` - Complete setup
 - `cd frontend && make build` - Build for production
 - `cd frontend && make watch` - Development with file watching
 - `cd frontend && make start` - Build and serve with live-server
 
-### Backend
+### Backend (Individual Directory)
 - `cd backend && make help` - Show all available commands
 - `cd backend && make setup` - Complete setup
 - `cd backend && make start` - Start production server

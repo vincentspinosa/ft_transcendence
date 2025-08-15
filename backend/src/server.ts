@@ -108,9 +108,9 @@ class HTTPServer {
     // Serve static files from the frontend directory
     // This allows the backend to serve the built frontend application
     await this.fastify.register(fastifyStatic, {
-      root: path.join(__dirname, '../../frontend'),  // Path to frontend build directory
-      prefix: '/',                                   // Serve files from root path
-      decorateReply: false,                          // Don't modify the reply object
+      root: path.join(__dirname, '../frontend'),  // Path to frontend directory in Docker container
+      prefix: '/',                                // Serve files from root path
+      decorateReply: false,                       // Don't modify the reply object
       
       // Custom header handling for different file types
       setHeaders: (res, filePath) => {
@@ -133,11 +133,22 @@ class HTTPServer {
     // This ensures that any route that doesn't match a static file
     // will serve the index.html file, enabling client-side routing
     this.fastify.setNotFoundHandler(async (request, reply) => {
-      const indexPath = path.join(__dirname, '../../frontend/index.html');
-      if (fs.existsSync(indexPath)) {
-        return reply.sendFile('index.html');  // Serve index.html for SPA routing
+      // Try multiple possible paths for index.html in Docker container
+      const possiblePaths = [
+        path.join(__dirname, '../frontend/index.html'),             // Docker volume mount path
+        path.join(__dirname, '../frontend/dist/index.html'),        // Built frontend path
+      ];
+      
+      for (const indexPath of possiblePaths) {
+        if (fs.existsSync(indexPath)) {
+          console.log(`Found index.html at: ${indexPath}`);
+          // Use reply.sendFile from @fastify/static plugin
+          return reply.sendFile('index.html', path.dirname(indexPath));
+        }
       }
-      return reply.code(404).send({ error: 'Not Found' });  // Fallback 404 response
+      
+      console.log('index.html not found. Searched paths:', possiblePaths);
+      return reply.code(404).send({ error: 'Not Found - Frontend files not available' });  // Fallback 404 response
     });
   }
 
