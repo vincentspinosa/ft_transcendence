@@ -385,16 +385,6 @@ export class TranslationManager {
                 en: 'Save language preference for next visit?',
                 fr: 'Sauvegarder la préférence de langue pour la prochaine visite ?',
                 es: '¿Guardar preferencia de idioma para la próxima visita?'
-            },
-            'yes': {
-                en: 'Yes',
-                fr: 'Oui',
-                es: 'Sí'
-            },
-            'no': {
-                en: 'No',
-                fr: 'Non',
-                es: 'No'
             }
         };
     }
@@ -486,10 +476,8 @@ export class TranslationManager {
 
     private askToSavePreference(): void {
         const message = this.getTranslation('saveLanguagePreference');
-        const yesText = this.getTranslation('yes');
-        const noText = this.getTranslation('no');
 
-        if (confirm(`${message}\n\n${yesText} / ${noText}`)) {
+        if (confirm(`${message}\n`)) {
             localStorage.setItem('preferredLanguage', this.currentLanguage);
         }
     }
