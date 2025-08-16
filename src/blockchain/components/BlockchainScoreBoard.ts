@@ -9,6 +9,7 @@ export class BlockchainScoreBoard {
   private connectionStatus!: HTMLSpanElement;
   private contractAddressInput!: HTMLInputElement;
   private deployContractButton!: HTMLButtonElement;
+  private checkContractButton!: HTMLButtonElement;
   private playerListContainer!: HTMLElement;
 
   constructor(containerId: string) {
@@ -17,7 +18,7 @@ export class BlockchainScoreBoard {
 
     this.container = container;
     this.blockchainService = new BlockchainService();
-    
+
     this.createUI();
     this.initEventListeners();
     this.setupBlockchainEvents();
@@ -29,13 +30,18 @@ export class BlockchainScoreBoard {
     this.container.innerHTML = `
       <div class="p-4">
         <h2 class="text-white text-lg font-bold mb-4">Blockchain Scores</h2>
-        <div class="mb-4 flex items-center gap-3">
-          <button id="connect-btn" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded">Connect Wallet</button>
-          <span id="status" class="text-white text-sm">Disconnected</span>
+        <div class="mb-4">
+          <button id="connect-btn" class="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded mb-2">Connect Wallet</button>
+          <div class="text-center">
+            <span id="status" class="text-white text-sm">Disconnected</span>
+          </div>
         </div>
-        <div class="mb-4 flex gap-2">
-          <input type="text" id="contract-input" class="flex-1 px-3 py-2 bg-transparent border border-gray-400 text-white text-sm placeholder-gray-400 rounded" placeholder="Contract address (optional)">
-          <button id="deploy-btn" class="px-4 py-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-600 text-white text-sm rounded" disabled>Deploy</button>
+        <div class="mb-4">
+          <div class="flex gap-2 mb-2">
+            <button id="deploy-btn" class="px-4 py-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-600 text-white text-sm rounded" disabled>Deploy Contract</button>
+            <button id="check-btn" class="px-4 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-600 text-white text-sm rounded" disabled>Check Contract</button>
+          </div>
+          <input type="text" id="contract-input" class="w-full px-3 py-2 bg-transparent border border-gray-400 text-white text-sm placeholder-gray-400 rounded" placeholder="Contract address (optional)">
         </div>
         <div id="players"><p class="text-white text-sm">Connect wallet to view scores</p></div>
       </div>
@@ -45,6 +51,7 @@ export class BlockchainScoreBoard {
     this.connectionStatus = this.container.querySelector('#status') as HTMLSpanElement;
     this.contractAddressInput = this.container.querySelector('#contract-input') as HTMLInputElement;
     this.deployContractButton = this.container.querySelector('#deploy-btn') as HTMLButtonElement;
+    this.checkContractButton = this.container.querySelector('#check-btn') as HTMLButtonElement;
     this.playerListContainer = this.container.querySelector('#players') as HTMLElement;
   }
 
@@ -67,7 +74,10 @@ export class BlockchainScoreBoard {
       if (address?.startsWith('0x')) {
         this.blockchainService.setContractAddress(address);
         localStorage.setItem('blockchainContractAddress', address);
+        this.checkContractButton.disabled = false;
         this.loadStats();
+      } else {
+        this.checkContractButton.disabled = true;
       }
     });
 
@@ -75,19 +85,27 @@ export class BlockchainScoreBoard {
       try {
         this.deployContractButton.disabled = true;
         this.deployContractButton.textContent = 'Deploying...';
-        
+
         const address = await this.blockchainService.deployContract();
         if (address) {
           this.contractAddressInput.value = address;
           localStorage.setItem('blockchainContractAddress', address);
+          this.checkContractButton.disabled = false;
           this.loadStats();
-          alert(`Contract deployed: ${address}`);
         }
       } catch (error) {
         alert(`Deployment failed: ${getErrorMessage(error)}`);
       } finally {
         this.deployContractButton.disabled = false;
-        this.deployContractButton.textContent = 'Deploy';
+        this.deployContractButton.textContent = 'Deploy Contract';
+      }
+    });
+
+    this.checkContractButton.addEventListener('click', () => {
+      const address = this.contractAddressInput.value.trim();
+      if (address?.startsWith('0x')) {
+        const url = `https://testnet.snowtrace.io/address/${address}`;
+        window.open(url, '_blank');
       }
     });
   }
@@ -97,10 +115,15 @@ export class BlockchainScoreBoard {
       this.updateStatus();
       this.loadStats();
     });
-    
+
     this.blockchainService.onAccountChange((accounts: string[]) => {
       this.updateStatus();
-      if (accounts.length > 0) this.loadStats();
+      if (accounts.length > 0) {
+        this.loadStats();
+      } else {
+        // Пользователь отключился - показываем сообщение
+        this.playerListContainer.innerHTML = '<p class="text-white text-sm">Connect wallet to view scores</p>';
+      }
     });
 
     this.blockchainService.onScoreUpdate(() => this.loadStats());
@@ -110,6 +133,7 @@ export class BlockchainScoreBoard {
     const address = this.blockchainService.getContractAddress();
     if (address) {
       this.contractAddressInput.value = address;
+      this.checkContractButton.disabled = false;
       setTimeout(() => {
         this.updateStatus();
         this.loadStats();
@@ -132,13 +156,16 @@ export class BlockchainScoreBoard {
         const network = await this.blockchainService.getCurrentNetwork();
         this.connectionStatus.textContent = `${address.substring(0, 6)}...${address.slice(-3)} (${network.name})`;
         this.connectionStatus.className = 'text-green-400 text-sm font-medium';
+        this.connectButton.style.display = 'none';
       } else {
         this.connectionStatus.textContent = 'Disconnected';
         this.connectionStatus.className = 'text-white text-sm';
+        this.connectButton.style.display = 'block';
       }
     } catch (error) {
       this.connectionStatus.textContent = 'Error';
       this.connectionStatus.className = 'text-red-400 text-sm';
+      this.connectButton.style.display = 'block';
     }
   }
 
@@ -146,19 +173,19 @@ export class BlockchainScoreBoard {
     try {
       const contract = this.blockchainService.getContractAddress();
       const isConnected = await this.blockchainService.isWalletActuallyConnected();
-      
+
       if (!contract) {
         this.playerListContainer.innerHTML = '<p class="text-white text-sm">Please set contract address first.</p>';
         return;
       }
-      
+
       if (!isConnected) {
         this.playerListContainer.innerHTML = '<p class="text-white text-sm">Please connect wallet first.</p>';
         return;
       }
 
       const players = await this.blockchainService.getAllUniquePlayersWithStats();
-      
+
       if (players.length === 0) {
         this.playerListContainer.innerHTML = `
           <div class="text-center p-4 border border-gray-600 rounded mt-2">
