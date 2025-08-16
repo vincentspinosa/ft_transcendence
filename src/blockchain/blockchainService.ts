@@ -1,5 +1,5 @@
 import { PongTournamentScoresBytecode } from './contractConfig';
-import { keccak256 } from 'js-sha3';
+import { ethers } from 'ethers';
 
 export class BlockchainService {
     private contractAddress: string | null = null;
@@ -443,7 +443,7 @@ export class BlockchainService {
         }
 
         try {
-            // Encode function call
+            // Encode function call using ethers
             const data = this.encodeCall('getScore', ['address'], [playerAddress]);
 
             // Call contract
@@ -455,8 +455,9 @@ export class BlockchainService {
                 }, 'latest']
             });
 
-            // Decode result
-            return parseInt(result, 16);
+            // Decode result using ethers
+            const decoded = this.decodeResult(result, ['uint256']);
+            return typeof decoded === 'bigint' ? Number(decoded) : (decoded as number) || 0;
         } catch (error) {
             console.error('Error getting player score:', error);
             throw error;
@@ -474,7 +475,7 @@ export class BlockchainService {
         }
 
         try {
-            // Encode function call
+            // Encode function call using ethers
             const data = this.encodeCall('getPlayerName', ['address'], [playerAddress]);
 
             // Call contract
@@ -488,42 +489,9 @@ export class BlockchainService {
 
             console.log(`getPlayerName(${playerAddress}) raw result:`, result);
 
-            // Decode string from hex
-            if (!result || result === '0x' || result.length < 130) {
-                console.log(`No valid name data for address ${playerAddress}`);
-                return '';
-            }
-
-            try {
-                // Skip first 64 chars (32 bytes offset) and next 64 chars (32 bytes length)
-                if (result.length < 130) {
-                    return '';
-                }
-
-                const lengthHex = result.slice(66, 130); // String length
-                const length = parseInt(lengthHex, 16);
-
-                if (length === 0) {
-                    return '';
-                }
-
-                const hexString = result.slice(130, 130 + length * 2); // String data
-
-                // Convert hex to string
-                let name = '';
-                for (let i = 0; i < hexString.length; i += 2) {
-                    const hex = hexString.substr(i, 2);
-                    const charCode = parseInt(hex, 16);
-                    if (charCode > 0) {
-                        name += String.fromCharCode(charCode);
-                    }
-                }
-
-                return name.trim();
-            } catch (decodeError) {
-                console.warn('Error decoding player name:', decodeError);
-                return '';
-            }
+            // Decode string using ethers
+            const decoded = this.decodeResult(result, ['string']);
+            return decoded || '';
         } catch (error) {
             console.warn('⚠️ Error getting player name (using fallback):', error);
             return ''; // Return empty string instead of throwing
@@ -558,27 +526,8 @@ export class BlockchainService {
         }
 
         try {
-            // Try to get unique players count first
-            try {
-                const countData = this.encodeCall('getUniquePlayersCount', [], []);
-                const countResult = await window.ethereum.request({
-                    method: 'eth_call',
-                    params: [{
-                        to: this.contractAddress,
-                        data: countData
-                    }, 'latest']
-                });
-                // const uniquePlayerCount = parseInt(countResult, 16);
-                // console.log(`🎮 Unique players count: ${uniquePlayerCount}`);
-            } catch (countError) {
-                console.warn('Could not get unique players count:', countError);
-            }
-
-            // Call new function to get full statistics
+            // Use new getAllUniquePlayersWithStats function
             const data = this.encodeCall('getAllUniquePlayersWithStats', [], []);
-            
-            console.log('🔍 Making contract call to:', this.contractAddress);
-            console.log('🔍 Call data:', data);
             
             const result = await window.ethereum.request({
                 method: 'eth_call',
@@ -589,35 +538,49 @@ export class BlockchainService {
             });
 
             console.log('Raw result from getAllUniquePlayersWithStats:', result);
-            console.log('Result length:', result?.length);
 
             if (!result || result === '0x' || result.length < 130) {
                 console.log('⚠️ No valid data returned from contract, trying legacy method');
-                console.log('Result details:', { result, length: result?.length });
-                
-                // Try to check if contract exists at this address
-                const code = await window.ethereum.request({
-                    method: 'eth_getCode',
-                    params: [this.contractAddress, 'latest']
-                });
-                
-                console.log('Contract code check:', { address: this.contractAddress, codeLength: code?.length });
-                
-                if (!code || code === '0x') {
-                    console.error('No contract found at address:', this.contractAddress);
-                    return [];
-                }
-                
-                // Fallback to legacy function if new one doesn't work
                 return await this.getAllPlayersLegacy();
             }
 
-            // Decode result (5 arrays: names, addresses, scores, gamesPlayed, gamesWon)
+            // Try to use ethers for decoding, fallback to legacy if fails
+            try {
+                // Define return types for the function
+                const returnTypes = ['string[]', 'address[]', 'uint256[]', 'uint256[]', 'uint256[]'];
+                const decoded = this.decodeResult(result, returnTypes);
+                
+                console.log('🔍 Ethers decoded result:', decoded);
+                
+                if (Array.isArray(decoded) && decoded.length === 5) {
+                    const [names, addresses, scores, gamesPlayed, gamesWon] = decoded;
+                    const playersData = [];
+
+                    for (let i = 0; i < names.length; i++) {
+                        const totalScore = Number(scores[i]) || 0;
+                        const played = Number(gamesPlayed[i]) || 0;
+                        const won = Number(gamesWon[i]) || 0;
+
+                        playersData.push({
+                            name: names[i] || 'Unknown Player',
+                            address: addresses[i] || '',
+                            totalScore,
+                            gamesPlayed: played,
+                            gamesWon: won,
+                            winRate: played > 0 ? Math.round((won / played) * 100) : 0
+                        });
+                    }
+
+                    console.log(`✅ Successfully decoded ${playersData.length} players using ethers`);
+                    return playersData;
+                }
+            } catch (ethersError) {
+                console.warn('⚠️ Ethers decoding failed, using legacy method:', ethersError);
+            }
+
+            // Fallback to legacy decoding
             const players = this.decodeMultipleArraysResult(result, 5);
-
-            console.log('Decoded players arrays:', players);
-            console.log('Array lengths:', players.map(arr => arr.length));
-
+            
             if (players.length === 0) {
                 console.log('⚠️ No players found in contract');
                 return [];
@@ -642,7 +605,7 @@ export class BlockchainService {
                 });
             }
 
-            // console.log(`✅ Found ${playersData.length} unique players with stats`);
+            console.log(`✅ Found ${playersData.length} unique players with stats`);
             return playersData;
 
         } catch (error) {
@@ -1027,58 +990,107 @@ export class BlockchainService {
             return [];
         }
     }
+    /**
+     * Encodes function calls using ethers library
+     */
     private encodeCall(functionName: string, types: string[], values: string[]): string {
-        // Create function signature and compute Keccak-256 hash
-        const signature = `${functionName}(${types.join(',')})`;
-        const hash = keccak256(signature);
-        const methodId = '0x' + hash.slice(0, 8); // First 4 bytes (8 hex chars)
+        try {
+            // Create ABI fragment for the function
+            const abiFragment = {
+                name: functionName,
+                type: 'function',
+                inputs: types.map((type, index) => ({
+                    name: `param${index}`,
+                    type: type
+                }))
+            };
 
-        console.log(`Function: ${signature} -> Method ID: ${methodId}`);
+            // Create interface with the function
+            const iface = new ethers.Interface([abiFragment]);
+            
+            // Convert values to appropriate types
+            const convertedValues = values.map((value, index) => {
+                const type = types[index];
+                if (type === 'uint256') {
+                    return ethers.parseUnits(value, 0); // Parse as integer
+                } else if (type === 'bool') {
+                    return value === 'true' || value === '1';
+                } else if (type === 'address') {
+                    return ethers.getAddress(value); // Validate and checksum address
+                }
+                return value; // string and other types
+            });
 
-        // Encode arguments
-        let encodedParams = '';
-        let stringData = '';
-        let currentOffset = types.length * 32; // Each basic type takes 32 bytes
-
-        for (let i = 0; i < values.length; i++) {
-            const value = values[i];
-            const type = types[i];
-
-            if (type === 'address') {
-                // Remove 0x prefix and pad to 64 chars
-                const paddedValue = value.startsWith('0x') ? value.slice(2) : value;
-                encodedParams += paddedValue.toLowerCase().padStart(64, '0');
-            } else if (type === 'uint256') {
-                // Convert number to hex and pad to 64 chars
-                const hexValue = parseInt(value).toString(16);
-                encodedParams += hexValue.padStart(64, '0');
-            } else if (type === 'bool') {
-                // Boolean value: true = 1, false = 0
-                const boolValue = (value === 'true' || value === '1') ? '1' : '0';
-                encodedParams += boolValue.padStart(64, '0');
-            } else if (type === 'string') {
-                // For string add offset (pointer to string position)
-                const offsetHex = currentOffset.toString(16).padStart(64, '0');
-                encodedParams += offsetHex;
-
-                // Encode string
-                const stringBytes = new TextEncoder().encode(value);
-                const lengthHex = stringBytes.length.toString(16).padStart(64, '0');
-                const hexString = Array.from(stringBytes)
-                    .map(b => b.toString(16).padStart(2, '0'))
-                    .join('');
-
-                // Pad string to multiple of 32 bytes
-                const paddedStringHex = hexString.padEnd(Math.ceil(hexString.length / 64) * 64, '0');
-
-                stringData += lengthHex + paddedStringHex;
-                currentOffset += 32 + Math.ceil(stringBytes.length / 32) * 32; // length + padded data
-            }
+            // Encode function call
+            const encoded = iface.encodeFunctionData(functionName, convertedValues);
+            console.log(`🔧 Ethers encoded ${functionName}:`, encoded);
+            return encoded;
+        } catch (error) {
+            console.error(`❌ Failed to encode function ${functionName}:`, error);
+            throw error;
         }
+    }
 
-        // Add string data at the end
-        const result = methodId + encodedParams + stringData;
-        console.log(`Encoded call: ${result}`);
+    /**
+     * Decodes function result using ethers library
+     */
+    private decodeResult(result: string, returnTypes: string[]): any {
+        try {
+            if (!result || result === '0x' || result.length <= 2) {
+                return returnTypes.length === 1 ? null : [];
+            }
+
+            // For simple types, use ethers AbiCoder
+            const abiCoder = ethers.AbiCoder.defaultAbiCoder();
+            const decoded = abiCoder.decode(returnTypes, result);
+            
+            console.log(`🔍 Ethers decoded result:`, decoded);
+            return decoded.length === 1 ? decoded[0] : decoded;
+        } catch (error) {
+            console.error(`❌ Failed to decode result:`, error);
+            // Fallback to legacy decoding for complex types
+            return this.legacyDecodeResult(result, returnTypes);
+        }
+    }
+
+    /**
+     * Legacy decode method for complex return types (fallback)
+     */
+    private legacyDecodeResult(result: string, returnTypes: string[]): any {
+        if (returnTypes.length === 1 && returnTypes[0] === 'uint256') {
+            return parseInt(result, 16);
+        }
+        if (returnTypes.length === 1 && returnTypes[0] === 'string') {
+            return this.decodeString(result);
+        }
+        // For complex types, return raw result
         return result;
+    }
+
+    /**
+     * Decode string from hex (legacy method)
+     */
+    private decodeString(result: string): string {
+        try {
+            if (!result || result === '0x' || result.length < 130) {
+                return '';
+            }
+
+            const data = result.slice(2);
+            const lengthHex = data.slice(64, 128);
+            const length = parseInt(lengthHex, 16);
+            
+            if (length === 0) return '';
+
+            const stringHex = data.slice(128, 128 + length * 2);
+            const bytes = [];
+            for (let i = 0; i < stringHex.length; i += 2) {
+                bytes.push(parseInt(stringHex.slice(i, i + 2), 16));
+            }
+            return new TextDecoder().decode(new Uint8Array(bytes));
+        } catch (error) {
+            console.warn('Failed to decode string:', error);
+            return '';
+        }
     }
 }

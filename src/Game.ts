@@ -63,6 +63,26 @@ export class Game {
 
     // --- Blockchain Integration ---
     private blockchainService: BlockchainService; // Service for blockchain interactions
+    private blockchainSaveEnabled: boolean = true; // Flag to enable/disable blockchain saving
+
+    /**
+     * Checks if blockchain is available and ready for saving
+     */
+    private isBlockchainReady(): boolean {
+        if (!this.blockchainSaveEnabled) return false;
+        const contractAddress = this.blockchainService.getContractAddress();
+        const connectedAddress = this.blockchainService.getConnectedAddress();
+        return !!(contractAddress && connectedAddress);
+    }
+
+    /**
+     * Enable or disable blockchain saving
+     * @param enabled True to enable blockchain saving, false to disable
+     */
+    public setBlockchainSaveEnabled(enabled: boolean): void {
+        this.blockchainSaveEnabled = enabled;
+        console.log(`🔗 Blockchain saving ${enabled ? 'enabled' : 'disabled'}`);
+    }
 
     // --- AI specific properties ---
     private lastAIUpdateTime: number = 0; // Timestamp of the last AI decision update.
@@ -709,18 +729,23 @@ export class Game {
     private checkWinCondition(): void {
         if (this.gameOver) return; // If game is already over, do nothing.
 
+        let winner: PlayerConfig | null = null;
+
         if (this.gameMode === '4player') {
             // Check win condition for 4-player mode.
             if (this.team1Score >= this.scoreLimit) {
                 this.gameOver = true;
                 this.winnerMessage = `Team ${this.team1PlayerAConfig.name} & ${this.team1PlayerBConfig.name} wins!`;
+                // For 4-player mode, use team1PlayerAConfig as the winner representative
+                winner = this.team1PlayerAConfig;
             } else if (this.team2Score >= this.scoreLimit) {
                 this.gameOver = true;
                 this.winnerMessage = `Team ${this.team2PlayerAConfig.name} & ${this.team2PlayerBConfig.name} wins!`;
+                // For 4-player mode, use team2PlayerAConfig as the winner representative
+                winner = this.team2PlayerAConfig;
             }
         } else { // Check win condition for 2-player or tournament mode.
             if (!this.player1Paddle || !this.player2Paddle || !this.playerAConfig || !this.playerBConfig) return; // Ensure paddles/configs exist.
-            let winner: PlayerConfig | null = null;
             if (this.player1Paddle.score >= this.scoreLimit) {
                 winner = this.playerAConfig; // Player A wins.
                 this.winnerMessage = `${this.playerAConfig.name} wins the match!`;
@@ -728,18 +753,18 @@ export class Game {
                 winner = this.playerBConfig; // Player B wins.
                 this.winnerMessage = `${this.playerBConfig.name} wins the match!`;
             }
-            if (winner) {
-                this.gameOver = true;
+        }
 
-                // Save score to blockchain for tournaments
-                if (this.isTournamentMatchFlag) {
-                    this.saveScoreToBlockchain(winner);
-                }
+        // If we have a winner, game is over
+        if (winner) {
+            this.gameOver = true;
 
-                // If it's a tournament match, call the callback to notify the Tournament manager about the winner.
-                if (this.isTournamentMatchFlag && this.onMatchCompleteCallback) {
-                    this.onMatchCompleteCallback(winner);
-                }
+            // Save score to blockchain for ALL matches (simplified approach)
+            this.saveMatchResultsToBlockchain(winner);
+
+            // If it's a tournament match, call the callback to notify the Tournament manager about the winner.
+            if (this.isTournamentMatchFlag && this.onMatchCompleteCallback) {
+                this.onMatchCompleteCallback(winner);
             }
         }
 
@@ -781,96 +806,71 @@ export class Game {
     }
 
     /**
-     * Saves all players' scores to blockchain
+     * Saves match results to blockchain - simplified version for all match types
      * @param winner The player who won the match
      */
-    private async saveScoreToBlockchain(winner: PlayerConfig): Promise<void> {
+    private async saveMatchResultsToBlockchain(winner: PlayerConfig): Promise<void> {
         try {
-            console.log(`Saving match results to blockchain. Winner: ${winner.name}`);
-
-            // Force refresh contract address from localStorage to ensure we're using the latest
-            this.blockchainService.refreshContractAddress();
-
-            // Check blockchain state
-            const contractAddress = this.blockchainService.getContractAddress();
-            const connectedAddress = this.blockchainService.getConnectedAddress();
-            console.log(`Blockchain state - Contract: ${contractAddress}, Wallet: ${connectedAddress}`);
+            console.log(`💾 Saving match results to blockchain. Winner: ${winner.name}`);
 
             // Check if blockchain is available and ready
-            if (!contractAddress || !connectedAddress) {
-                console.log('⚠️ Blockchain not ready (no contract or wallet), skipping blockchain save');
+            if (!this.isBlockchainReady()) {
+                console.log('⚠️ Blockchain not ready, skipping save');
                 return;
             }
 
-            // Collect all players and their scores
-            const playersToSave: Array<{ config: PlayerConfig, score: number, won: boolean }> = [];
+            const connectedAddress = this.blockchainService.getConnectedAddress()!;
+            const playersToSave: Array<{ name: string, score: number, won: boolean }> = [];
 
-            // Player 1
-            if (this.player1Paddle && this.playerAConfig) {
-                playersToSave.push({
-                    config: this.playerAConfig,
-                    score: this.player1Paddle.score,
-                    won: this.playerAConfig.id === winner.id
-                });
-            }
-
-            // Player 2
-            if (this.player2Paddle && this.playerBConfig) {
-                playersToSave.push({
-                    config: this.playerBConfig,
-                    score: this.player2Paddle.score,
-                    won: this.playerBConfig.id === winner.id
-                });
-            }
-
-            // For 4-player mode, add team players
+            // Collect player data based on game mode
             if (this.gameMode === '4player') {
-                if (this.team1PlayerBConfig) {
+                // 4-player mode: save team scores
+                playersToSave.push(
+                    { name: this.team1PlayerAConfig.name, score: this.team1Score, won: this.team1Score >= this.scoreLimit },
+                    { name: this.team1PlayerBConfig.name, score: this.team1Score, won: this.team1Score >= this.scoreLimit },
+                    { name: this.team2PlayerAConfig.name, score: this.team2Score, won: this.team2Score >= this.scoreLimit },
+                    { name: this.team2PlayerBConfig.name, score: this.team2Score, won: this.team2Score >= this.scoreLimit }
+                );
+            } else {
+                // 2-player mode: save individual scores
+                if (this.player1Paddle && this.playerAConfig) {
                     playersToSave.push({
-                        config: this.team1PlayerBConfig,
-                        score: this.team1Score,
-                        won: this.team1Score > this.team2Score
+                        name: this.playerAConfig.name,
+                        score: this.player1Paddle.score,
+                        won: this.playerAConfig.id === winner.id
                     });
                 }
-                if (this.team2PlayerAConfig) {
+                if (this.player2Paddle && this.playerBConfig) {
                     playersToSave.push({
-                        config: this.team2PlayerAConfig,
-                        score: this.team2Score,
-                        won: this.team2Score > this.team1Score
+                        name: this.playerBConfig.name,
+                        score: this.player2Paddle.score,
+                        won: this.playerBConfig.id === winner.id
                     });
                 }
             }
 
             // Save all players to blockchain
-            console.log(`📝 Saving ${playersToSave.length} players to blockchain. Winner: ${winner.name}`);
-
-            // Log all players before saving
-            playersToSave.forEach((playerData, index) => {
-                // console.log(`Player ${index + 1}: ${playerData.config.name} - Score: ${playerData.score}, Won: ${playerData.won ? '🏆' : '❌'}`);
-            });
+            console.log(`📝 Saving ${playersToSave.length} players to blockchain`);
 
             for (const playerData of playersToSave) {
                 try {
-                    // console.log(`💾 Saving to blockchain: ${playerData.config.name} (score: ${playerData.score}, won: ${playerData.won})`);
-
-                    // Use connected wallet address for all players (they're all playing from same device)
                     await this.blockchainService.addPlayerScore(
-                        playerData.config.name,
+                        playerData.name,
                         connectedAddress,
                         playerData.score,
                         playerData.won
                     );
 
-                    console.log(`✅ Successfully saved ${playerData.config.name}: ${playerData.score} points, won: ${playerData.won ? '🏆' : '❌'}`);
+                    console.log(`✅ Saved ${playerData.name}: ${playerData.score} points, ${playerData.won ? 'WON' : 'LOST'}`);
 
-                    // Small delay between saves to avoid overwhelming the blockchain
-                    await new Promise(resolve => setTimeout(resolve, 500));
+                    // Small delay to avoid overwhelming blockchain
+                    await new Promise(resolve => setTimeout(resolve, 300));
                 } catch (playerSaveError) {
-                    console.warn(`⚠️ Failed to save ${playerData.config.name}:`, playerSaveError);
+                    console.warn(`⚠️ Failed to save ${playerData.name}:`, playerSaveError);
                 }
             }
 
-            console.log(`🎉 All players saved to blockchain successfully`);
+            console.log(`🎉 Match results saved to blockchain successfully`);
         } catch (error) {
             console.warn('⚠️ Blockchain save failed (game continues normally):', error);
         }

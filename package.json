@@ -32,7 +32,7 @@
     "webpack-cli": "^5.0.0"
   },
   "dependencies": {
-    "js-sha3": "^0.9.3",
+    "ethers": "^6.15.0",
     "solc": "^0.8.19"
   }
 }
