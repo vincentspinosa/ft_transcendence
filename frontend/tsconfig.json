@@ -2,37 +2,32 @@
   "compilerOptions": {
     // Specifies the ECMAScript target version for emitted JavaScript. ECMAScript is the standard upon which JavaScript is based. It's a set of rules and specifications for the language, with new versions released periodically (e.g., ES6/ES2015, ES2018). 'target' determines which version's features the compiled code will use.
     "target": "ES2018",
-    
     // Specifies the module system for the generated JavaScript. 'ESNext' works well with bundlers like Webpack, which handle modern module syntax.
     "module": "ESNext",
-    
     // Defines the set of library files to be included in the compilation. 'ES2018' includes modern features, and 'DOM' is necessary for browser environments.
-    "lib": ["ES2018", "DOM"],
-    
+    "lib": [
+      "ES2018",
+      "DOM"
+    ],
     // Specifies the module resolution strategy. Module resolution is the process the compiler uses to figure out what an import statement refers to. The 'node' strategy mimics the behavior of Node.js, looking for modules in 'node_modules' and using package.json to find the main file of a package. This is the standard for Node.js and bundlers.
     "moduleResolution": "node",
-    
     // Enables a broad set of strict type-checking options. This is highly recommended for writing robust, type-safe code.
     "strict": true,
-    
     // Allows default imports from modules with no default export. This is useful for compatibility with many existing libraries.
     "esModuleInterop": true,
-    
     // Skips type-checking of declaration files (*.d.ts). This can speed up compilation and is safe if you trust your library's types.
     "skipLibCheck": true,
-    
     // Ensures that file names are consistently cased. This prevents issues on case-insensitive file systems.
     "forceConsistentCasingInFileNames": true,
-    
     // Specifies the output directory for the compiled JavaScript files.
     "outDir": "./dist",
-    
     // Specifies the root directory of the source files. This helps in maintaining the directory structure in the output.
     "rootDir": "./src"
   },
   // Specifies which files to include in the compilation. This glob pattern includes all TypeScript files in the 'src' directory and its subdirectories.
   "include": [
-    "src/**/*.ts"
+    "src/**/*.ts",
+    "src/**/*.d.ts"
   ],
   // Specifies which files to exclude from the compilation. It's standard practice to exclude 'node_modules' to avoid compiling third-party code.
   "exclude": [

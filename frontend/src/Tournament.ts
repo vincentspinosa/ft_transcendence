@@ -1,6 +1,8 @@
 // Import necessary interfaces and classes for player configurations, tournament setup, and the core game logic.
 import { PlayerConfig, TournamentSetupInfo, MatchSettings } from './interfaces';
 import { Game } from './Game';
+import { BlockchainService } from './blockchain/blockchainService';
+import { BlockchainScoreBoard } from './blockchain/components/BlockchainScoreBoard';
 
 /**
  * Manages the flow of a Pong tournament, including setting up matches,
@@ -33,6 +35,9 @@ export class Tournament {
     private announceMatchGoButton: HTMLButtonElement; // The button to start the announced match.
 
     private currentMatchPlayers: { playerA: PlayerConfig, playerB: PlayerConfig } | null = null; // Temporarily holds the PlayerConfig for the current match being announced/played.
+
+    // Blockchain integration
+    private blockchainService: BlockchainService; // Service for blockchain interactions
 
     /**
      * Constructs a new Tournament instance.
@@ -101,6 +106,9 @@ export class Tournament {
         } else {
             console.log("Tournament: 'announceMatchGoButton' not found or passed incorrectly in UI elements.");
         }
+
+        // Initialize blockchain service
+        this.blockchainService = new BlockchainService();
     }
 
     /**
@@ -157,10 +165,10 @@ export class Tournament {
             console.log("Players for the match are unexpectedly undefined. Match Title was:", matchTitle);
             return;
         }
-        
+
         // Store the determined players for the current match.
         this.currentMatchPlayers = { playerA: playerA, playerB: playerB };
-        
+
         // --- Log the data that will be displayed on the announcement screen for debugging. ---
         console.log(`Tournament.setupNextMatch: Announcing - Title: "${matchTitle}", Versus: "${playerA.name} plays against ${playerB.name}!"`);
         console.log("Player A details:", JSON.stringify(playerA));
@@ -175,19 +183,19 @@ export class Tournament {
         // Update and show the announcement screen with match details.
         if (this.announceMatchTitleElement) {
             this.announceMatchTitleElement.textContent = matchTitle;
-        } else { 
+        } else {
             console.log("Tournament.setupNextMatch: announceMatchTitleElement is null, cannot set title.");
         }
 
         if (this.announceMatchVersusElement) {
             this.announceMatchVersusElement.textContent = `${playerA.name} plays against ${playerB.name}!`;
-        } else { 
+        } else {
             console.log("Tournament.setupNextMatch: announceMatchVersusElement is null, cannot set versus text.");
         }
 
         if (this.matchAnnouncementScreenDiv) {
             this.matchAnnouncementScreenDiv.style.display = 'flex'; // Display the announcement screen.
-        } else { 
+        } else {
             console.log("Tournament.setupNextMatch: matchAnnouncementScreenDiv is null, cannot show announcement.");
         }
     }
@@ -238,7 +246,7 @@ export class Tournament {
         if (this.pongCanvasElement) this.pongCanvasElement.style.display = 'none';
         // Update the message on the match over screen.
         if (this.matchOverMessageElement) this.matchOverMessageElement.textContent = `${winner.name} wins the match!`;
-        
+
         // Hide single match specific buttons and show tournament-specific buttons (e.g., "Next Match").
         const singleMatchButtons = this.matchOverScreenDiv?.querySelector('#singleMatchOverButtons') as HTMLElement;
         if (singleMatchButtons) singleMatchButtons.style.display = 'none';
@@ -258,7 +266,7 @@ export class Tournament {
         // Note: The `proceedToNextStage()` method is called by the "Next Match" button's click handler,
         // allowing the user to control progression.
     }
-    
+
     /**
      * Advances the tournament to the next match or declares the tournament winner.
      * This method is typically called by the "Next Match" button.
@@ -286,8 +294,14 @@ export class Tournament {
      * Displays the tournament winner screen with the champion's name.
      * This method is called after the final match concludes.
      */
-    private displayTournamentWinner(): void {
+    private async displayTournamentWinner(): Promise<void> {
         console.log(`Tournament.displayTournamentWinner: Champion is ${this.tournamentWinner?.name}`);
+
+        // Save tournament winner to blockchain
+        if (this.tournamentWinner) {
+            await this.saveTournamentWinnerToBlockchain(this.tournamentWinner);
+        }
+
         // Hide other screens that might be active (match over, announcement).
         if (this.matchOverScreenDiv) this.matchOverScreenDiv.style.display = 'none';
         if (this.matchAnnouncementScreenDiv) this.matchAnnouncementScreenDiv.style.display = 'none';
@@ -301,5 +315,59 @@ export class Tournament {
         }
         // Display the tournament winner screen.
         if (this.tournamentWinnerScreenDiv) this.tournamentWinnerScreenDiv.style.display = 'flex';
+    }
+
+    /**
+     * Saves the tournament results to blockchain with proper stats for all participants
+     * @param winner The player who won the tournament
+     */
+    private async saveTournamentWinnerToBlockchain(winner: PlayerConfig): Promise<void> {
+        try {
+            console.log(`🏆 Saving tournament results to blockchain. Winner: ${winner.name}`);
+
+            // Check blockchain state
+            const contractAddress = this.blockchainService.getContractAddress();
+            const connectedAddress = this.blockchainService.getConnectedAddress();
+
+            if (!contractAddress || !connectedAddress) {
+                console.log('⚠️ Blockchain not ready, skipping tournament save');
+                return;
+            }
+
+            // Save all tournament participants with their results
+            const participantsToSave = [
+                { player: this.players[0], isWinner: this.players[0].id === winner.id },
+                { player: this.players[1], isWinner: this.players[1].id === winner.id },
+                { player: this.players[2], isWinner: this.players[2].id === winner.id },
+                { player: this.players[3], isWinner: this.players[3].id === winner.id }
+            ];
+
+            console.log(`📝 Saving ${participantsToSave.length} tournament participants to blockchain`);
+
+            for (const participant of participantsToSave) {
+                try {
+                    // Tournament winner gets 100 points, others get 25 points for participation
+                    const tournamentScore = participant.isWinner ? 100 : 25;
+
+                    await this.blockchainService.addPlayerScore(
+                        participant.player.name,
+                        connectedAddress,
+                        tournamentScore,
+                        participant.isWinner
+                    );
+
+                    // console.log(`✅ Tournament result saved for ${participant.player.name}: ${tournamentScore} points, won: ${participant.isWinner}`);
+
+                    // Small delay to avoid overwhelming blockchain
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                } catch (playerError) {
+                    console.warn(`⚠️ Failed to save tournament result for ${participant.player.name}:`, playerError);
+                }
+            }
+
+            console.log(`🎉 Tournament results saved to blockchain successfully`);
+        } catch (error) {
+            console.error('❌ Failed to save tournament results to blockchain:', error);
+        }
     }
 }

@@ -55,6 +55,7 @@ import { GoogleAuthService } from './googleAuthService'; // Imports Google authe
 import { GoogleUserInfo } from './authTypes'; // Imports authentication types
 import './translation'; // Imports the translation module
 // FormValidationManager import removed - not implemented yet
+import { BlockchainScoreBoard } from './blockchain/components/BlockchainScoreBoard'; // Imports the blockchain scoreboard component.
 
 const MAX_NAME_LENGTH = 20; // Maximum allowed length for player names in Pong and Tic-Tac-Toe game modes.
 
@@ -70,6 +71,7 @@ const COLOR_MAP: { [key: string]: string } = {
 // These variables will hold instances of the Game and Tournament classes.
 let gameInstance: Game | null = null; // Instance of the Pong game. Null initially.
 let tournamentInstance: Tournament | null = null; // Instance of the Tournament manager. Null initially.
+let blockchainScoreBoard: BlockchainScoreBoard | null = null; // Instance of the blockchain scoreboard. Null initially.
 
 // --- Authentication ---
 let googleAuth: GoogleAuthService | null = null;
@@ -276,7 +278,12 @@ function getPlayerConfig(formPrefix: string, playerId: number, defaultName: stri
     const type = (typeSelect?.value as 'human' | 'ai') || 'human'; // Cast to specific union type.
 
     // Return the player configuration object.
-    return { name, color: COLOR_MAP[colorValue] || COLOR_MAP['white'], type, id: playerId };
+    return {
+        name,
+        color: COLOR_MAP[colorValue] || COLOR_MAP['white'],
+        type,
+        id: playerId
+    };
 }
 
 /**
@@ -306,7 +313,12 @@ function getSinglePlayer1v1Config(formPrefix: string, playerId: number, defaultN
     const colorValue = colorSelect?.value || 'white';
 
     // Return the player configuration object.
-    return { name, color: COLOR_MAP[colorValue] || COLOR_MAP['white'], type, id: playerId };
+    return {
+        name,
+        color: COLOR_MAP[colorValue] || COLOR_MAP['white'],
+        type,
+        id: playerId
+    };
 }
 
 /**
@@ -430,6 +442,19 @@ function validatePlayerName(name: string, playerNameLabel: string, maxLength: nu
     // Form validation manager initialization removed - not implemented yet
 
 
+    // --- Blockchain Scoreboard Initialization ---
+    // Initialize the blockchain scoreboard component for Web3 integration
+    try {
+        blockchainScoreBoard = new BlockchainScoreBoard('blockchainContainer');
+        console.log('✅ Blockchain scoreboard initialized successfully');
+    } catch (error) {
+        console.warn('⚠️  Failed to initialize blockchain scoreboard:', error);
+        // Hide the blockchain container if initialization fails
+        const blockchainContainer = document.getElementById('blockchainContainer');
+        if (blockchainContainer) {
+            blockchainContainer.style.display = 'none';
+        }
+    }
 
 
     // --- Event Listener Setup for Navigation Buttons ---
@@ -521,6 +546,12 @@ function validatePlayerName(name: string, playerNameLabel: string, maxLength: nu
                 scoreLimit: scoreLimit,
                 enablePowerUps: enablePowerUp
             };
+            if (gameInstance) {
+                // Ensure correct "Match Over" buttons are displayed for a single match.
+                const singleMB = document.getElementById('singleMatchOverButtons') as HTMLElement;
+                const tourneyMB = document.getElementById('tournamentMatchOverButtons') as HTMLElement;
+                if (singleMB) singleMB.style.display = 'block';
+                if (tourneyMB) tourneyMB.style.display = 'none';
 
             try {
                 // Validate with backend first
@@ -559,7 +590,7 @@ function validatePlayerName(name: string, playerNameLabel: string, maxLength: nu
                 console.log('Backend validation error:', error);
                 alert('Failed to validate game settings with backend. Please try again.');
             }
-        });
+        }});
     }
 
     // 4-Player Pong Match Settings Form Submission
@@ -609,6 +640,12 @@ function validatePlayerName(name: string, playerNameLabel: string, maxLength: nu
                 scoreLimit: scoreLimit,
                 enablePowerUps: enablePowerUp
             };
+            if (gameInstance) {
+                // Ensure correct "Match Over" buttons are displayed for a 4-player match.
+                const singleMB = document.getElementById('singleMatchOverButtons') as HTMLElement;
+                const tourneyMB = document.getElementById('tournamentMatchOverButtons') as HTMLElement;
+                if (singleMB) singleMB.style.display = 'block';
+                if (tourneyMB) tourneyMB.style.display = 'none';
 
             try {
                 // Validate with backend first
@@ -651,7 +688,7 @@ function validatePlayerName(name: string, playerNameLabel: string, maxLength: nu
                 console.log('Backend validation error:', error);
                 alert('Failed to validate game settings with backend. Please try again.');
             }
-        });
+        }});
     }
 
     // Tournament Settings Form Submission
@@ -666,6 +703,20 @@ function validatePlayerName(name: string, playerNameLabel: string, maxLength: nu
             const p4 = getPlayerConfig('t', 4, 'Player 4');
             const scoreLimitInput = document.getElementById('t_scoreLimit') as HTMLInputElement;
             const scoreLimit = parseInt(scoreLimitInput.value, 10);
+
+            // Validate player names and uniqueness, and points to win per match.
+            if (![p1, p2, p3, p4].every((p, i) => validatePlayerName(p.name, `Player ${i + 1}`))) return;
+            const names = [p1.name.toLowerCase(), p2.name.toLowerCase(), p3.name.toLowerCase(), p4.name.toLowerCase()];
+            const uniqueNames = new Set(names);
+            if (names.length !== uniqueNames.size) {
+                alert("Player names in a tournament must be unique."); return;
+            }
+            if (isNaN(scoreLimit) || scoreLimit < 1 || scoreLimit > 21) {
+                alert("Points to win (per match) must be between 1 and 21."); return;
+            }
+
+            // Create the TournamentSetupInfo object.
+            const tournamentSetupData: TournamentSetupInfo = { player1: p1, player2: p2, player3: p3, player4: p4, scoreLimit };
 
             // Get the power-up checkbox state for tournament
             const enablePowerUp = t_enablePowerUpCheckbox.checked;
@@ -762,7 +813,7 @@ function validatePlayerName(name: string, playerNameLabel: string, maxLength: nu
         's_enablePowerUp', 'fp_enablePowerUp', 't_enablePowerUp',
         'userProfile', 'logoutBtn', 'googleBtnContainer' // NEW: Add user profile, logout button, and Google button container to critical list
     ];
-    
+
     // Iterate through the critical elements and check if they exist in the DOM.
     let allElementsFound = true;
     criticalElementIds.forEach(id => {
@@ -773,7 +824,9 @@ function validatePlayerName(name: string, playerNameLabel: string, maxLength: nu
     });
 
     // Log the result of the critical element check.
-    if(allElementsFound) console.log("All critical UI elements successfully referenced (initial check).");
+    if (allElementsFound) console.log("All critical UI elements successfully referenced (initial check).");
     else console.log("One or more critical UI elements are missing. Application may not function correctly.");
+
+
 
 }); // End of DOMContentLoaded event listener.

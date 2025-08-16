@@ -3,6 +3,8 @@ import { Paddle } from './Paddle';
 import { Ball } from './Ball';
 import { PowerUp } from './PowerUp'; // Import the new PowerUp class
 import { PlayerConfig, MatchSettings, FourPlayerMatchSettings } from './interfaces';
+import { BlockchainService } from './blockchain/blockchainService';
+import { BlockchainScoreBoard } from './blockchain/components/BlockchainScoreBoard';
 
 /**
  * The main Game class responsible for managing the Pong game logic,
@@ -59,6 +61,29 @@ export class Game {
     private isTournamentMatchFlag: boolean = false; // Flag indicating if the current match is part of a tournament.
     private onMatchCompleteCallback: ((winner: PlayerConfig) => void) | null = null; // Callback function called when a tournament match ends, to inform the Tournament manager.
 
+    // --- Blockchain Integration ---
+    private blockchainService: BlockchainService; // Service for blockchain interactions
+    private blockchainSaveEnabled: boolean = true; // Flag to enable/disable blockchain saving
+
+    /**
+     * Checks if blockchain is available and ready for saving
+     */
+    private isBlockchainReady(): boolean {
+        if (!this.blockchainSaveEnabled) return false;
+        const contractAddress = this.blockchainService.getContractAddress();
+        const connectedAddress = this.blockchainService.getConnectedAddress();
+        return !!(contractAddress && connectedAddress);
+    }
+
+    /**
+     * Enable or disable blockchain saving
+     * @param enabled True to enable blockchain saving, false to disable
+     */
+    public setBlockchainSaveEnabled(enabled: boolean): void {
+        this.blockchainSaveEnabled = enabled;
+        console.log(`🔗 Blockchain saving ${enabled ? 'enabled' : 'disabled'}`);
+    }
+
     // --- AI specific properties ---
     private lastAIUpdateTime: number = 0; // Timestamp of the last AI decision update.
     private readonly AI_UPDATE_INTERVAL_MS = 1000; // MANDATORY: AI updates its target only once per second to make it less perfect.
@@ -102,6 +127,9 @@ export class Game {
         if (this.singleMatchPlayAgainButton) {
             this.singleMatchPlayAgainButton.onclick = () => this.handlePlayAgain();
         }
+
+        // Initialize blockchain service
+        this.blockchainService = new BlockchainService();
     }
 
     // Method to stop the game.
@@ -252,7 +280,7 @@ export class Game {
             new Paddle(this.canvasElement.width - 30 - this.PADDLE_WIDTH, topY, this.PADDLE_WIDTH, paddleHeight, settings.team2PlayerA.color, this.PADDLE_SPEED, settings.team2PlayerA.name),
             new Paddle(this.canvasElement.width - 30 - this.PADDLE_WIDTH, bottomY, this.PADDLE_WIDTH, paddleHeight, settings.team2PlayerB.color, this.PADDLE_SPEED, settings.team2PlayerB.name)
         ];
-        
+
         // Explicitly clear 1v1 paddles in case they were initialized from a previous game mode.
         this.player1Paddle = null as any; // as any -> no type checking when compiling
         this.player2Paddle = null as any;
@@ -408,7 +436,7 @@ export class Game {
             // Calculate the time it would take to hit the top or bottom walls.
             const timeToTopWall = (speedY < 0) ? (0 - (currentY - ballRadius)) / speedY : Infinity;
             const timeToBottomWall = (speedY > 0) ? (canvasHeight - (currentY + ballRadius)) / speedY : Infinity;
-            
+
             // Determine the earliest event (hitting target X or a wall).
             const timeToNextEvent = Math.min(timeToTargetX, timeToTopWall, timeToBottomWall);
 
@@ -426,7 +454,7 @@ export class Game {
                 speedY *= -1; // Reverse vertical speed.
             }
         }
-        
+
         return 0; // Never reached as we only exit the loop by returning the found value
     }
 
@@ -440,7 +468,7 @@ export class Game {
         if (this.gameOver || !this.ball) return; // Do nothing if game is over or ball is not initialized.
 
         const currentTime = performance.now(); // Get current time for AI update interval, in ms.
-        
+
         let paddlesToControl: Paddle[] = []; // Array to store all AI paddles.
         let isLeftPlayer: boolean[] = []; // Array to store if each AI paddle is on the left side.
 
@@ -484,14 +512,14 @@ export class Game {
         // --- AI Decision Logic (Executes only once per second) ---
         if (currentTime - this.lastAIUpdateTime >= this.AI_UPDATE_INTERVAL_MS) {
             this.lastAIUpdateTime = currentTime; // Update the last decision time.
-            
+
             paddlesToControl.forEach((paddle, index) => {
                 const isLeft = isLeftPlayer[index]; // Check if the current paddle is on the left side.
                 const ballX = this.ball.x;
                 const ballY = this.ball.y;
-                const ballSpeedX = this.ball.speedX; 
-                const ballSpeedY = this.ball.speedY; 
-                
+                const ballSpeedX = this.ball.speedX;
+                const ballSpeedY = this.ball.speedY;
+
                 let predictedTargetY: number;
 
                 // AI only calculates a new prediction if the ball is on its side of the court
@@ -502,7 +530,7 @@ export class Game {
                     // Determine the X-coordinate of the paddle's "hitting" edge for prediction.
                     // For a left paddle, it's `paddle.x + paddle.width`. For a right paddle, it's `paddle.x`.
                     const targetPaddleX = isLeft ? paddle.x + paddle.width : paddle.x;
-                    
+
                     // Predict the ball's Y position when it reaches the paddle's X.
                     predictedTargetY = this.predictBallYAtX(
                         ballX, ballY, ballSpeedX, ballSpeedY,
@@ -572,15 +600,15 @@ export class Game {
             // Determine if the ball is hitting the left or right paddle's X-boundary.
             const hitLeft = isLeftPaddle[i] && this.ball.x - this.ball.radius < paddle.x + paddle.width && this.ball.x - this.ball.radius > paddle.x;
             const hitRight = !isLeftPaddle[i] && this.ball.x + this.ball.radius > paddle.x && this.ball.x + this.ball.radius < paddle.x + paddle.width;
-            
+
             if ((hitLeft || hitRight) &&
                 this.ball.y + this.ball.radius > paddle.y &&
                 this.ball.y - this.ball.radius < paddle.y + paddle.height) {
-                
+
                 this.ball.speedX *= -1; // Reverse horizontal speed for bounce.
                 // Adjust ball's X position to prevent it from getting stuck inside the paddle.
                 this.ball.x = isLeftPaddle[i] ? (paddle.x + paddle.width + this.ball.radius) : (paddle.x - this.ball.radius);
-                
+
                 // Calculate `deltaY` (distance from ball center to paddle center) to determine vertical bounce angle.
                 let deltaY = this.ball.y - (paddle.y + paddle.height / 2);
                 this.ball.speedY = deltaY * 0.25; // Adjust vertical speed based on where it hit the paddle.
@@ -604,7 +632,7 @@ export class Game {
             if (this.powerUpActiveInGame) this.initializeSmallPowerUp();
             this.lastAIUpdateTime = 0; // Reset AI update time to ensure AI paddles recalculate targets.
             this.checkWinCondition(); // Check if a player has reached the score limit.
-        } 
+        }
         // If ball goes past the right wall (into Player 2's goal).
         else if (this.ball.x + this.ball.radius > this.canvasElement.width) {
             this.player1Paddle.score++; // Player 1 scores.
@@ -662,7 +690,7 @@ export class Game {
                 break; // Only process one collision.
             }
         }
-        
+
         if (collisionOccurred) return; // If a collision occurred with Team 2, don't proceed to scoring.
 
         // --- Scoring Logic for 4-player ---
@@ -678,7 +706,7 @@ export class Game {
             if (this.powerUpActiveInGame) this.initializeSmallPowerUp();
             this.lastAIUpdateTime = 0; // Reset AI update time to ensure AI paddles recalculate targets.
             this.checkWinCondition(); // Check if a team has reached the score limit.
-        } 
+        }
         // If ball goes past the right wall (into Team 2's goal).
         else if (this.ball.x + this.ball.radius > this.canvasElement.width) {
             this.team1Score++; // Team 1 scores.
@@ -701,18 +729,23 @@ export class Game {
     private checkWinCondition(): void {
         if (this.gameOver) return; // If game is already over, do nothing.
 
+        let winner: PlayerConfig | null = null;
+
         if (this.gameMode === '4player') {
             // Check win condition for 4-player mode.
             if (this.team1Score >= this.scoreLimit) {
                 this.gameOver = true;
                 this.winnerMessage = `Team ${this.team1PlayerAConfig.name} & ${this.team1PlayerBConfig.name} wins!`;
+                // For 4-player mode, use team1PlayerAConfig as the winner representative
+                winner = this.team1PlayerAConfig;
             } else if (this.team2Score >= this.scoreLimit) {
                 this.gameOver = true;
                 this.winnerMessage = `Team ${this.team2PlayerAConfig.name} & ${this.team2PlayerBConfig.name} wins!`;
+                // For 4-player mode, use team2PlayerAConfig as the winner representative
+                winner = this.team2PlayerAConfig;
             }
         } else { // Check win condition for 2-player or tournament mode.
             if (!this.player1Paddle || !this.player2Paddle || !this.playerAConfig || !this.playerBConfig) return; // Ensure paddles/configs exist.
-            let winner: PlayerConfig | null = null;
             if (this.player1Paddle.score >= this.scoreLimit) {
                 winner = this.playerAConfig; // Player A wins.
                 this.winnerMessage = `${this.playerAConfig.name} wins the match!`;
@@ -720,12 +753,18 @@ export class Game {
                 winner = this.playerBConfig; // Player B wins.
                 this.winnerMessage = `${this.playerBConfig.name} wins the match!`;
             }
-            if (winner) {
-                this.gameOver = true;
-                // If it's a tournament match, call the callback to notify the Tournament manager about the winner.
-                if (this.isTournamentMatchFlag && this.onMatchCompleteCallback) {
-                    this.onMatchCompleteCallback(winner);
-                }
+        }
+
+        // If we have a winner, game is over
+        if (winner) {
+            this.gameOver = true;
+
+            // Save score to blockchain for ALL matches (simplified approach)
+            this.saveMatchResultsToBlockchain(winner);
+
+            // If it's a tournament match, call the callback to notify the Tournament manager about the winner.
+            if (this.isTournamentMatchFlag && this.onMatchCompleteCallback) {
+                this.onMatchCompleteCallback(winner);
             }
         }
 
@@ -753,7 +792,7 @@ export class Game {
         if (this.isTournamentMatchFlag) {
             return;
         }
-        
+
         // For single 1v1 or 2v2 matches:
         // Display the winner message.
         if (this.singleMatchOverMessageElement) {
@@ -764,6 +803,77 @@ export class Game {
         if (this.singleMatchOverButtonsDiv) this.showElement(this.singleMatchOverButtonsDiv);
         // Display the single match over screen.
         if (this.singleMatchOverScreenDiv) this.showElement(this.singleMatchOverScreenDiv, 'flex');
+    }
+
+    /**
+     * Saves match results to blockchain - simplified version for all match types
+     * @param winner The player who won the match
+     */
+    private async saveMatchResultsToBlockchain(winner: PlayerConfig): Promise<void> {
+        try {
+            console.log(`💾 Saving match results to blockchain. Winner: ${winner.name}`);
+
+            // Check if blockchain is available and ready
+            if (!this.isBlockchainReady()) {
+                console.log('⚠️ Blockchain not ready, skipping save');
+                return;
+            }
+
+            const connectedAddress = this.blockchainService.getConnectedAddress()!;
+            const playersToSave: Array<{ name: string, score: number, won: boolean }> = [];
+
+            // Collect player data based on game mode
+            if (this.gameMode === '4player') {
+                // 4-player mode: save team scores
+                playersToSave.push(
+                    { name: this.team1PlayerAConfig.name, score: this.team1Score, won: this.team1Score >= this.scoreLimit },
+                    { name: this.team1PlayerBConfig.name, score: this.team1Score, won: this.team1Score >= this.scoreLimit },
+                    { name: this.team2PlayerAConfig.name, score: this.team2Score, won: this.team2Score >= this.scoreLimit },
+                    { name: this.team2PlayerBConfig.name, score: this.team2Score, won: this.team2Score >= this.scoreLimit }
+                );
+            } else {
+                // 2-player mode: save individual scores
+                if (this.player1Paddle && this.playerAConfig) {
+                    playersToSave.push({
+                        name: this.playerAConfig.name,
+                        score: this.player1Paddle.score,
+                        won: this.playerAConfig.id === winner.id
+                    });
+                }
+                if (this.player2Paddle && this.playerBConfig) {
+                    playersToSave.push({
+                        name: this.playerBConfig.name,
+                        score: this.player2Paddle.score,
+                        won: this.playerBConfig.id === winner.id
+                    });
+                }
+            }
+
+            // Save all players to blockchain
+            console.log(`📝 Saving ${playersToSave.length} players to blockchain`);
+
+            for (const playerData of playersToSave) {
+                try {
+                    await this.blockchainService.addPlayerScore(
+                        playerData.name,
+                        connectedAddress,
+                        playerData.score,
+                        playerData.won
+                    );
+
+                    console.log(`✅ Saved ${playerData.name}: ${playerData.score} points, ${playerData.won ? 'WON' : 'LOST'}`);
+
+                    // Small delay to avoid overwhelming blockchain
+                    await new Promise(resolve => setTimeout(resolve, 300));
+                } catch (playerSaveError) {
+                    console.warn(`⚠️ Failed to save ${playerData.name}:`, playerSaveError);
+                }
+            }
+
+            console.log(`🎉 Match results saved to blockchain successfully`);
+        } catch (error) {
+            console.warn('⚠️ Blockchain save failed (game continues normally):', error);
+        }
     }
 
     /**
@@ -865,7 +975,7 @@ export class Game {
             if (this.player1Paddle) this.player1Paddle.score = 0;
             if (this.player2Paddle) this.player2Paddle.score = 0;
         }
-        
+
         // Reset paddle positions to their initial center positions
         this.resetPaddlesToInitialPositions();
 
