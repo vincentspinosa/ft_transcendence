@@ -277,37 +277,6 @@ export class BlockchainService {
         }
     }
 
-    // Add method to switch to Fuji Testnet (for development)
-    private async switchToFujiTestnet(): Promise<void> {
-        if (!window.ethereum) return;
-
-        try {
-            await window.ethereum.request({
-                method: 'wallet_switchEthereumChain',
-                params: [{ chainId: '0xa869' }], // Fuji Testnet
-            });
-        } catch (switchError: any) {
-            if (switchError.code === 4902) {
-                await window.ethereum.request({
-                    method: 'wallet_addEthereumChain',
-                    params: [{
-                        chainId: '0xa869',
-                        chainName: 'Avalanche Fuji Testnet',
-                        nativeCurrency: {
-                            name: 'AVAX',
-                            symbol: 'AVAX',
-                            decimals: 18,
-                        },
-                        rpcUrls: [
-                            'https://api.avax-test.network/ext/bc/C/rpc'
-                        ],
-                        blockExplorerUrls: ['https://testnet.snowtrace.io/'],
-                    }],
-                });
-            }
-        }
-    }
-
     // Check if we're on a supported Avalanche network
     private async ensureCorrectNetwork(): Promise<void> {
         if (!window.ethereum) {
@@ -353,11 +322,6 @@ export class BlockchainService {
             console.error('Network check failed:', error);
             throw error;
         }
-    }
-
-    // Public method to switch to Fuji Testnet for development
-    public async switchToTestnet(): Promise<void> {
-        await this.switchToFujiTestnet();
     }
 
     // Public method to check current network
@@ -426,16 +390,6 @@ export class BlockchainService {
         return this.contractAddress;
     }
 
-    // Force refresh contract address from localStorage
-    public refreshContractAddress(): string | null {
-        const saved = localStorage.getItem('blockchainContractAddress');
-        if (saved) {
-            this.contractAddress = saved;
-            // console.log(`♻️ Refreshed contract address: ${saved}`);
-        }
-        return this.contractAddress;
-    }
-
     public async deployContract(): Promise<string | null> {
         if (!this.connectedAddress) {
             throw new Error('Please connect wallet first');
@@ -474,39 +428,6 @@ export class BlockchainService {
             console.error('Contract deployment failed:', error);
             throw error;
         }
-    }
-
-    // Wait for transaction confirmation
-    private async waitForTransaction(txHash: string): Promise<any> {
-        if (!window.ethereum) {
-            throw new Error('MetaMask not available');
-        }
-
-        return new Promise((resolve, reject) => {
-            const checkReceipt = async () => {
-                try {
-                    if (!window.ethereum) {
-                        reject(new Error('MetaMask connection lost'));
-                        return;
-                    }
-
-                    const receipt = await window.ethereum.request({
-                        method: 'eth_getTransactionReceipt',
-                        params: [txHash]
-                    });
-
-                    if (receipt) {
-                        resolve(receipt);
-                    } else {
-                        setTimeout(checkReceipt, 2000);
-                    }
-                } catch (error) {
-                    reject(error);
-                }
-            };
-
-            checkReceipt();
-        });
     }
 
     public async getPlayerScore(playerAddress: string): Promise<number> {
@@ -724,12 +645,6 @@ export class BlockchainService {
         }
     }
 
-    // Set player score (updated function)
-    public async setPlayerScore(playerAddress: string, playerName: string, score: number): Promise<void> {
-        // Use new addPlayerScore function, considering player won if they have points
-        await this.addPlayerScore(playerName, playerAddress, score, score > 0);
-    }
-
     // Subscribe to score updates
     public onScoreUpdate(callback: (player: string, score: number) => void): void {
         this.scoreUpdateCallbacks.push(callback);
@@ -782,136 +697,6 @@ export class BlockchainService {
         this.eventListeners = [];
     }
 
-    // Method to decode results with multiple arrays
-    private decodeMultipleArraysResult(result: string, arrayCount: number): any[][] {
-        try {
-            if (!result || result === '0x' || result.length < 130) {
-                return [];
-            }
-
-            // Skip first 2 chars (0x)
-            const data = result.slice(2);
-
-            // Read offsets for each array
-            const offsets = [];
-            for (let i = 0; i < arrayCount; i++) {
-                const offsetHex = data.slice(i * 64, (i + 1) * 64);
-                offsets.push(parseInt(offsetHex, 16) * 2); // Multiply by 2 for hex
-            }
-
-            const arrays = [];
-
-            for (let i = 0; i < arrayCount; i++) {
-                const offset = offsets[i];
-
-                // Check bounds
-                if (offset >= data.length) {
-                    console.warn(`Offset ${offset} is out of bounds for data length ${data.length}`);
-                    arrays.push([]);
-                    continue;
-                }
-
-                const lengthHex = data.slice(offset, offset + 64);
-                const length = parseInt(lengthHex, 16);
-
-                if (length === 0) {
-                    arrays.push([]);
-                    continue;
-                }
-
-                const arrayData = [];
-
-                if (i === 0) {
-                    // First array - string array (player names)
-                    console.log(`🔤 Decoding ${length} strings from array ${i}`);
-
-                    // Read offsets for each string
-                    const stringOffsets = [];
-                    for (let j = 0; j < length; j++) {
-                        const stringOffsetHex = data.slice(offset + 64 + (j * 64), offset + 64 + ((j + 1) * 64));
-                        const relativeOffset = parseInt(stringOffsetHex, 16) * 2;
-                        stringOffsets.push(relativeOffset);
-                        console.log(`String ${j} relative offset: ${relativeOffset}`);
-                    }
-
-                    for (let j = 0; j < length; j++) {
-                        const stringAbsoluteOffset = offset + stringOffsets[j];
-                        // console.log(`🔍 Processing string ${j} at absolute offset ${stringAbsoluteOffset}`);
-
-                        if (stringAbsoluteOffset >= data.length) {
-                            console.warn(`String offset ${stringAbsoluteOffset} out of bounds`);
-                            arrayData.push(`Player ${j + 1}`);
-                            continue;
-                        }
-
-                        const stringLengthHex = data.slice(stringAbsoluteOffset, stringAbsoluteOffset + 64);
-                        const stringLength = parseInt(stringLengthHex, 16);
-                        console.log(`String ${j} length: ${stringLength}`);
-
-                        if (stringLength === 0 || stringLength > 100) { // Reduced max length to 100
-                            console.warn(`Invalid string length: ${stringLength} for string ${j}`);
-                            arrayData.push(`Player ${j + 1}`);
-                            continue;
-                        }
-
-                        // Get hex data for string
-                        const stringDataStartOffset = stringAbsoluteOffset + 64;
-                        const stringDataHex = data.slice(stringDataStartOffset, stringDataStartOffset + (stringLength * 2));
-                        console.log(`String ${j} hex data (${stringLength} chars): ${stringDataHex}`);
-
-                        // Decode hex to UTF-8 string
-                        let stringValue = '';
-                        try {
-                            for (let k = 0; k < stringLength * 2; k += 2) {
-                                const hexByte = stringDataHex.substr(k, 2);
-                                if (hexByte && hexByte !== '00') {
-                                    const charCode = parseInt(hexByte, 16);
-                                    if (charCode >= 32 && charCode <= 126) { // Printable ASCII
-                                        stringValue += String.fromCharCode(charCode);
-                                    }
-                                }
-                            }
-                        } catch (stringError) {
-                            console.warn(`Error decoding string ${j}:`, stringError);
-                            stringValue = `Player ${j + 1}`;
-                        }
-
-                        // Clean string from garbage
-                        stringValue = stringValue.replace(/[^\x20-\x7E]/g, '').trim();
-                        console.log(`✅ Decoded string ${j}: "${stringValue}"`);
-                        arrayData.push(stringValue || `Player ${j + 1}`);
-                    }
-                } else {
-                    // Other arrays - simple data types
-                    for (let j = 0; j < length; j++) {
-                        const itemOffset = offset + 64 + (j * 64);
-                        if (itemOffset + 64 > data.length) {
-                            arrayData.push(i === 1 ? '0x0000000000000000000000000000000000000000' : 0);
-                            continue;
-                        }
-
-                        const itemHex = data.slice(itemOffset, itemOffset + 64);
-
-                        if (i === 1) {
-                            // Second array - addresses
-                            const addressHex = itemHex.slice(-40);
-                            arrayData.push('0x' + addressHex);
-                        } else {
-                            // Other arrays - numbers
-                            arrayData.push(parseInt(itemHex, 16) || 0);
-                        }
-                    }
-                }
-
-                arrays.push(arrayData);
-            }
-
-            return arrays;
-        } catch (error) {
-            console.warn('Error decoding multiple arrays result:', error);
-            return [];
-        }
-    }
     /**
      * Encodes function calls using ethers library
      */
@@ -970,49 +755,8 @@ export class BlockchainService {
             return decoded.length === 1 ? decoded[0] : decoded;
         } catch (error) {
             console.error(`❌ Failed to decode result:`, error);
-            // Fallback to legacy decoding for complex types
-            return this.legacyDecodeResult(result, returnTypes);
-        }
-    }
-
-    /**
-     * Legacy decode method for complex return types (fallback)
-     */
-    private legacyDecodeResult(result: string, returnTypes: string[]): any {
-        if (returnTypes.length === 1 && returnTypes[0] === 'uint256') {
-            return parseInt(result, 16);
-        }
-        if (returnTypes.length === 1 && returnTypes[0] === 'string') {
-            return this.decodeString(result);
-        }
-        // For complex types, return raw result
-        return result;
-    }
-
-    /**
-     * Decode string from hex (legacy method)
-     */
-    private decodeString(result: string): string {
-        try {
-            if (!result || result === '0x' || result.length < 130) {
-                return '';
-            }
-
-            const data = result.slice(2);
-            const lengthHex = data.slice(64, 128);
-            const length = parseInt(lengthHex, 16);
-
-            if (length === 0) return '';
-
-            const stringHex = data.slice(128, 128 + length * 2);
-            const bytes = [];
-            for (let i = 0; i < stringHex.length; i += 2) {
-                bytes.push(parseInt(stringHex.slice(i, i + 2), 16));
-            }
-            return new TextDecoder().decode(new Uint8Array(bytes));
-        } catch (error) {
-            console.warn('Failed to decode string:', error);
-            return '';
+            // Return null for decode errors
+            return returnTypes.length === 1 ? null : [];
         }
     }
 }
