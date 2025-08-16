@@ -1,4 +1,4 @@
-import { BlockchainService } from '../blockchainService';
+import { BlockchainService } from '../_blockchainService';
 import { getErrorMessage } from '../errorUtils';
 
 export class BlockchainScoreBoard {
