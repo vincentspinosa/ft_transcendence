@@ -3,7 +3,7 @@ import { Paddle } from './Paddle';
 import { Ball } from './Ball';
 import { PowerUp } from './PowerUp'; // Import the new PowerUp class
 import { PlayerConfig, MatchSettings, FourPlayerMatchSettings } from './interfaces';
-import { BlockchainService } from './blockchain';
+import { BlockchainService } from './blockchain/blockchainService';
 import { BlockchainScoreBoard } from './blockchain/components/BlockchainScoreBoard';
 
 /**

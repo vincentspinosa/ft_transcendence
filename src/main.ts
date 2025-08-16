@@ -573,4 +573,10 @@ window.addEventListener('DOMContentLoaded', () => {
     if (allElementsFound) console.log("All critical UI elements successfully referenced (initial check).");
     else console.log("One or more critical UI elements are missing. Application may not function correctly.");
 
+    // --- Initialize Blockchain Component ---
+    const blockchainContainer = document.getElementById('blockchain-scoreboard');
+    if (blockchainContainer) {
+        new BlockchainScoreBoard('blockchain-scoreboard');
+    }
+
 }); // End of DOMContentLoaded event listener.

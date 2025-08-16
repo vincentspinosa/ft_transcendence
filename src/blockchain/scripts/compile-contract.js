@@ -54,7 +54,7 @@ try {
 
     // Генерируем TypeScript конфигурацию
     const configContent = `// Автоматически сгенерировано ${new Date().toISOString()}
-export const PongTournamentScoresABI = ${JSON.stringify(abi, null, 4)};
+export const PongTournamentScoresABI = ${JSON.stringify(abi)};
 export const PongTournamentScoresBytecode = "${bytecode}";
 `;
 

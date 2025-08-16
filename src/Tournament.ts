@@ -1,7 +1,7 @@
 // Import necessary interfaces and classes for player configurations, tournament setup, and the core game logic.
 import { PlayerConfig, TournamentSetupInfo, MatchSettings } from './interfaces';
 import { Game } from './Game';
-import { BlockchainService } from './blockchain';
+import { BlockchainService } from './blockchain/blockchainService';
 import { BlockchainScoreBoard } from './blockchain/components/BlockchainScoreBoard';
 
 /**
