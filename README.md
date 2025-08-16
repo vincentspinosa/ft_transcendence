@@ -19,43 +19,21 @@ A Fastify-based HTTPS server that serves the frontend with:
 - Health monitoring
 - SPA routing support
 
-## 🚀 Quick Start
+## 🚀 Start the project
 
-### Option 1: Using Docker Compose (Recommended)
+Put the content of the certificates in their files (you will find their content in the 'env_transcendence' file).
 
-```bash
+Then, replace GOOGLE_CLIENT_ID (in main.ts) by the value in 'env_transcendence'.
+
+Then, go to the root of the project and run:
+
 make
-```
 
 This command will:
 1. Check prerequisites (Docker, Docker Compose)
 2. Generate SSL certificates if needed
 3. Build the Docker containers
 4. Start the application
-
-### Option 2: Manual Docker setup
-
-1. **Generate SSL certificates:**
-   ```bash
-   cd backend
-   ./generate-certs.sh
-   ```
-
-2. **Install backend dependencies:**
-   ```bash
-   cd backend
-   npm install
-   ```
-
-3. **Build the backend:**
-   ```bash
-   npm run build
-   ```
-
-4. **Start the server:**
-   ```bash
-   npm start
-   ```
 
 ## 🌐 Access
 

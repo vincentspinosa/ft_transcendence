@@ -392,7 +392,7 @@ function validatePlayerName(name: string, playerNameLabel: string, maxLength: nu
 
     // Initialize Google Authentication Service
     googleAuth = new GoogleAuthService(
-      '7809703255-qi8o1tg84etjq7rkjm2odjf9642sgpk1.apps.googleusercontent.com',
+      'GOOGLE_CLIENT_ID',
       handleUserSignIn
     );
     await googleAuth.initialize(); // Initialize Google Sign-In button
