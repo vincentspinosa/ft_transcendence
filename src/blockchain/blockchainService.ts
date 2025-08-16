@@ -13,10 +13,10 @@ export class BlockchainService {
         // Restore state from localStorage
         this.contractAddress = localStorage.getItem('blockchainContractAddress');
         this.connectedAddress = localStorage.getItem('blockchainConnectedAddress');
-        
+
         // Setup event listeners for MetaMask changes
         this.setupMetaMaskEventListeners();
-        
+
         // Verify wallet connection state on initialization
         this.initializeWalletState();
     }
@@ -50,10 +50,10 @@ export class BlockchainService {
                 '0xa86a': 'Avalanche C-Chain (Mainnet)',
                 '0xa869': 'Avalanche Fuji Testnet',
             };
-            
+
             const networkName = networkNames[chainId as keyof typeof networkNames] || `Unknown Network (${chainId})`;
             console.log(`Current network: ${networkName}`);
-            
+
             // Notify all subscribers about network change
             this.networkChangeCallbacks.forEach(callback => {
                 try {
@@ -67,7 +67,7 @@ export class BlockchainService {
         // Listen for account changes
         const handleAccountsChanged = (accounts: string[]) => {
             console.log('Accounts changed:', accounts);
-            
+
             if (accounts.length === 0) {
                 // User disconnected
                 console.log('User disconnected wallet');
@@ -79,7 +79,7 @@ export class BlockchainService {
                 this.connectedAddress = accounts[0];
                 localStorage.setItem('blockchainConnectedAddress', accounts[0]);
             }
-            
+
             // Notify all subscribers about account change
             this.accountChangeCallbacks.forEach(callback => {
                 try {
@@ -124,7 +124,7 @@ export class BlockchainService {
             // Check if there are any connected accounts without requesting permission
             const accounts = await window.ethereum.request({ method: 'eth_accounts' });
             const hasConnectedAccounts = accounts && accounts.length > 0;
-            
+
             // Update our local state based on actual MetaMask state
             if (hasConnectedAccounts) {
                 const currentAccount = accounts[0];
@@ -138,7 +138,7 @@ export class BlockchainService {
                 this.connectedAddress = null;
                 localStorage.removeItem('blockchainConnectedAddress');
             }
-            
+
             return hasConnectedAccounts;
         } catch (error) {
             console.warn('Error checking wallet connection:', error);
@@ -162,21 +162,21 @@ export class BlockchainService {
                 this.connectedAddress = accounts[0];
                 // Save to localStorage for cross-instance sync
                 localStorage.setItem('blockchainConnectedAddress', accounts[0]);
-                
+
                 // Check if we're already on a supported Avalanche network
                 const currentChainId = await window.ethereum.request({
                     method: 'eth_chainId'
                 });
-                
+
                 const supportedNetworks = ['0xa86a', '0xa869']; // Mainnet and Fuji Testnet
-                
+
                 if (!supportedNetworks.includes(currentChainId)) {
                     console.log(`Not on Avalanche network (${currentChainId}), switching...`);
                     await this.switchToAvalancheNetwork();
                 } else {
                     console.log(`Already on supported Avalanche network: ${currentChainId}`);
                 }
-                
+
                 return this.connectedAddress;
             }
             return null;
@@ -195,9 +195,9 @@ export class BlockchainService {
             const currentChainId = await window.ethereum.request({
                 method: 'eth_chainId'
             });
-            
+
             console.log('Current chain ID:', currentChainId);
-            
+
             // If already on Avalanche Mainnet or Fuji Testnet, don't switch
             if (currentChainId === '0xa86a' || currentChainId === '0xa869') {
                 console.log('Already on supported Avalanche network');
@@ -209,16 +209,16 @@ export class BlockchainService {
                 method: 'wallet_switchEthereumChain',
                 params: [{ chainId: '0xa86a' }], // Avalanche C-Chain Mainnet
             });
-            
+
             console.log('Successfully switched to Avalanche C-Chain');
         } catch (switchError: any) {
             console.log('Switch error:', switchError);
-            
+
             // This error code indicates that the chain has not been added to MetaMask
             if (switchError.code === 4902) {
                 try {
                     console.log('Adding Avalanche networks to MetaMask...');
-                    
+
                     // Add Avalanche C-Chain Mainnet
                     await window.ethereum.request({
                         method: 'wallet_addEthereumChain',
@@ -238,7 +238,7 @@ export class BlockchainService {
                             blockExplorerUrls: ['https://snowtrace.io/'],
                         }],
                     });
-                    
+
                     console.log('Successfully added Avalanche C-Chain to MetaMask');
                 } catch (addError) {
                     console.error('Failed to add Avalanche network:', addError);
@@ -292,36 +292,36 @@ export class BlockchainService {
             const currentChainId = await window.ethereum.request({
                 method: 'eth_chainId'
             });
-            
+
             // Support both Avalanche Mainnet and Fuji Testnet
             const supportedNetworks = {
                 '0xa86a': 'Avalanche C-Chain (Mainnet)',
                 '0xa869': 'Avalanche Fuji Testnet'
             };
-            
+
             console.log(`Current network: ${currentChainId}`);
-            
+
             if (supportedNetworks[currentChainId as keyof typeof supportedNetworks]) {
                 console.log(`Connected to ${supportedNetworks[currentChainId as keyof typeof supportedNetworks]}`);
                 return; // Already on a supported network
             }
-            
+
             console.warn(`Unsupported network detected: ${currentChainId}`);
             console.log('Supported networks:', Object.entries(supportedNetworks).map(([id, name]) => `${id} (${name})`).join(', '));
-            
+
             // Ask user which network they prefer or default to mainnet
             console.log('Switching to Avalanche Mainnet by default...');
             await this.switchToAvalancheNetwork();
-            
+
             // Verify the switch was successful
             const newChainId = await window.ethereum.request({
                 method: 'eth_chainId'
             });
-            
+
             if (!supportedNetworks[newChainId as keyof typeof supportedNetworks]) {
                 throw new Error(`Failed to switch to supported Avalanche network. Current: ${newChainId}`);
             }
-            
+
             console.log(`Successfully switched to ${supportedNetworks[newChainId as keyof typeof supportedNetworks]}`);
         } catch (error) {
             console.error('Network check failed:', error);
@@ -335,7 +335,7 @@ export class BlockchainService {
     }
 
     // Public method to check current network
-    public async getCurrentNetwork(): Promise<{chainId: string, name: string}> {
+    public async getCurrentNetwork(): Promise<{ chainId: string, name: string }> {
         if (!window.ethereum) {
             throw new Error('MetaMask not available');
         }
@@ -587,7 +587,7 @@ export class BlockchainService {
         try {
             // Use new getAllUniquePlayersWithStats function
             const data = this.encodeCall('getAllUniquePlayersWithStats', [], []);
-            
+
             const result = await window.ethereum.request({
                 method: 'eth_call',
                 params: [{
@@ -608,9 +608,9 @@ export class BlockchainService {
                 // Define return types for the function
                 const returnTypes = ['string[]', 'address[]', 'uint256[]', 'uint256[]', 'uint256[]'];
                 const decoded = this.decodeResult(result, returnTypes);
-                
+
                 console.log('🔍 Ethers decoded result:', decoded);
-                
+
                 if (Array.isArray(decoded) && decoded.length === 5) {
                     const [names, addresses, scores, gamesPlayed, gamesWon] = decoded;
                     const playersData = [];
@@ -639,7 +639,7 @@ export class BlockchainService {
 
             // Fallback to legacy decoding
             const players = this.decodeMultipleArraysResult(result, 5);
-            
+
             if (players.length === 0) {
                 console.log('⚠️ No players found in contract');
                 return [];
@@ -1066,7 +1066,7 @@ export class BlockchainService {
 
             // Create interface with the function
             const iface = new ethers.Interface([abiFragment]);
-            
+
             // Convert values to appropriate types
             const convertedValues = values.map((value, index) => {
                 const type = types[index];
@@ -1102,7 +1102,7 @@ export class BlockchainService {
             // For simple types, use ethers AbiCoder
             const abiCoder = ethers.AbiCoder.defaultAbiCoder();
             const decoded = abiCoder.decode(returnTypes, result);
-            
+
             console.log(`🔍 Ethers decoded result:`, decoded);
             return decoded.length === 1 ? decoded[0] : decoded;
         } catch (error) {
@@ -1138,7 +1138,7 @@ export class BlockchainService {
             const data = result.slice(2);
             const lengthHex = data.slice(64, 128);
             const length = parseInt(lengthHex, 16);
-            
+
             if (length === 0) return '';
 
             const stringHex = data.slice(128, 128 + length * 2);

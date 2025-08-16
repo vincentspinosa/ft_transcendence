@@ -74,14 +74,14 @@ export class BlockchainScoreBoard {
       // Wait a bit for MetaMask to load
       setTimeout(async () => {
         console.log('🔄 Checking initial wallet connection state...');
-        
+
         // Check if wallet is actually connected
         const isConnected = await this.blockchainService.isWalletActuallyConnected();
         console.log(`Initial wallet state: ${isConnected ? 'Connected' : 'Disconnected'}`);
-        
+
         // Update UI based on actual state
         await this.updateConnectionStatus();
-        
+
         // Load stats if everything is ready
         if (isConnected && this.blockchainService.getContractAddress()) {
           this.loadPlayerStats();
@@ -126,7 +126,7 @@ export class BlockchainScoreBoard {
     try {
       const hasContract = this.blockchainService.getContractAddress();
       const isConnected = await this.blockchainService.isWalletActuallyConnected();
-      
+
       if (hasContract && isConnected) {
         this.loadPlayerStats();
       }
@@ -315,7 +315,7 @@ export class BlockchainScoreBoard {
       // Use the new verified connection check
       const isActuallyConnected = await this.blockchainService.isWalletActuallyConnected();
       const connectedAddress = this.blockchainService.getConnectedAddress();
-      
+
       if (isActuallyConnected && connectedAddress) {
         const currentNetwork = await this.blockchainService.getCurrentNetwork();
         this.connectionStatus.textContent = `${connectedAddress.substring(0, 6)}...${connectedAddress.substring(connectedAddress.length - 3)} (${currentNetwork.name})`;
@@ -323,7 +323,7 @@ export class BlockchainScoreBoard {
       } else {
         this.connectionStatus.textContent = 'Disconnected';
         this.connectionStatus.classList.remove('connected');
-        
+
         // If MetaMask is available but not connected, show connect button
         const connectButton = this.container.querySelector('#connect-wallet-btn') as HTMLButtonElement;
         if (connectButton) {
@@ -454,7 +454,8 @@ export class BlockchainScoreBoard {
 
   // Save contract address to localStorage
   private saveContractAddress(address: string): void {
-    localStorage.setItem('pongContractAddress', address);
+    // Use the same key as BlockchainService to avoid conflicts
+    localStorage.setItem('blockchainContractAddress', address);
   }
 
   // Load contract address from localStorage
@@ -463,7 +464,7 @@ export class BlockchainScoreBoard {
     if (savedAddress) {
       this.contractAddressInput.value = savedAddress;
       console.log(`♻️ Restored contract address: ${savedAddress}`);
-      
+
       // If wallet is connected, load data and update status
       if (this.blockchainService.getConnectedAddress()) {
         await this.updateConnectionStatus(); // Update status with current network
