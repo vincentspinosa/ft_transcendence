@@ -77,8 +77,7 @@ let currentUser: GoogleUserInfo | null = null;
 // --- UI Element Variables ---
 // These variables will store references to various HTML elements that make up the game's user interface.
 // Each variable corresponds to a distinct "screen" or major section of the application.
-let loginScreen: HTMLElement,           // The login screen where users must authenticate
-    initialChoiceScreen: HTMLElement,      // The main menu screen where users choose a game mode.
+let initialChoiceScreen: HTMLElement,      // The main menu screen where users choose a game mode.
     gameSetupScreen: HTMLElement,          // Screen for setting up a 1v1 Pong match.
     fourPlayerMatchSetupScreen: HTMLElement, // Screen for setting up a 2v2 Pong match.
     tournamentSetupScreen: HTMLElement,    // Screen for setting up a Pong tournament.
@@ -148,7 +147,7 @@ window.addEventListener('popstate', (event) => {
 function showScreen(screenToShow: HTMLElement | HTMLCanvasElement | null) {
     // List all possible screen elements.
     const allScreens = [
-        loginScreen, initialChoiceScreen, gameSetupScreen, fourPlayerMatchSetupScreen, tournamentSetupScreen,
+        initialChoiceScreen, gameSetupScreen, fourPlayerMatchSetupScreen, tournamentSetupScreen,
         rulesScreen, pongCanvas, matchOverScreen, tournamentWinnerScreen, matchAnnouncementScreen
     ];
     // Iterate through all screens and set their display style to 'none' to hide them.
@@ -158,7 +157,7 @@ function showScreen(screenToShow: HTMLElement | HTMLCanvasElement | null) {
 
     // If a screen is specified, set its display style based on its type or ID.
     if (screenToShow) {
-        if (['loginScreen', 'initialChoiceScreen', 'matchOverScreen', 'tournamentWinnerScreen', 'matchAnnouncementScreen'].includes(screenToShow.id)) {
+        if (['initialChoiceScreen', 'matchOverScreen', 'tournamentWinnerScreen', 'matchAnnouncementScreen'].includes(screenToShow.id)) {
             // These screens are typically centered and should use 'flex' display.
             screenToShow.style.display = 'flex';
         } else {
@@ -211,8 +210,11 @@ function handleUserSignIn(userInfo: GoogleUserInfo): void {
     // Update the user profile section in the main menu
     updateUserProfile(userInfo);
     
-    // Navigate to the main menu
-    navigateTo('initialChoiceScreen', true);
+    // Hide Google sign-in button and show logout button
+    const googleBtnContainer = document.getElementById('googleBtnContainer');
+    const logoutBtn = document.getElementById('logoutBtn');
+    if (googleBtnContainer) googleBtnContainer.style.display = 'none';
+    if (logoutBtn) logoutBtn.style.display = 'inline-block';
 }
 
 /**
@@ -228,8 +230,11 @@ function handleUserLogout(): void {
         userProfile.innerHTML = '';
     }
     
-    // Navigate back to login screen and clear history
-    navigateTo('loginScreen', true);
+    // Show Google sign-in button and hide logout button
+    const googleBtnContainer = document.getElementById('googleBtnContainer');
+    const logoutBtn = document.getElementById('logoutBtn');
+    if (googleBtnContainer) googleBtnContainer.style.display = 'flex';
+    if (logoutBtn) logoutBtn.style.display = 'none';
     
     // Clear any stored authentication data
     localStorage.removeItem('googleUser');
@@ -328,7 +333,6 @@ function validatePlayerName(name: string, playerNameLabel: string, maxLength: nu
     // --- Get References to UI Elements ---
     // Assign HTML elements to their corresponding JavaScript variables using their IDs.
     // This process links the JavaScript logic to the actual structure of the web page.
-    loginScreen = document.getElementById('loginScreen') as HTMLElement;
     initialChoiceScreen = document.getElementById('initialChoiceScreen') as HTMLElement;
     gameSetupScreen = document.getElementById('gameSetup') as HTMLElement;
     fourPlayerMatchSetupScreen = document.getElementById('fourPlayerMatchSetupScreen') as HTMLElement;
@@ -341,7 +345,6 @@ function validatePlayerName(name: string, playerNameLabel: string, maxLength: nu
 
     // Populate the `screenElements` map for easier lookup.
     // This allows `MapsTo` function to quickly find elements by ID.
-    if (loginScreen) screenElements['loginScreen'] = loginScreen;
     if (initialChoiceScreen) screenElements['initialChoiceScreen'] = initialChoiceScreen;
     if (gameSetupScreen) screenElements['gameSetup'] = gameSetupScreen;
     if (fourPlayerMatchSetupScreen) screenElements['fourPlayerMatchSetupScreen'] = fourPlayerMatchSetupScreen;
@@ -388,7 +391,11 @@ function validatePlayerName(name: string, playerNameLabel: string, maxLength: nu
         currentUser = JSON.parse(storedUser);
         if (currentUser) {
           updateUserProfile(currentUser);
-          navigateTo('initialChoiceScreen', true);
+          // Hide Google sign-in button and show logout button
+          const googleBtnContainer = document.getElementById('googleBtnContainer');
+          const logoutBtn = document.getElementById('logoutBtn');
+          if (googleBtnContainer) googleBtnContainer.style.display = 'none';
+          if (logoutBtn) logoutBtn.style.display = 'inline-block';
         }
       } catch (error) {
         console.error('Error parsing stored user data:', error);
@@ -474,7 +481,7 @@ function validatePlayerName(name: string, playerNameLabel: string, maxLength: nu
     if (initialHash && screenElements[initialHash]) {
         navigateTo(initialHash, true); // Navigate to the screen specified in the URL hash, replacing initial history entry.
     } else {
-        navigateTo('loginScreen', true); // Default to the login screen, replacing initial history.
+        navigateTo('initialChoiceScreen', true); // Default to the main menu, replacing initial history.
     }
 
     // --- Form Submission Handlers ---
@@ -744,7 +751,7 @@ function validatePlayerName(name: string, playerNameLabel: string, maxLength: nu
     // --- Critical UI Element Check ---
     // Define a list of IDs for critical HTML elements that must be present for the application to function.
     const criticalElementIds: string[] = [
-        'loginScreen', 'initialChoiceScreen', 'gameSetup', 'fourPlayerMatchSetupScreen', 'tournamentSetupScreen', 'rulesScreen', 'pongCanvas',
+        'initialChoiceScreen', 'gameSetup', 'fourPlayerMatchSetupScreen', 'tournamentSetupScreen', 'rulesScreen', 'pongCanvas',
         'matchOverScreen', 'tournamentWinnerScreen', 'matchAnnouncementScreen',
         'singleMatchModeBtn', 'fourPlayerMatchModeBtn', 'tournamentModeBtn', 'readRulesBtn', 'rules_backToMainBtn',
         'settingsForm', 's_backToMainBtn', 'fourPlayerSettingsForm', 'fp_backToMainBtn', 'tournamentSettingsForm', 't_backToMainBtn',

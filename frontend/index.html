@@ -11,27 +11,24 @@
 </head>
 <body class="font-sans m-0 flex flex-col justify-center items-center min-h-screen bg-[#111] text-white pt-5 pb-5 box-border relative">
     
-    <!-- LOGIN SCREEN -->
-    <div id="loginScreen" class="screen box-border z-20 w-[500px] bg-[#222] p-[30px] rounded-lg shadow-lg text-center">
-        <h2 class="mt-0 mb-5 text-[#eee]">Welcome to Pong Game</h2>
-        <p class="text-[#ccc] mb-6">Please sign in with Google to continue</p>
-        <!-- Container pour le bouton Google -->
-        <div id="googleBtnContainer" class="flex justify-center"></div>
-    </div>
+
 
     <!-- MAIN MENU -->
-    <div id="initialChoiceScreen" class="screen hidden box-border z-10 w-[500px] bg-[#222] p-[30px] rounded-lg shadow-lg text-center">
+    <div id="initialChoiceScreen" class="screen hidden box-border z-10 w-[100] bg-[#222] p-[30px] rounded-lg shadow-lg text-center">
         <button id="singleMatchModeBtn" class="action-button inline-block my-[10px] mx-[5px] py-3 px-3 bg-[#4CAF50] text-white border-none rounded cursor-pointer text-base text-center box-border w-[250px]">Single Match (1v1)</button>
         <button id="fourPlayerMatchModeBtn" class="action-button inline-block my-[10px] mx-[5px] py-3 px-3 bg-[#4CAF50] text-white border-none rounded cursor-pointer text-base text-center box-border w-[250px]">Single Match (2v2)</button>
         <button id="tournamentModeBtn" class="action-button secondary inline-block my-[10px] mx-[5px] py-3 px-3 bg-[#007bff] text-white border-none rounded cursor-pointer text-base text-center box-border w-[250px]">Start Tournament</button>
         <button id="readRulesBtn" class="action-button tertiary inline-block my-[10px] mx-[5px] py-3 px-3 bg-[#6c757d] text-white border-none rounded cursor-pointer text-base text-center box-border w-[250px]">Read the Rules</button>
         
-        <!-- User Info and Logout Section -->
+        <!-- User Info and Authentication Section -->
         <div id="userInfoSection" class="mt-6 pt-4 border-t border-[#444]">
             <div id="userProfile" class="flex flex-col items-center text-white mb-4">
                 <!-- Profile picture and user info will be inserted here -->
             </div>
-            <button id="logoutBtn" class="action-button tertiary inline-block my-[10px] mx-[5px] py-3 px-3 bg-[#dc3545] text-white border-none rounded cursor-pointer text-base text-center box-border w-[250px] hover:bg-[#c82333] transition-colors duration-200">Logout</button>
+            <!-- Google Sign-In Button (shown when not authenticated) -->
+            <div id="googleBtnContainer" class="flex justify-center mb-4"></div>
+            <!-- Logout Button (shown when authenticated) -->
+            <button id="logoutBtn" class="action-button tertiary inline-block my-[10px] mx-[5px] py-3 px-3 bg-[#dc3545] text-white border-none rounded cursor-pointer text-base text-center box-border w-[250px] hover:bg-[#c82333] transition-colors duration-200 hidden">Logout</button>
         </div>
     </div>
 
