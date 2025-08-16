@@ -1,4 +1,4 @@
-import { PongTournamentScoresBytecode } from './contractConfig';
+import { PongTournamentScoresBytecode, PongTournamentScoresABI } from './contractConfig';
 import { ethers } from 'ethers';
 
 export class BlockchainService {
@@ -8,6 +8,8 @@ export class BlockchainService {
     private scoreUpdateCallbacks: ((player: string, score: number) => void)[] = [];
     private networkChangeCallbacks: ((chainId: string, networkName: string) => void)[] = [];
     private accountChangeCallbacks: ((accounts: string[]) => void)[] = [];
+    private provider: ethers.BrowserProvider | null = null;
+    private contract: ethers.Contract | null = null;
 
     constructor() {
         // Restore state from localStorage
@@ -101,6 +103,30 @@ export class BlockchainService {
                 window.ethereum.removeListener('accountsChanged', handleAccountsChanged);
             }
         });
+    }
+
+    private async getProvider(): Promise<ethers.BrowserProvider> {
+        if (!window.ethereum) {
+            throw new Error('MetaMask not available');
+        }
+
+        if (!this.provider) {
+            this.provider = new ethers.BrowserProvider(window.ethereum);
+        }
+        return this.provider;
+    }
+
+    private async getContract(): Promise<ethers.Contract> {
+        if (!this.contractAddress) {
+            throw new Error('Contract address not set');
+        }
+
+        if (!this.contract || this.contract.target !== this.contractAddress) {
+            const provider = await this.getProvider();
+            const signer = await provider.getSigner();
+            this.contract = new ethers.Contract(this.contractAddress, PongTournamentScoresABI, signer);
+        }
+        return this.contract;
     }
 
     // Check MetaMask availability
@@ -410,7 +436,6 @@ export class BlockchainService {
         return this.contractAddress;
     }
 
-    // Deploy new smart contract
     public async deployContract(): Promise<string | null> {
         if (!this.connectedAddress) {
             throw new Error('Please connect wallet first');
@@ -421,34 +446,30 @@ export class BlockchainService {
         }
 
         try {
-            // Validate contract bytecode
-            if (!PongTournamentScoresBytecode || !PongTournamentScoresBytecode.startsWith('0x')) {
-                throw new Error('Invalid contract bytecode');
-            }
-
             console.log('Deploying contract...');
 
-            // Deploy contract via MetaMask on Avalanche
-            const params = {
-                from: this.connectedAddress,
-                data: PongTournamentScoresBytecode,
-                gas: '0x1E8480', // 2M gas limit
-                gasPrice: '0x9C4653600', // 42 gwei for Avalanche
-                value: '0x0' // No ETH transfer
-            };
+            const provider = await this.getProvider();
+            const signer = await provider.getSigner();
 
-            const txHash = await window.ethereum.request({
-                method: 'eth_sendTransaction',
-                params: [params]
+            // Create contract factory with ethers
+            const contractFactory = new ethers.ContractFactory(
+                PongTournamentScoresABI,
+                PongTournamentScoresBytecode,
+                signer
+            );
+
+            // Deploy with existing gas parameters
+            const contract = await contractFactory.deploy({
+                gasLimit: 0x1E8480, // 2M gas limit (same as before)
+                gasPrice: 0x9C4653600, // 42 gwei for Avalanche (same as before)
             });
 
-            // Wait for transaction and get contract address
-            const receipt = await this.waitForTransaction(txHash);
-            if (receipt && receipt.contractAddress) {
-                this.setContractAddress(receipt.contractAddress);
-                return this.contractAddress;
-            }
-            return null;
+            // Wait for deployment
+            await contract.waitForDeployment();
+            const contractAddress = await contract.getAddress();
+
+            this.setContractAddress(contractAddress);
+            return contractAddress;
         } catch (error) {
             console.error('Contract deployment failed:', error);
             throw error;
@@ -488,76 +509,30 @@ export class BlockchainService {
         });
     }
 
-    // Get player score by address
     public async getPlayerScore(playerAddress: string): Promise<number> {
-        if (!this.contractAddress) {
-            throw new Error('Contract address not set');
-        }
-
-        // Ensure we're on the correct network
         await this.ensureCorrectNetwork();
 
-        if (!window.ethereum) {
-            throw new Error('MetaMask not available');
-        }
-
         try {
-            // Encode function call using ethers
-            const data = this.encodeCall('getScore', ['address'], [playerAddress]);
-
-            // Call contract
-            const result = await window.ethereum.request({
-                method: 'eth_call',
-                params: [{
-                    to: this.contractAddress,
-                    data
-                }, 'latest']
-            });
-
-            // Decode result using ethers
-            const decoded = this.decodeResult(result, ['uint256']);
-            return typeof decoded === 'bigint' ? Number(decoded) : (decoded as number) || 0;
+            const contract = await this.getContract();
+            const score = await contract.getScore(playerAddress);
+            return Number(score);
         } catch (error) {
             console.error('Error getting player score:', error);
-            throw error;
+            return 0;
         }
     }
 
-    // Get player name from blockchain
     public async getPlayerName(playerAddress: string): Promise<string> {
-        if (!this.contractAddress) {
-            throw new Error('Contract address not set');
-        }
-
-        if (!window.ethereum) {
-            throw new Error('MetaMask not available');
-        }
-
         try {
-            // Encode function call using ethers
-            const data = this.encodeCall('getPlayerName', ['address'], [playerAddress]);
-
-            // Call contract
-            const result = await window.ethereum.request({
-                method: 'eth_call',
-                params: [{
-                    to: this.contractAddress,
-                    data
-                }, 'latest']
-            });
-
-            console.log(`getPlayerName(${playerAddress}) raw result:`, result);
-
-            // Decode string using ethers
-            const decoded = this.decodeResult(result, ['string']);
-            return decoded || '';
+            const contract = await this.getContract();
+            const name = await contract.getPlayerName(playerAddress);
+            return name || '';
         } catch (error) {
             console.warn('⚠️ Error getting player name (using fallback):', error);
-            return ''; // Return empty string instead of throwing
+            return '';
         }
     }
 
-    // Get all unique players with full statistics
     public async getAllUniquePlayersWithStats(): Promise<Array<{
         name: string,
         address: string,
@@ -566,107 +541,30 @@ export class BlockchainService {
         gamesWon: number,
         winRate: number
     }>> {
-        if (!this.contractAddress) {
-            console.warn('Contract address not set');
-            return [];
-        }
-
-        // Ensure we're on the correct network
         try {
             await this.ensureCorrectNetwork();
-        } catch (networkError) {
-            console.error('Network check failed:', networkError);
-            return [];
-        }
+            const contract = await this.getContract();
 
-        if (!window.ethereum) {
-            console.warn('MetaMask not available');
-            return [];
-        }
+            const [names, addresses, scores, gamesPlayed, gamesWon] = await contract.getAllUniquePlayersWithStats();
 
-        try {
-            // Use new getAllUniquePlayersWithStats function
-            const data = this.encodeCall('getAllUniquePlayersWithStats', [], []);
-
-            const result = await window.ethereum.request({
-                method: 'eth_call',
-                params: [{
-                    to: this.contractAddress,
-                    data: data
-                }, 'latest']
-            });
-
-            console.log('Raw result from getAllUniquePlayersWithStats:', result);
-
-            if (!result || result === '0x' || result.length < 130) {
-                console.log('⚠️ No valid data returned from contract, trying legacy method');
-                return await this.getAllPlayersLegacy();
-            }
-
-            // Try to use ethers for decoding, fallback to legacy if fails
-            try {
-                // Define return types for the function
-                const returnTypes = ['string[]', 'address[]', 'uint256[]', 'uint256[]', 'uint256[]'];
-                const decoded = this.decodeResult(result, returnTypes);
-
-                console.log('🔍 Ethers decoded result:', decoded);
-
-                if (Array.isArray(decoded) && decoded.length === 5) {
-                    const [names, addresses, scores, gamesPlayed, gamesWon] = decoded;
-                    const playersData = [];
-
-                    for (let i = 0; i < names.length; i++) {
-                        const totalScore = Number(scores[i]) || 0;
-                        const played = Number(gamesPlayed[i]) || 0;
-                        const won = Number(gamesWon[i]) || 0;
-
-                        playersData.push({
-                            name: names[i] || 'Unknown Player',
-                            address: addresses[i] || '',
-                            totalScore,
-                            gamesPlayed: played,
-                            gamesWon: won,
-                            winRate: played > 0 ? Math.round((won / played) * 100) : 0
-                        });
-                    }
-
-                    console.log(`✅ Successfully decoded ${playersData.length} players using ethers`);
-                    return playersData;
-                }
-            } catch (ethersError) {
-                console.warn('⚠️ Ethers decoding failed, using legacy method:', ethersError);
-            }
-
-            // Fallback to legacy decoding
-            const players = this.decodeMultipleArraysResult(result, 5);
-
-            if (players.length === 0) {
-                console.log('⚠️ No players found in contract');
-                return [];
-            }
-
-            const [names, addresses, scores, gamesPlayed, gamesWon] = players;
             const playersData = [];
-
             for (let i = 0; i < names.length; i++) {
-                const totalScore = scores[i] || 0;
-                const played = gamesPlayed[i] || 0;
-                const won = gamesWon[i] || 0;
-                const winRate = played > 0 ? Math.round((won / played) * 100) : 0;
+                const totalScore = Number(scores[i]) || 0;
+                const played = Number(gamesPlayed[i]) || 0;
+                const won = Number(gamesWon[i]) || 0;
 
                 playersData.push({
-                    name: names[i] || `Player ${i + 1}`,
-                    address: addresses[i] || '0x0000000000000000000000000000000000000000',
-                    totalScore: totalScore,
+                    name: names[i] || 'Unknown Player',
+                    address: addresses[i] || '',
+                    totalScore,
                     gamesPlayed: played,
                     gamesWon: won,
-                    winRate: winRate
+                    winRate: played > 0 ? Math.round((won / played) * 100) : 0
                 });
             }
 
             console.log(`✅ Found ${playersData.length} unique players with stats`);
             return playersData;
-
         } catch (error) {
             console.warn('Error getting unique players with stats, falling back to legacy:', error);
             return await this.getAllPlayersLegacy();
@@ -799,55 +697,20 @@ export class BlockchainService {
         }
     }
 
-    // Add player score to blockchain
     public async addPlayerScore(playerName: string, walletAddress: string, scoreToAdd: number, wonGame: boolean): Promise<void> {
-        if (!this.contractAddress || !this.connectedAddress) {
-            throw new Error('Contract address or wallet connection not set');
-        }
-
-        // Ensure we're on the correct network
         await this.ensureCorrectNetwork();
 
-        if (!window.ethereum) {
-            throw new Error('MetaMask not available');
-        }
-
         try {
-            // console.log(`🎮 Adding score for player: "${playerName}", wallet: ${walletAddress}, score: ${scoreToAdd}, won: ${wonGame}`);
-            // Encode function call for addPlayerScore
-            const data = this.encodeCall('addPlayerScore',
-                ['string', 'address', 'uint256', 'bool'],
-                [playerName, walletAddress, scoreToAdd.toString(), wonGame.toString()]);
+            const contract = await this.getContract();
 
-            // console.log('Transaction data:', data);
-
-            // Transaction parameters with gas settings for Avalanche
-            const txParams = {
-                from: this.connectedAddress,
-                to: this.contractAddress,
-                data,
-                gas: '0x7A120', // 500k gas limit for complex operations
-                gasPrice: '0x9C4653600' // 42 gwei for Avalanche network
-            };
-
-            // console.log('Transaction params:', txParams);
-            // console.log(`📍 Using contract address for WRITE: ${this.contractAddress}`);
-
-            // Send transaction
-            const txHash = await window.ethereum.request({
-                method: 'eth_sendTransaction',
-                params: [txParams]
+            // Call with existing gas parameters
+            const tx = await contract.addPlayerScore(playerName, walletAddress, scoreToAdd, wonGame, {
+                gasLimit: 0x7A120, // 500k gas limit (same as before)
+                gasPrice: 0x9C4653600 // 42 gwei for Avalanche (same as before)
             });
 
-            console.log('Transaction hash:', txHash);
-
-            if (!txHash) {
-                throw new Error('No transaction hash received');
-            }
-
-            // Wait for transaction confirmation
-            await this.waitForTransaction(txHash);
-
+            console.log('Transaction hash:', tx.hash);
+            await tx.wait();
             console.log('Transaction confirmed');
 
             // Give blockchain time to update state
