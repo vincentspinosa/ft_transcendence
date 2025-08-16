@@ -398,7 +398,7 @@ function validatePlayerName(name: string, playerNameLabel: string, maxLength: nu
           if (logoutBtn) logoutBtn.style.display = 'inline-block';
         }
       } catch (error) {
-        console.error('Error parsing stored user data:', error);
+        console.log('Error parsing stored user data:', error);
         localStorage.removeItem('googleUser');
         sessionStorage.removeItem('googleUser');
         currentUser = null;
@@ -555,7 +555,7 @@ function validatePlayerName(name: string, playerNameLabel: string, maxLength: nu
                     gameInstance.start(); // Start the game loop.
                 }
             } catch (error) {
-                console.error('Backend validation error:', error);
+                console.log('Backend validation error:', error);
                 alert('Failed to validate game settings with backend. Please try again.');
             }
         });
@@ -647,7 +647,7 @@ function validatePlayerName(name: string, playerNameLabel: string, maxLength: nu
                     gameInstance.start(); // Start the game loop.
                 }
             } catch (error) {
-                console.error('Backend validation error:', error);
+                console.log('Backend validation error:', error);
                 alert('Failed to validate game settings with backend. Please try again.');
             }
         });
@@ -742,7 +742,7 @@ function validatePlayerName(name: string, playerNameLabel: string, maxLength: nu
                     tournamentInstance.startTournament(); // Begin the tournament flow.
                 }
             } catch (error) {
-                console.error('Backend validation error:', error);
+                console.log('Backend validation error:', error);
                 alert('Failed to validate tournament settings with backend. Please try again.');
             }
         });

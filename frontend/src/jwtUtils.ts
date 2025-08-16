@@ -25,7 +25,7 @@ export function parseJwt(token: string): GoogleUserInfo {
     
     return JSON.parse(jsonPayload);
   } catch (error) {
-    console.error('Error parsing JWT:', error);
+    console.log('Error parsing JWT:', error);
     throw new Error('Failed to parse JWT token');
   }
 }

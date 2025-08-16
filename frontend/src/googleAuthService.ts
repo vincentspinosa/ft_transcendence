@@ -46,7 +46,7 @@ export class GoogleAuthService {
       // Timeout after 10 seconds
       setTimeout(() => {
         clearInterval(checkInterval);
-        console.error('Google Sign-In library failed to load within 10 seconds');
+        console.log('Google Sign-In library failed to load within 10 seconds');
         resolve();
       }, 10000);
     });
@@ -60,7 +60,7 @@ export class GoogleAuthService {
     await this.waitForGoogle();
 
     if (typeof window.google === 'undefined') {
-      console.error('Google Sign-In library not loaded');
+      console.log('Google Sign-In library not loaded');
       return;
     }
 
@@ -76,7 +76,7 @@ export class GoogleAuthService {
       this.isInitialized = true;
       console.log('GoogleAuthService: Initialized successfully');
     } catch (error) {
-      console.error('GoogleAuthService: Failed to initialize:', error);
+      console.log('GoogleAuthService: Failed to initialize:', error);
     }
   }
 
@@ -90,7 +90,7 @@ export class GoogleAuthService {
     }
 
     if (typeof window.google === 'undefined') {
-      console.error('Google Sign-In library not loaded');
+      console.log('Google Sign-In library not loaded');
       return;
     }
 
@@ -107,7 +107,7 @@ export class GoogleAuthService {
       window.google.accounts.id.renderButton(containerElement, buttonConfig);
       console.log('GoogleAuthService: Button rendered successfully');
     } catch (error) {
-      console.error('GoogleAuthService: Failed to render button:', error);
+      console.log('GoogleAuthService: Failed to render button:', error);
     }
   }
 
@@ -125,7 +125,7 @@ export class GoogleAuthService {
       // Call the callback with user information
       this.callback(userInfo);
     } catch (error) {
-      console.error('Error handling credential response:', error);
+      console.log('Error handling credential response:', error);
     }
   }
 }
