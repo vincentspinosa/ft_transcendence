@@ -1,5 +1,5 @@
 import { BlockchainService } from '../blockchain/blockchainService';
-import { getErrorMessage } from '../utils/errorUtils';
+import { getErrorMessage } from '../blockchain/errorUtils';
 
 export class BlockchainScoreBoard {
   private container: HTMLElement;
@@ -472,117 +472,6 @@ export class BlockchainScoreBoard {
         this.subscribeToScoreUpdates();
       }
     }
-  }
-
-  // Add styles
-  private addStyles(): void {
-    const styleElement = document.createElement('style');
-    styleElement.textContent = `
-      .blockchain-scoreboard {
-        font-family: Arial, sans-serif;
-        max-width: 800px;
-        margin: 0 auto;
-        padding: 20px;
-        background-color: #f8f9fa;
-        border-radius: 8px;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-      }
-      
-      .blockchain-scoreboard h2 {
-        color: #333;
-        margin-bottom: 20px;
-      }
-      
-      .connection-section, .contract-section {
-        margin-bottom: 20px;
-      }
-      
-      .btn {
-        padding: 8px 16px;
-        border: none;
-        border-radius: 4px;
-        cursor: pointer;
-        font-weight: bold;
-      }
-      
-      .btn-primary {
-        background-color: #007bff;
-        color: white;
-      }
-      
-      .btn-secondary {
-        background-color: #6c757d;
-        color: white;
-      }
-      
-      .btn-success {
-        background-color: #28a745;
-        color: white;
-      }
-      
-      .btn:disabled {
-        opacity: 0.6;
-        cursor: not-allowed;
-      }
-      
-      .status {
-        margin-left: 10px;
-        padding: 4px 8px;
-        border-radius: 4px;
-        background-color: #dc3545;
-        color: white;
-      }
-      
-      .status.connected {
-        background-color: #28a745;
-      }
-      
-      .input-group {
-        display: flex;
-        margin-bottom: 10px;
-      }
-      
-      .form-control {
-        flex: 1;
-        padding: 8px;
-        border: 1px solid #ced4da;
-        border-radius: 4px 0 0 4px;
-      }
-      
-      .input-group .btn {
-        border-radius: 0 4px 4px 0;
-      }
-      
-      .player-list {
-        margin-top: 10px;
-      }
-      
-      .player-stats-table {
-        width: 100%;
-        border-collapse: collapse;
-        margin-top: 10px;
-      }
-      
-      .player-stats-table th, .player-stats-table td {
-        border: 1px solid #dee2e6;
-        padding: 8px;
-        text-align: left;
-      }
-      
-      .player-stats-table th {
-        background-color: #e9ecef;
-      }
-      
-      .player-stats-table tr:nth-child(even) {
-        background-color: #f2f2f2;
-      }
-      
-      .error {
-        color: #dc3545;
-      }
-    `;
-
-    document.head.appendChild(styleElement);
   }
 
   // Method for cleaning up resources when removing component
