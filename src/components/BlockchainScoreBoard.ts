@@ -36,6 +36,9 @@ export class BlockchainScoreBoard {
     // Setup network and account change listeners
     this.setupBlockchainEventListeners();
 
+    // Check actual wallet connection state on initialization
+    this.initializeConnectionState();
+
     // Start automatic statistics refresh every 5 seconds
     this.startAutoRefresh();
   }
@@ -63,6 +66,32 @@ export class BlockchainScoreBoard {
     });
   }
 
+  /**
+   * Initialize connection state by checking actual MetaMask connection
+   */
+  private async initializeConnectionState(): Promise<void> {
+    try {
+      // Wait a bit for MetaMask to load
+      setTimeout(async () => {
+        console.log('🔄 Checking initial wallet connection state...');
+        
+        // Check if wallet is actually connected
+        const isConnected = await this.blockchainService.isWalletActuallyConnected();
+        console.log(`Initial wallet state: ${isConnected ? 'Connected' : 'Disconnected'}`);
+        
+        // Update UI based on actual state
+        await this.updateConnectionStatus();
+        
+        // Load stats if everything is ready
+        if (isConnected && this.blockchainService.getContractAddress()) {
+          this.loadPlayerStats();
+        }
+      }, 1500); // Wait for blockchain service to initialize
+    } catch (error) {
+      console.warn('Error checking initial connection state:', error);
+    }
+  }
+
   // Show disconnected state
   private showDisconnectedState(): void {
     this.playerListContainer.innerHTML = `
@@ -81,17 +110,29 @@ export class BlockchainScoreBoard {
     this.blockchainService.onScoreUpdate((player: string, score: number) => {
       console.log(`Score update received: ${player} = ${score}`);
       // Update statistics immediately after receiving event
-      if (this.blockchainService.getContractAddress() && this.blockchainService.getConnectedAddress()) {
-        this.loadPlayerStats();
-      }
+      this.checkAndLoadStats();
     });
 
     // Update every 10 seconds (increased interval since we have events)
-    this.refreshInterval = window.setInterval(() => {
-      if (this.blockchainService.getContractAddress() && this.blockchainService.getConnectedAddress()) {
+    this.refreshInterval = window.setInterval(async () => {
+      await this.checkAndLoadStats();
+    }, 10000);
+  }
+
+  /**
+   * Check connection and load stats if everything is ready
+   */
+  private async checkAndLoadStats(): Promise<void> {
+    try {
+      const hasContract = this.blockchainService.getContractAddress();
+      const isConnected = await this.blockchainService.isWalletActuallyConnected();
+      
+      if (hasContract && isConnected) {
         this.loadPlayerStats();
       }
-    }, 10000);
+    } catch (error) {
+      console.warn('Error checking connection for stats update:', error);
+    }
   }
 
   // Create UI components
@@ -207,7 +248,8 @@ export class BlockchainScoreBoard {
       try {
         const address = await this.blockchainService.connectWallet();
         if (address) {
-          this.updateConnectionStatusWithAddress(address);
+          // Update connection status with proper verification
+          await this.updateConnectionStatus();
           this.deployContractButton.disabled = false;
 
           // If contract address already exists, load data
@@ -270,15 +312,24 @@ export class BlockchainScoreBoard {
   // Update connection status dynamically
   private async updateConnectionStatus(): Promise<void> {
     try {
+      // Use the new verified connection check
+      const isActuallyConnected = await this.blockchainService.isWalletActuallyConnected();
       const connectedAddress = this.blockchainService.getConnectedAddress();
-      const currentNetwork = await this.blockchainService.getCurrentNetwork();
       
-      if (connectedAddress) {
+      if (isActuallyConnected && connectedAddress) {
+        const currentNetwork = await this.blockchainService.getCurrentNetwork();
         this.connectionStatus.textContent = `${connectedAddress.substring(0, 6)}...${connectedAddress.substring(connectedAddress.length - 3)} (${currentNetwork.name})`;
         this.connectionStatus.classList.add('connected');
       } else {
         this.connectionStatus.textContent = 'Disconnected';
         this.connectionStatus.classList.remove('connected');
+        
+        // If MetaMask is available but not connected, show connect button
+        const connectButton = this.container.querySelector('#connect-wallet-btn') as HTMLButtonElement;
+        if (connectButton) {
+          connectButton.style.display = 'inline-block';
+          connectButton.textContent = 'Connect Wallet';
+        }
       }
     } catch (error) {
       console.error('Failed to update connection status:', error);
@@ -296,16 +347,23 @@ export class BlockchainScoreBoard {
   // Load player statistics
   private async loadPlayerStats(): Promise<void> {
     try {
-      // Check blockchain state
+      // Check blockchain state with real verification
       const contractAddress = this.blockchainService.getContractAddress();
+      const isWalletConnected = await this.blockchainService.isWalletActuallyConnected();
       const connectedAddress = this.blockchainService.getConnectedAddress();
 
       console.log('Loading player stats...');
       console.log(`Contract: ${contractAddress}`);
-      console.log(`Wallet: ${connectedAddress}`);
+      console.log(`Wallet connected: ${isWalletConnected}`);
+      console.log(`Wallet address: ${connectedAddress}`);
 
       if (!contractAddress) {
         this.playerListContainer.innerHTML = '<p class="info-text">Please set contract address first.</p>';
+        return;
+      }
+
+      if (!isWalletConnected) {
+        this.playerListContainer.innerHTML = '<p class="info-text">Please connect your wallet first.</p>';
         return;
       }
 

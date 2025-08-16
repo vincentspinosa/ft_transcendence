@@ -16,6 +16,27 @@ export class BlockchainService {
         
         // Setup event listeners for MetaMask changes
         this.setupMetaMaskEventListeners();
+        
+        // Verify wallet connection state on initialization
+        this.initializeWalletState();
+    }
+
+    /**
+     * Initialize wallet state by checking actual MetaMask connection
+     */
+    private async initializeWalletState(): Promise<void> {
+        try {
+            // Wait a bit for MetaMask to load
+            setTimeout(async () => {
+                await this.isWalletActuallyConnected();
+                console.log('🔗 Wallet state initialized:', {
+                    isAvailable: this.isMetaMaskAvailable(),
+                    connectedAddress: this.connectedAddress
+                });
+            }, 1000);
+        } catch (error) {
+            console.warn('Error initializing wallet state:', error);
+        }
     }
 
     // Setup MetaMask event listeners for network and account changes
@@ -88,6 +109,44 @@ export class BlockchainService {
             typeof window.ethereum !== 'undefined' &&
             window.ethereum !== null &&
             window.ethereum.isMetaMask === true;
+    }
+
+    /**
+     * Check if MetaMask is available and wallet is actually connected
+     * This is more reliable than just checking localStorage
+     */
+    public async isWalletActuallyConnected(): Promise<boolean> {
+        if (!this.isMetaMaskAvailable() || !window.ethereum) {
+            return false;
+        }
+
+        try {
+            // Check if there are any connected accounts without requesting permission
+            const accounts = await window.ethereum.request({ method: 'eth_accounts' });
+            const hasConnectedAccounts = accounts && accounts.length > 0;
+            
+            // Update our local state based on actual MetaMask state
+            if (hasConnectedAccounts) {
+                const currentAccount = accounts[0];
+                // Update local state if it's different
+                if (this.connectedAddress !== currentAccount) {
+                    this.connectedAddress = currentAccount;
+                    localStorage.setItem('blockchainConnectedAddress', currentAccount);
+                }
+            } else {
+                // Clear local state if no accounts are connected in MetaMask
+                this.connectedAddress = null;
+                localStorage.removeItem('blockchainConnectedAddress');
+            }
+            
+            return hasConnectedAccounts;
+        } catch (error) {
+            console.warn('Error checking wallet connection:', error);
+            // Clear local state on error
+            this.connectedAddress = null;
+            localStorage.removeItem('blockchainConnectedAddress');
+            return false;
+        }
     }
 
     // Connect to MetaMask wallet
@@ -308,17 +367,17 @@ export class BlockchainService {
 
     // Get current connected wallet address
     public getConnectedAddress(): string | null {
-        // Check local state first
-        if (this.connectedAddress) {
-            return this.connectedAddress;
-        }
-        // Fall back to localStorage
-        const saved = localStorage.getItem('blockchainConnectedAddress');
-        if (saved) {
-            this.connectedAddress = saved;
-            return saved;
-        }
-        return null;
+        // Return local state (this should be kept in sync by isWalletActuallyConnected)
+        return this.connectedAddress;
+    }
+
+    /**
+     * Get connected address with real-time verification
+     * Use this when you need to be sure the wallet is actually connected
+     */
+    public async getConnectedAddressVerified(): Promise<string | null> {
+        const isConnected = await this.isWalletActuallyConnected();
+        return isConnected ? this.connectedAddress : null;
     }
 
     // Set contract address
