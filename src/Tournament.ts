@@ -2,7 +2,7 @@
 import { PlayerConfig, TournamentSetupInfo, MatchSettings } from './interfaces';
 import { Game } from './Game';
 import { BlockchainService } from './blockchain';
-import { BlockchainScoreBoard } from './components/BlockchainScoreBoard';
+import { BlockchainScoreBoard } from './blockchain/components/BlockchainScoreBoard';
 
 /**
  * Manages the flow of a Pong tournament, including setting up matches,

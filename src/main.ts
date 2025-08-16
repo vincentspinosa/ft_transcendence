@@ -51,7 +51,7 @@ import '../main.css';
 import { Game } from './Game'; // Imports the core Pong game logic.
 import { Tournament } from './Tournament'; // Imports the tournament management logic.
 import { PlayerConfig, MatchSettings, TournamentSetupInfo, FourPlayerMatchSettings } from './interfaces'; // Imports data structures for player, match, and tournament configurations.
-import { BlockchainScoreBoard } from './components/BlockchainScoreBoard'; // Imports the blockchain scoreboard component.
+import { BlockchainScoreBoard } from './blockchain/components/BlockchainScoreBoard'; // Imports the blockchain scoreboard component.
 
 const MAX_NAME_LENGTH = 20; // Maximum allowed length for player names in Pong and Tic-Tac-Toe game modes.
 

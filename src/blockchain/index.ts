@@ -1,4 +1,4 @@
-import { BlockchainScoreBoard } from '../components/BlockchainScoreBoard';
+import { BlockchainScoreBoard } from './components/BlockchainScoreBoard';
 import { BlockchainService } from './blockchainService';
 
 // Export classes for use in other parts of the application

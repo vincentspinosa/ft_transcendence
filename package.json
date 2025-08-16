@@ -7,7 +7,7 @@
     "build": "tsc && npx webpack --mode production",
     "watch": "tsc -w & npx webpack --watch --mode development",
     "start": "npm run build && live-server --host=0.0.0.0 .",
-    "compile-contract": "node scripts/compile-contract.js"
+    "compile-contract": "node src/blockchain/scripts/compile-contract.js"
   },
   "keywords": [
     "pong",

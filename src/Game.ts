@@ -4,7 +4,7 @@ import { Ball } from './Ball';
 import { PowerUp } from './PowerUp'; // Import the new PowerUp class
 import { PlayerConfig, MatchSettings, FourPlayerMatchSettings } from './interfaces';
 import { BlockchainService } from './blockchain';
-import { BlockchainScoreBoard } from './components/BlockchainScoreBoard';
+import { BlockchainScoreBoard } from './blockchain/components/BlockchainScoreBoard';
 
 /**
  * The main Game class responsible for managing the Pong game logic,

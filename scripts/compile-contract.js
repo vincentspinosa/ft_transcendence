@@ -5,7 +5,7 @@ const path = require('path');
 const { execSync } = require('child_process');
 
 // Конфигурация
-const CONTRACT_FILE = 'contracts/PongTournamentScores.sol';
+const CONTRACT_FILE = 'src/blockchain/contracts/PongTournamentScores.sol';
 const OUTPUT_FILE = 'src/blockchain/contractConfig.ts';
 const BUILD_DIR = 'build';
 

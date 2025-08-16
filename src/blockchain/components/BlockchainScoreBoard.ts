@@ -1,5 +1,5 @@
-import { BlockchainService } from '../blockchain/blockchainService';
-import { getErrorMessage } from '../blockchain/errorUtils';
+import { BlockchainService } from '../blockchainService';
+import { getErrorMessage } from '../errorUtils';
 
 export class BlockchainScoreBoard {
   private container: HTMLElement;
