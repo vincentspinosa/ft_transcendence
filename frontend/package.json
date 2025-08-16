@@ -1,7 +1,7 @@
 {
   "name": "ft_transcendence",
   "version": "1.0.0",
-  "description": "A simple Pong game in TypeScript",
+  "description": "A simple Pong game in TypeScript with Google Authentication",
   "main": "dist/main.js",
   "scripts": {
     "build": "tsc && npx webpack --mode production",
@@ -13,7 +13,9 @@
     "typescript",
     "game",
     "ft_transcendence",
-    "transcendence"
+    "transcendence",
+    "authentication",
+    "google-signin"
   ],
   "author": "Vincent Spinosa",
   "license": "MIT",

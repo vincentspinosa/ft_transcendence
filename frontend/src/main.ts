@@ -51,6 +51,8 @@ import '../main.css';
 import { Game } from './Game'; // Imports the core Pong game logic.
 import { Tournament } from './Tournament'; // Imports the tournament management logic.
 import { PlayerConfig, MatchSettings, TournamentSetupInfo, FourPlayerMatchSettings } from './interfaces'; // Imports data structures for player, match, and tournament configurations.
+import { GoogleAuthService } from './googleAuthService'; // Imports Google authentication service
+import { GoogleUserInfo } from './authTypes'; // Imports authentication types
 // FormValidationManager import removed - not implemented yet
 
 const MAX_NAME_LENGTH = 20; // Maximum allowed length for player names in Pong and Tic-Tac-Toe game modes.
@@ -68,10 +70,15 @@ const COLOR_MAP: { [key: string]: string } = {
 let gameInstance: Game | null = null; // Instance of the Pong game. Null initially.
 let tournamentInstance: Tournament | null = null; // Instance of the Tournament manager. Null initially.
 
+// --- Authentication ---
+let googleAuth: GoogleAuthService | null = null;
+let currentUser: GoogleUserInfo | null = null;
+
 // --- UI Element Variables ---
 // These variables will store references to various HTML elements that make up the game's user interface.
 // Each variable corresponds to a distinct "screen" or major section of the application.
-let initialChoiceScreen: HTMLElement,      // The main menu screen where users choose a game mode.
+let loginScreen: HTMLElement,           // The login screen where users must authenticate
+    initialChoiceScreen: HTMLElement,      // The main menu screen where users choose a game mode.
     gameSetupScreen: HTMLElement,          // Screen for setting up a 1v1 Pong match.
     fourPlayerMatchSetupScreen: HTMLElement, // Screen for setting up a 2v2 Pong match.
     tournamentSetupScreen: HTMLElement,    // Screen for setting up a Pong tournament.
@@ -98,7 +105,8 @@ let singleMatchModeBtn: HTMLButtonElement,     // Button to select 1v1 Pong mode
     t_backToMainBtn: HTMLButtonElement,        // Button to go back to main menu from tournament setup.
     matchOver_MainMenuBtn: HTMLButtonElement,  // Button to go to main menu from match over screen.
     tournamentEnd_MainMenuBtn: HTMLButtonElement, // Button to go to main menu from tournament winner screen.
-    startNewTournamentBtn: HTMLButtonElement;  // Button to start a new tournament from tournament winner screen.
+    startNewTournamentBtn: HTMLButtonElement,  // Button to start a new tournament from tournament winner screen.
+    logoutBtn: HTMLButtonElement;              // Button to logout user
 
 // NEW: Add variables for the power-up checkboxes
 let s_enablePowerUpCheckbox: HTMLInputElement;
@@ -140,7 +148,7 @@ window.addEventListener('popstate', (event) => {
 function showScreen(screenToShow: HTMLElement | HTMLCanvasElement | null) {
     // List all possible screen elements.
     const allScreens = [
-        initialChoiceScreen, gameSetupScreen, fourPlayerMatchSetupScreen, tournamentSetupScreen,
+        loginScreen, initialChoiceScreen, gameSetupScreen, fourPlayerMatchSetupScreen, tournamentSetupScreen,
         rulesScreen, pongCanvas, matchOverScreen, tournamentWinnerScreen, matchAnnouncementScreen
     ];
     // Iterate through all screens and set their display style to 'none' to hide them.
@@ -150,7 +158,7 @@ function showScreen(screenToShow: HTMLElement | HTMLCanvasElement | null) {
 
     // If a screen is specified, set its display style based on its type or ID.
     if (screenToShow) {
-        if (['initialChoiceScreen', 'matchOverScreen', 'tournamentWinnerScreen', 'matchAnnouncementScreen'].includes(screenToShow.id)) {
+        if (['loginScreen', 'initialChoiceScreen', 'matchOverScreen', 'tournamentWinnerScreen', 'matchAnnouncementScreen'].includes(screenToShow.id)) {
             // These screens are typically centered and should use 'flex' display.
             screenToShow.style.display = 'flex';
         } else {
@@ -187,6 +195,59 @@ function navigateTo(screenId: string | null, replaceState: boolean = false) {
     } else if (screenId !== 'pongCanvas') { // Warn if a non-canvas screen ID is not found.
         console.log(`Screen with ID "${screenId}" not found for navigation. Defaulting to initial screen.`);
         navigateTo('initialChoiceScreen', replaceState); // Fallback to initial screen.
+    }
+}
+
+/**
+ * Handle user sign-in
+ */
+function handleUserSignIn(userInfo: GoogleUserInfo): void {
+    console.log('User signed in:', userInfo);
+    currentUser = userInfo;
+    
+    // Store user data for persistence
+    localStorage.setItem('googleUser', JSON.stringify(userInfo));
+    
+    // Update the user profile section in the main menu
+    updateUserProfile(userInfo);
+    
+    // Navigate to the main menu
+    navigateTo('initialChoiceScreen', true);
+}
+
+/**
+ * Handle user logout
+ */
+function handleUserLogout(): void {
+    console.log('User logging out');
+    currentUser = null;
+    
+    // Clear user profile
+    const userProfile = document.getElementById('userProfile');
+    if (userProfile) {
+        userProfile.innerHTML = '';
+    }
+    
+    // Navigate back to login screen and clear history
+    navigateTo('loginScreen', true);
+    
+    // Clear any stored authentication data
+    localStorage.removeItem('googleUser');
+    sessionStorage.removeItem('googleUser');
+}
+
+/**
+ * Update the user profile section in the main menu
+ */
+function updateUserProfile(userInfo: GoogleUserInfo): void {
+    const userProfile = document.getElementById('userProfile');
+    if (userProfile) {
+        const displayName = userInfo.given_name || userInfo.name;
+        userProfile.innerHTML = `
+            <img src="${userInfo.picture}" alt="Profile" class="w-12 h-12 rounded-full mb-2"/>
+            <h3 class="text-sm font-semibold">Welcome, ${displayName}</h3>
+            <p class="text-xs text-gray-400">${userInfo.email}</p>
+        `;
     }
 }
 
@@ -261,12 +322,13 @@ function validatePlayerName(name: string, playerNameLabel: string, maxLength: nu
     return true; // Name is valid.
 }
 
-// --- DOM Content Loaded Event Listener ---
-// This code runs once the entire HTML document has been fully loaded and parsed.
-window.addEventListener('DOMContentLoaded', () => {
+  // --- DOM Content Loaded Event Listener ---
+  // This code runs once the entire HTML document has been fully loaded and parsed.
+  window.addEventListener('DOMContentLoaded', async () => {
     // --- Get References to UI Elements ---
     // Assign HTML elements to their corresponding JavaScript variables using their IDs.
     // This process links the JavaScript logic to the actual structure of the web page.
+    loginScreen = document.getElementById('loginScreen') as HTMLElement;
     initialChoiceScreen = document.getElementById('initialChoiceScreen') as HTMLElement;
     gameSetupScreen = document.getElementById('gameSetup') as HTMLElement;
     fourPlayerMatchSetupScreen = document.getElementById('fourPlayerMatchSetupScreen') as HTMLElement;
@@ -279,6 +341,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
     // Populate the `screenElements` map for easier lookup.
     // This allows `MapsTo` function to quickly find elements by ID.
+    if (loginScreen) screenElements['loginScreen'] = loginScreen;
     if (initialChoiceScreen) screenElements['initialChoiceScreen'] = initialChoiceScreen;
     if (gameSetupScreen) screenElements['gameSetup'] = gameSetupScreen;
     if (fourPlayerMatchSetupScreen) screenElements['fourPlayerMatchSetupScreen'] = fourPlayerMatchSetupScreen;
@@ -304,12 +367,42 @@ window.addEventListener('DOMContentLoaded', () => {
     matchOver_MainMenuBtn = document.getElementById('matchOver_MainMenuBtn') as HTMLButtonElement;
     tournamentEnd_MainMenuBtn = document.getElementById('tournamentEnd_MainMenuBtn') as HTMLButtonElement;
     startNewTournamentBtn = document.getElementById('startNewTournamentBtn') as HTMLButtonElement;
+    logoutBtn = document.getElementById('logoutBtn') as HTMLButtonElement;
 
     // NEW: Get references to power-up checkboxes
     s_enablePowerUpCheckbox = document.getElementById('s_enablePowerUp') as HTMLInputElement;
     fp_enablePowerUpCheckbox = document.getElementById('fp_enablePowerUp') as HTMLInputElement;
     t_enablePowerUpCheckbox = document.getElementById('t_enablePowerUp') as HTMLInputElement;
 
+    // Initialize Google Authentication Service
+    googleAuth = new GoogleAuthService(
+      '7809703255-qi8o1tg84etjq7rkjm2odjf9642sgpk1.apps.googleusercontent.com',
+      handleUserSignIn
+    );
+    await googleAuth.initialize(); // Initialize Google Sign-In button
+    
+    // Check if user is already authenticated
+    const storedUser = localStorage.getItem('googleUser') || sessionStorage.getItem('googleUser');
+    if (storedUser) {
+      try {
+        currentUser = JSON.parse(storedUser);
+        if (currentUser) {
+          updateUserProfile(currentUser);
+          navigateTo('initialChoiceScreen', true);
+        }
+      } catch (error) {
+        console.error('Error parsing stored user data:', error);
+        localStorage.removeItem('googleUser');
+        sessionStorage.removeItem('googleUser');
+        currentUser = null;
+      }
+    }
+    
+    // Render the Google Sign-In button
+    const googleBtnContainer = document.getElementById('googleBtnContainer');
+    if (googleBtnContainer && googleAuth) {
+      await googleAuth.renderButton(googleBtnContainer);
+    }
 
     // --- Game Instance Initialization ---
     // Initialize the Pong game instance. This sets up the canvas and links to relevant UI elements
@@ -349,6 +442,9 @@ window.addEventListener('DOMContentLoaded', () => {
     if (tournamentEnd_MainMenuBtn) tournamentEnd_MainMenuBtn.onclick = () => navigateTo('initialChoiceScreen');
     if (startNewTournamentBtn) startNewTournamentBtn.onclick = () => navigateTo('tournamentSetupScreen'); // Allows starting a new tournament directly.
 
+    // Logout button
+    if (logoutBtn) logoutBtn.onclick = () => handleUserLogout();
+
 
     // --- Browser History (popstate) Handling ---
     // Listen for `popstate` events, which occur when the user navigates through browser history
@@ -378,7 +474,7 @@ window.addEventListener('DOMContentLoaded', () => {
     if (initialHash && screenElements[initialHash]) {
         navigateTo(initialHash, true); // Navigate to the screen specified in the URL hash, replacing initial history entry.
     } else {
-        navigateTo('initialChoiceScreen', true); // Default to the initial choice screen, replacing initial history.
+        navigateTo('loginScreen', true); // Default to the login screen, replacing initial history.
     }
 
     // --- Form Submission Handlers ---
@@ -648,14 +744,15 @@ window.addEventListener('DOMContentLoaded', () => {
     // --- Critical UI Element Check ---
     // Define a list of IDs for critical HTML elements that must be present for the application to function.
     const criticalElementIds: string[] = [
-        'initialChoiceScreen', 'gameSetup', 'fourPlayerMatchSetupScreen', 'tournamentSetupScreen', 'rulesScreen', 'pongCanvas',
+        'loginScreen', 'initialChoiceScreen', 'gameSetup', 'fourPlayerMatchSetupScreen', 'tournamentSetupScreen', 'rulesScreen', 'pongCanvas',
         'matchOverScreen', 'tournamentWinnerScreen', 'matchAnnouncementScreen',
         'singleMatchModeBtn', 'fourPlayerMatchModeBtn', 'tournamentModeBtn', 'readRulesBtn', 'rules_backToMainBtn',
         'settingsForm', 's_backToMainBtn', 'fourPlayerSettingsForm', 'fp_backToMainBtn', 'tournamentSettingsForm', 't_backToMainBtn',
         'matchOver_MainMenuBtn', 'tournamentEnd_MainMenuBtn', 'startNewTournamentBtn',
         'announceMatchTitleText', 'announceMatchVersusText', 'announceMatchGoBtn',
         'matchOverMessage', 'playAgainBtn', 'singleMatchOverButtons', 'tournamentMatchOverButtons', 'nextMatchBtn',
-        's_enablePowerUp', 'fp_enablePowerUp', 't_enablePowerUp' // NEW: Add power-up checkboxes to critical list
+        's_enablePowerUp', 'fp_enablePowerUp', 't_enablePowerUp',
+        'userProfile', 'logoutBtn', 'googleBtnContainer' // NEW: Add user profile, logout button, and Google button container to critical list
     ];
     
     // Iterate through the critical elements and check if they exist in the DOM.
