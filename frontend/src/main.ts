@@ -53,6 +53,7 @@ import { Tournament } from './Tournament'; // Imports the tournament management 
 import { PlayerConfig, MatchSettings, TournamentSetupInfo, FourPlayerMatchSettings } from './interfaces'; // Imports data structures for player, match, and tournament configurations.
 import { GoogleAuthService } from './googleAuthService'; // Imports Google authentication service
 import { GoogleUserInfo } from './authTypes'; // Imports authentication types
+import './translation'; // Imports the translation module
 // FormValidationManager import removed - not implemented yet
 
 const MAX_NAME_LENGTH = 20; // Maximum allowed length for player names in Pong and Tic-Tac-Toe game modes.
